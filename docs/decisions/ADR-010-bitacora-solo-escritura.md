@@ -60,3 +60,15 @@ Aprobada por el equipo de desarrollo a partir del análisis del agente `architec
 6. **Lectura de `acceso_denegado`:** no hay ruta ni pantalla (ninguna HU la pide). El equipo la revisa con psql.
 7. **Asignación de roles administrativos:** se agrega `usuario_rol.asignado_en` (fecha, con valor por defecto) y el comando `crear_usuario_administrativo` emite un evento de aplicación con usuario y rol, nunca con autor `sistema`. No va a la bitácora administrativa (RF-37, M-03). Esto revierte la decisión previa de no agregar `asignado_en`, que se citaba como rastro pero no existía.
 8. **Barrera 3 (rol de BD con solo INSERT y SELECT): no en S1. Riesgo aceptado:** `altiro_app` es dueño de las tablas y podría desactivar los triggers. RNF-11 se cumple con la barrera 1; el trigger es defensa en profundidad. Se puede evaluar en S5 si sobra capacidad.
+
+## Enmiendas
+
+### E-1 — Lectura del historial de un expediente (CA-19.3)
+- **Fecha:** 2026-09-28.
+- **Motivo:** CA-19.3 exige que la bitácora "muestre autor, fecha, estado anterior, nuevo y motivo", y hasta ahora ninguna ruta la exponía. Propuesta del S2, D-9.
+- **Cambio:**
+  - Se agrega **un único GET de solo lectura** con el historial de un expediente y de sus documentos. Solo lo usa curatoría, y quien consulta no puede ser el dueño del expediente (ADR-011, E-2).
+  - Sigue sin haber rutas de escritura ni de borrado (RNF-11).
+  - La prueba "ninguna ruta expone la bitácora" se reescribe de forma explícita para verificar tres cosas: no hay escritura sobre la bitácora, el historial es solo GET y ninguna ruta lee `acceso_denegado`.
+  - El maestro no lee la bitácora (M-03). Ve el estado y el motivo guardados en su expediente y en sus documentos, sin el nombre de quien revisó.
+- **Aprobación:** equipo de desarrollo, 2026-09-28.

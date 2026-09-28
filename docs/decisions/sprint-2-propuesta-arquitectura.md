@@ -1,6 +1,6 @@
 # Propuesta de arquitectura — Sprint 2: expediente del maestro y curatoría
 
-- Estado: **Borrador**. Pendiente de las decisiones del equipo ([DECIDE EQUIPO]) y de la validación del representante del producto ([VALIDA REPRESENTANTE]).
+- Estado: **Borrador — decisiones D-1 a D-13 aprobadas por el equipo de desarrollo el 2026-09-28** (ADR-015, ADR-016, ADR-017, ADR-010 E-1 y ADR-011 E-2; D-6 en ADR-016; D-12 y D-13 sin ADR). Los puntos [VALIDA REPRESENTANTE] están en `docs/alcance/preguntas-representante-s2.md`.
 - Fecha: 2026-09-28.
 - Preparado por: agente `architect`, sobre el commit `ef4be30` (Sprint 1 cerrado).
 - Alcance (informe §5.3.5): "Expediente del maestro y curatoría, con RF-04, RF-08 y RF-32 a RF-35, más RNF-25, RNF-13 a RNF-17 y RNF-20". Incremento esperado: "Verificación documental funcionando de extremo a extremo".

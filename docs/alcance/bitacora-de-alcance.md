@@ -23,6 +23,11 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | DA-09 | Reautenticación de RNF-09 | Según decisión de alcance | Pendiente de decisión |
 | DA-10 | Uso de la bitácora desde S2 | S2 | Adelanto (definitivo) |
 | DA-11 | RNF-23 sin medir en equipo limpio | Medido el 2026-09-28 (47 s); confirmar en el laboratorio | Temporal (cerrado) |
+| DA-12 | RF-34, CA-24.1 y CA-24.3 (servicios) pasan a S3 | S3 | Temporal |
+| DA-13 | CA-24.4 pasa a S4 | S4 | Temporal |
+| DA-14 | Evidencia de RNF-25 pasa a S3 y S4 | S3 y S4 | Temporal |
+| DA-15 | Adelanto: catálogo mínimo de oficios (S3 → S2) | S2 | Adelanto |
+| DA-16 | Adelanto: planificador (S4 → S2) | S2 | Adelanto |
 
 ## Registros
 
@@ -125,3 +130,52 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 - **Estado (2026-09-28): cerrado con evidencia del equipo de desarrollo.** 47 s en un motor Docker sin caché (`docs/testing/rnf-23-medicion.md`). Queda recomendado confirmarlo en un equipo del laboratorio.
 - **Autorización:** equipo de desarrollo.
 - **Relacionado:** RNF-23.
+
+## Sprint 2
+
+Origen: `docs/decisions/sprint-2-propuesta-arquitectura.md`, §8, y las decisiones aprobadas por el equipo el 2026-09-28 (ADR-016 y ADR-017). Alcance comprometido del Sprint 2 (informe §5.3.5): "Expediente del maestro y curatoría, con RF-04, RF-08 y RF-32 a RF-35, más RNF-25, RNF-13 a RNF-17 y RNF-20".
+
+### DA-12 — RF-34, CA-24.1 y la parte de servicios de CA-24.3 pasan a S3
+- **Fecha:** 2026-09-28 (aprobación de la propuesta del S2 y de ADR-017).
+- **Alcance original:** RF-34 en S2: "desactivar automáticamente los servicios de oficios regulados cuando la licencia asociada deja de estar vigente".
+- **Cambio:** en S2 se entrega la regla única de vigencia y habilitación del oficio (`oficio_habilitado`) y la tarea programada. La desactivación de servicios se completa en S3, cuando existan los servicios (RF-05, HU-12).
+- **Motivo:** los servicios del maestro no existen hasta S3.
+- **Impacto:** RF-34, CA-24.1 y CA-24.3 (en la parte de servicios) no se cierran en S2.
+- **Autorización:** equipo de desarrollo.
+- **Relacionado:** RF-34, RF-05, HU-12, HU-24, CA-24.1, CA-24.3; ADR-017.
+
+### DA-13 — CA-24.4 pasa a S4
+- **Fecha:** 2026-09-28.
+- **Alcance original:** CA-24.4, trazado a HU-24 del S2.
+- **Cambio:** se demuestra en S4, con la búsqueda (RF-09 a RF-11).
+- **Motivo:** la búsqueda no existe hasta S4.
+- **Impacto:** HU-24 no se cierra completa en S2.
+- **Autorización:** equipo de desarrollo.
+- **Relacionado:** CA-24.4, HU-24, RF-09.
+
+### DA-14 — La evidencia de RNF-25 pasa a S3 y S4
+- **Fecha:** 2026-09-28.
+- **Alcance original:** RNF-25 en S2: "Ningún servicio de gas o electricidad queda visible sin licencia vigente asociada".
+- **Cambio:** en S2 se entregan RF-33 y la regla de habilitación, con pruebas unitarias. La evidencia del umbral (servicio visible o no) se cierra en S3 (servicios) y en S4 (búsqueda).
+- **Motivo:** sin servicios ni búsqueda no hay nada "visible" que verificar.
+- **Impacto:** RNF-25 queda como "infraestructura preparada / evidencia final pendiente". Es un desplazamiento temporal, no un recorte.
+- **Autorización:** equipo de desarrollo.
+- **Relacionado:** RNF-25, RF-33, NTI-01; ADR-017.
+
+### DA-15 — Adelanto: catálogo mínimo de oficios de S3 a S2
+- **Fecha:** 2026-09-28 (ADR-017, punto 1).
+- **Alcance original:** el catálogo de oficios corresponde al S3 (RF-36, administrable por el área comercial).
+- **Cambio:** en S2 se carga una tabla `oficio` de solo lectura desde un CSV (código, nombre, regulado), sin administración. RF-36 sigue en S3.
+- **Motivo:** RF-33 (S2) necesita saber qué oficios son regulados.
+- **Impacto:** adelanta datos, no funcionalidad. Los seis oficios no regulados son un supuesto a validar.
+- **Autorización:** equipo de desarrollo; los nombres de los oficios están pendientes del representante del producto.
+- **Relacionado:** RF-33, RF-36, RNF-25; ADR-017.
+
+### DA-16 — Adelanto: planificador de S4 a S2
+- **Fecha:** 2026-09-28 (ADR-016).
+- **Alcance original:** el planificador estaba previsto para S4 (DA-06).
+- **Cambio:** el servicio `planificador` llega en S2 para la "revisión diaria" de RF-35 y CA-24.2. También ejecuta la purga de `acceso_denegado`, lo que **cierra DA-06** cuando se implemente.
+- **Motivo:** RF-35 está comprometido en S2.
+- **Impacto:** un contenedor más; se vuelven a verificar RNF-04 y RNF-23.
+- **Autorización:** equipo de desarrollo.
+- **Relacionado:** RF-35, CA-24.2, M-08; ADR-016, DA-06.

@@ -42,3 +42,13 @@ Aprobada por el equipo de desarrollo a partir del análisis del agente `architec
 - **Motivo:** asegurar que cada denegación deje exactamente una fila en `acceso_denegado` (punto 3 de «Decisión»).
 - **Cambio:** el 403 por `RolRequerido` nunca lleva la cabecera `AlTiro-Rechazo` (ADR-006, E-1), y el cliente no lo reintenta. El comportamiento del servidor no cambia.
 - **Aprobación:** equipo de desarrollo, 2026-09-28.
+
+### E-2 — Conflicto de interés (CA-19.4)
+- **Fecha:** 2026-09-28.
+- **Motivo:** ADR-011 cubre el recurso ajeno (404) y la falta de rol (403). No cubre al dueño que tiene el rol y actúa sobre su propio recurso. Propuesta del S2, D-8.
+- **Cambio:**
+  - `obtener_autorizado` evalúa `Politica.conflicto(usuario, objeto)` antes que `permite`.
+  - Si hay conflicto, responde **403** con un mensaje accionable ("No puedes revisar ni resolver tu propio expediente. Otra persona de curatoría debe hacerlo.") y registra la denegación en `acceso_denegado` (entidad `expediente` o `documento`).
+  - Desde las rutas de curatoría también se deniega la lectura del propio expediente, que además queda fuera de la cola. El dueño lo consulta por sus propias rutas.
+  - El 403 de conflicto no lleva `AlTiro-Rechazo` y no se reintenta (E-1).
+- **Aprobación:** equipo de desarrollo, 2026-09-28.
