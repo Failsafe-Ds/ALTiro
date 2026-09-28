@@ -111,18 +111,18 @@ un usuario con rol `curatoria` y perfil `maestro` no puede cambiar el estado de 
 
 ## Decisiones abiertas
 
-No asumir como resuelto ningún punto todavía abierto en ADR-007, ADR-012 o ADR-013.
+Consulta el estado vigente de cada ADR en `docs/decisions/README.md`; no asumas el estado que recuerdes.
 
-En particular, no decidir por cuenta propia:
+ADR-013 está Aceptada (con sus Enmiendas): identificador de login, unicidad de correo y teléfono, política de contraseña, roles múltiples y la exclusión de recuperación de contraseña y verificación de correo ya están decididos. Aplícalos tal como están escritos, incluidas las enmiendas.
 
-- identificador de login;
-- unicidad de teléfono;
-- unicidad de correo;
-- política de contraseña;
-- recuperación de contraseña;
-- verificación de correo;
-- semántica exacta del bloqueo de autenticación;
-- alcance territorial nacional o regional.
+No asumir como resuelto ningún punto de un ADR en Borrador. En particular, no decidir por cuenta propia:
+
+- algoritmo y parámetros del hash de contraseñas (ADR-004);
+- duración, expiración y rotación de la sesión (ADR-005);
+- semántica exacta del bloqueo de autenticación (ADR-007);
+- bitácora y registro de accesos denegados (ADR-010);
+- identificadores públicos y respuesta ante acceso denegado (ADR-011);
+- catálogo territorial y alcance nacional o regional (ADR-012).
 
 Si una tarea depende de alguno de estos puntos, informa el bloqueo antes de escribir código.
 

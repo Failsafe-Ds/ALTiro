@@ -30,6 +30,11 @@
 7. **Limpieza de registros.** S1 no tiene planificador de tareas: hacerla al insertar un intento o posponerla al planificador de S4. Definir el plazo.
 8. **Respuestas 400.** Definir si un intento rechazado con 400 (campo ausente o identificador con formato inválido, ADR-013, punto 4) cuenta como fallo, y confirmar que el 401 sí cuenta.
 
+## Verificación de la pregunta 5 (2026-09-28)
+- Entorno: Windows 11, Docker Engine 29.8.0 (Docker Desktop), stack de `docker-compose.yml`, peticiones desde el mismo equipo a `https://127.0.0.1/`.
+- Resultado: Nginx registra como origen `172.19.0.1` (gateway de la red de Docker), no la IP del cliente. Además, la plantilla de Nginx todavía no envía `X-Real-IP`.
+- Consecuencia: en este entorno, una clave de conteo **solo por IP** agrupa a todos los clientes que entran por el host, y 5 fallos de cualquiera bloquearían a todos. No se verificó aún el acceso desde teléfonos de la red local (`ALTIRO_BIND_ADDR`). Este resultado favorece la opción del par (IP, HMAC del identificador) de la pregunta 4; la decisión sigue siendo del equipo.
+
 ## Alternativas consideradas
 - **django-axes**: suma una dependencia.
 - **Redis**: suma un contenedor.
