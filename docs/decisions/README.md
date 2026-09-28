@@ -38,7 +38,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | [ADR-014](ADR-014-herramienta-pruebas.md) | Herramienta de pruebas | Aceptada (2026-09-27) |
 | [ADR-015](ADR-015-documentos-almacenamiento-cifrado.md) | Documentos: almacenamiento, cifrado y validación | Aceptada (2026-09-28) |
 | [ADR-016](ADR-016-planificador-avisos.md) | Planificador de tareas y avisos | Aceptada (2026-09-28) |
-| [ADR-017](ADR-017-expediente-oficios.md) | Expediente, revisión de documentos y catálogo mínimo de oficios | Aceptada (2026-09-28); oficios y obligatorios a validar con el representante |
+| [ADR-017](ADR-017-expediente-oficios.md) | Expediente, revisión de documentos y catálogo mínimo de oficios | Aceptada (2026-09-28); oficios y obligatorios a validar con el representante; Enmiendas E-1 y E-2 (2026-09-28) |
 
 ## Plantilla
 

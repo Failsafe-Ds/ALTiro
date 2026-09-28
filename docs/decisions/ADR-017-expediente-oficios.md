@@ -41,3 +41,26 @@
 ## Pendiente — [VALIDA REPRESENTANTE]
 - Nombres de los ocho oficios, y si "gasfitería" es regulada o solo lo es "gas".
 - Documentos obligatorios, reactivación de un expediente suspendido y rechazo terminal (el RUT es único: CA-11.3).
+
+## Enmiendas
+
+### E-1 — Renovación de una licencia en un expediente aprobado
+- **Fecha:** 2026-09-28.
+- **Motivo:** la implementación del incremento 2 mostró que, si un maestro aprobado sube una licencia SEC nueva, la anterior validada pasa a `reemplazado`. Con eso el oficio regulado quedaría sin habilitar hasta que curatoría revisara la nueva, y renovar a tiempo suspendería al maestro. Este caso no estaba decidido.
+- **Cambio:**
+  - Una licencia `reemplazado` que estaba `validado` **sigue contando** para habilitar el oficio y para `faltantes_para_aprobar` mientras se cumplan dos condiciones:
+    - (a) sigue vigente;
+    - (b) la licencia que la reemplazó todavía no está `validado`.
+  - Cuando curatoría valida la nueva, cuenta solo la nueva.
+  - Si curatoría observa la nueva, la anterior sigue contando hasta que venza.
+  - Nunca se habilita un oficio con una licencia sin revisar (punto 4).
+  - La regla vive solo en `expediente/vigencia.py`.
+- **Aprobación:** equipo de desarrollo, 2026-09-28.
+
+### E-2 — Documentos faltantes que ve el maestro
+- **Fecha:** 2026-09-28.
+- **Motivo:** no estaba definido si un documento en revisión cuenta como entregado en la lista de faltantes que ve el maestro.
+- **Cambio:**
+  - En la vista del maestro, un documento `en_revision` u `observado` cuenta como **entregado**, y su estado se muestra aparte, por documento (RF-08, CA-17.2).
+  - La regla para aprobar no cambia: exige documentos `validado` y licencias vigentes (punto 3).
+- **Aprobación:** equipo de desarrollo, 2026-09-28.
