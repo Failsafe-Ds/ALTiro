@@ -126,7 +126,7 @@ No se encontraron otros defectos nuevos.
 ## 7. Pendientes reales antes del Sprint 2
 
 1. **DEF-QA-006** (baja, backlog): páginas de error del proxy y 400 por Host no permitido, en español y sin texto técnico, antes de que RNF-15 entre formalmente en el S2.
-2. **RNF-23** (DA-11): medir en un equipo limpio con el procedimiento de la sección 7 de `cierre-sprint-1.md`, antes de la revisión del S1.
+2. **RNF-23** (DA-11): **medido el 2026-09-28**, 47 s en un motor Docker limpio aislado (`rnf-23-medicion.md`, PASS). Pendiente solo la confirmación en un equipo del laboratorio.
 3. **Hallazgos de UX en backlog**, que no están registrados en el repositorio. Conviene incorporarlos al Product Backlog con su descripción completa del informe `ux`:
    - **M-2:** "Volver" del navegador tras cerrar sesión puede mostrar datos desde la caché. En esta QA, en Chromium, volver tras el cierre llevó a `ingresar.html?aviso=sesion` y no mostró el nombre. No se reprodujo en ese escenario; no se probaron otros navegadores ni el bfcache con pestañas en segundo plano. Sigue en backlog.
    - **M-3:** en backlog (descripción en la revisión `ux`; QA no la verificó).

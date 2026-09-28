@@ -22,7 +22,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | DA-08 | Barrera 3 de la bitácora no implementada | Evaluar en S5 | Temporal, condicionado a capacidad |
 | DA-09 | Reautenticación de RNF-09 | Según decisión de alcance | Pendiente de decisión |
 | DA-10 | Uso de la bitácora desde S2 | S2 | Adelanto (definitivo) |
-| DA-11 | RNF-23 sin medir en equipo limpio | Antes de la revisión del S1 | Temporal |
+| DA-11 | RNF-23 sin medir en equipo limpio | Medido el 2026-09-28 (47 s); confirmar en el laboratorio | Temporal (cerrado) |
 
 ## Registros
 
@@ -122,5 +122,6 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 - **Cambio:** el comando único y las instrucciones existen. Falta cronometrar en un equipo sin imágenes ni volúmenes, idealmente del laboratorio; el procedimiento está en `cierre-sprint-1.md` §7.
 - **Motivo:** el equipo de desarrollo tiene imágenes en caché, así que la medición ahí no es válida.
 - **Impacto:** RNF-23 queda BLOCKED hasta la medición.
+- **Estado (2026-09-28): cerrado con evidencia del equipo de desarrollo.** 47 s en un motor Docker sin caché (`docs/testing/rnf-23-medicion.md`). Queda recomendado confirmarlo en un equipo del laboratorio.
 - **Autorización:** equipo de desarrollo.
 - **Relacionado:** RNF-23.
