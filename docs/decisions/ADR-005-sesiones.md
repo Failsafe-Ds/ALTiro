@@ -1,6 +1,6 @@
 # ADR-005 — Manejo de sesiones
 
-- Estado: **Borrador** (pendiente de revisión final del equipo)
+- Estado: **Aceptada** — 2026-09-28, aprobada por el equipo de desarrollo.
 - Fecha: 2026-09-27
 - Relacionado con: RF-02, RNF-09, RF-18
 
@@ -24,3 +24,11 @@ Depende de la pregunta de alcance sobre las funciones de cambio de contraseña y
 
 ## Pendiente
 - Definir qué cuenta como "actividad". Propuesta: solo peticiones iniciadas por el usuario. Si en S4 se agregan consultas periódicas de notificaciones (RF-18), no deben renovar la sesión, o la mantendrían viva indefinidamente.
+
+## Decisión (2026-09-28)
+Se aprueba la propuesta tal como está:
+- Sesiones en base de datos (`django.contrib.sessions`), cookie `HttpOnly`, `Secure`, `SameSite=Lax`.
+- Expiración deslizante por inactividad de 1800 s, configurable con `ALTIRO_SESION_INACTIVIDAD_SEGUNDOS`.
+- Rotación del ID de sesión al iniciar sesión.
+- **Actividad**: solo cuentan las peticiones iniciadas por el usuario. Hoy todas lo son; si en S4 se agregan consultas periódicas (RF-18), no deben renovar la sesión.
+- Implementación: como `django.contrib.auth` no está instalada (ADR-001), el inicio y la verificación de la sesión los hace `identidad.sesion`, que guarda el id del usuario y `get_session_auth_hash()` en la sesión y la invalida si el hash deja de coincidir.

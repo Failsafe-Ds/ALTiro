@@ -1,6 +1,6 @@
 # ADR-007 — Limitación de intentos de autenticación
 
-- Estado: **Borrador** — no aprobar hasta resolver las preguntas abiertas
+- Estado: **Aceptada** — 2026-09-28, aprobada por el equipo de desarrollo (ver «Decisión»).
 - Fecha: 2026-09-27
 - Relacionado con: RNF-10, R-03, M-07, M-08
 
@@ -38,3 +38,16 @@
 ## Alternativas consideradas
 - **django-axes**: suma una dependencia.
 - **Redis**: suma un contenedor.
+
+## Decisión (2026-09-28)
+Respuestas del equipo a las preguntas abiertas:
+1. **Duración:** bloqueo fijo de 15 minutos contados desde el quinto fallo que ocurre dentro de 15 minutos.
+2. **429:** los intentos rechazados por bloqueo no cuentan como fallos.
+3. **Inicio de sesión exitoso:** no reinicia el contador.
+4. **Clave de conteo:** el par (origen, HMAC del identificador normalizado) para la regla 5 en 15 minutos, más un tope por origen de 20 fallos en 15 minutos (bloqueo de 15 minutos desde el vigésimo fallo). El limitador no guarda el correo ni el RUT en claro.
+5. **IP real:** Nginx envía `X-Real-IP`; la aplicación solo la usa si `ALTIRO_CONFIAR_X_REAL_IP=true` (solo se activa en `docker-compose.yml`, donde la aplicación solo es accesible desde el proxy por la red interna). Ver «Verificación de la pregunta 5».
+6. **Reautenticación:** no aplica; no hay funciones de cambio de contraseña ni de correo.
+7. **Limpieza:** al registrar un fallo se eliminan los registros de más de 24 horas.
+8. **Respuestas 400:** no cuentan como fallo. El 401 sí cuenta.
+
+Tabla `intento_autenticacion(origen, clave, fecha)`: solo guarda fallos 401. Nunca se deshabilita la cuenta (M-07) y el limitador no lee `acceso_denegado` (M-08).

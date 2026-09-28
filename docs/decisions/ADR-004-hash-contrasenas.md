@@ -1,6 +1,6 @@
 # ADR-004 — Hash de contraseñas
 
-- Estado: **Borrador** (pendiente de revisión final del equipo)
+- Estado: **Aceptada** — 2026-09-28, aprobada por el equipo de desarrollo.
 - Fecha: 2026-09-27
 - Relacionado con: RNF-04, RNF-05, R-03
 
@@ -19,3 +19,10 @@ Los valores por defecto del hasher de Django usan del orden de 100 MiB por verif
 
 ## Pendiente
 - Registrar aquí los parámetros finales (memoria, iteraciones, paralelismo) tras medir en el equipo de demostración.
+
+## Decisión (2026-09-28)
+- **Argon2id** con `argon2-cffi` 25.1.0 (dependencias fijadas en `backend/requirements.txt`), como único hasher configurado en `PASSWORD_HASHERS`.
+- Parámetros: `memory_cost=65536` (64 MiB), `time_cost=3`, `parallelism=1`.
+- Medición (2026-09-28, equipo de desarrollo, Windows 11 con Docker Desktop, imagen `python:3.13.15-slim-bookworm`, promedio de 10 verificaciones): 135 ms por verificación. Otras combinaciones medidas: 19 MiB/t=2: 18 ms; 46 MiB/t=1: 44 ms; 64 MiB/t=2: 98 ms.
+- Memoria: con 2 workers síncronos de gunicorn hay como máximo 2 verificaciones simultáneas (unos 128 MiB), dentro del techo de 2 GB de RNF-04. Si se aumentan los workers, revisar este cálculo.
+- Si cambian los parámetros, Django recalcula el hash al siguiente inicio de sesión correcto.

@@ -155,7 +155,7 @@ Cuando entre en alcance, verificar:
 - cookies seguras;
 - respuestas genéricas que no permitan enumeración indebida.
 
-No fijar la semántica exacta de una decisión que siga en Borrador (hoy ADR-004, ADR-005 y ADR-007; consulta `docs/decisions/README.md`). ADR-013 está Aceptada con sus Enmiendas: verifica contra ella. El plan de pruebas vigente es `docs/testing/plan-identidad-sprint-1.md`.
+No fijar la semántica exacta de una decisión que siga en Borrador; consulta su estado vigente en `docs/decisions/README.md`. Los ADR Aceptados se verifican tal como están escritos, incluidas sus Enmiendas y su sección «Decisión». El plan de pruebas vigente es `docs/testing/plan-identidad-sprint-1.md`.
 
 ## Base de datos
 

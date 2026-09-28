@@ -113,16 +113,9 @@ un usuario con rol `curatoria` y perfil `maestro` no puede cambiar el estado de 
 
 Consulta el estado vigente de cada ADR en `docs/decisions/README.md`; no asumas el estado que recuerdes.
 
-ADR-013 está Aceptada (con sus Enmiendas): identificador de login, unicidad de correo y teléfono, política de contraseña, roles múltiples y la exclusión de recuperación de contraseña y verificación de correo ya están decididos. Aplícalos tal como están escritos, incluidas las enmiendas.
+Un ADR Aceptado se aplica tal como está escrito, incluidas sus Enmiendas y su sección «Decisión».
 
-No asumir como resuelto ningún punto de un ADR en Borrador. En particular, no decidir por cuenta propia:
-
-- algoritmo y parámetros del hash de contraseñas (ADR-004);
-- duración, expiración y rotación de la sesión (ADR-005);
-- semántica exacta del bloqueo de autenticación (ADR-007);
-- bitácora y registro de accesos denegados (ADR-010);
-- identificadores públicos y respuesta ante acceso denegado (ADR-011);
-- catálogo territorial y alcance nacional o regional (ADR-012).
+No asumir como resuelto ningún punto de un ADR en Borrador ni de una pregunta abierta de la propuesta del sprint (por ejemplo: bitácora y accesos denegados, respuesta 403/404 ante acceso denegado, reautenticación, funciones de cambio de contraseña o correo). No decidas esos puntos por tu cuenta.
 
 Si una tarea depende de alguno de estos puntos, informa el bloqueo antes de escribir código.
 
