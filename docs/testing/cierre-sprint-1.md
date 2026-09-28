@@ -145,6 +145,7 @@ Clasificación: PASS, FAIL, BLOCKED o NOT IN SCOPE. Para lo que el diseño cierr
 - **Observado:** vuelve al paso 1 con "Revisa los campos marcados." y, en nombre y correo (o contraseña), "Este dato no corresponde aquí: quítalo e inténtalo de nuevo.". La persona no puede quitar esos campos y no sabe qué hacer. No se crea ni se modifica nada (el backend se comporta según E-2).
 - **Evidencia:** `qa_ui.py`, casos `[registro con sesión]` y `[postulación con sesión]`.
 - **Área:** frontend (detectar la sesión con `GET /api/cuenta` y derivar a `cuenta.html`); revisión de `ux`.
+- **Estado (2026-09-28): corregido en `6a10c27`.** Verificado en `docs/testing/saneamiento-sprint-1.md` (punto B).
 
 ### DEF-QA-002 — Si la sesión termina en "Mi cuenta", el error pide datos que no existen en la pantalla
 - **Afecta:** RF-02, RNF-09, RNF-15; propuesta §6 ("El frontend, al recibir 401, avisa y conserva lo escrito"); hueco HQ-18 del plan, todavía abierto.
@@ -155,6 +156,7 @@ Clasificación: PASS, FAIL, BLOCKED o NOT IN SCOPE. Para lo que el diseño cierr
 - **Observado:** como `POST /api/maestros/postulaciones` es pública, el servidor trata la petición como de visitante y responde 400. La pantalla muestra "Revisa los campos marcados. Ingresa tu nombre. Ingresa una contraseña." y un error de teléfono en un campo oculto. No se crea nada (PI-291 pasa).
 - **Evidencia:** `qa_ui.py`, caso `[sesión terminada, agregar maestro]`.
 - **Área:** frontend (comprobar la sesión antes de enviar, o ante 400 con campos que el formulario no tiene). Si se prefiere una señal del servidor, lo decide `architect` (HQ-18).
+- **Estado (2026-09-28): corregido en `6a10c27`.** Verificado en `docs/testing/saneamiento-sprint-1.md` (punto C).
 
 ### DEF-QA-003 — "Cerrar sesión" sin conexión deja la sesión abierta sin avisar
 - **Afecta:** RF-02 ("permitir el cierre de sesión"); teléfonos compartidos (ADR-002).
@@ -165,6 +167,7 @@ Clasificación: PASS, FAIL, BLOCKED o NOT IN SCOPE. Para lo que el diseño cierr
 - **Observado:** `cuenta.js` ignora el resultado de `DELETE /api/sesion` y navega a `index.html`, que sin conexión muestra la página de error del navegador. Con la conexión de vuelta, `/api/cuenta` responde 200 y el inicio ofrece "Ir a mi cuenta".
 - **Evidencia:** `qa_ui.py`, caso `[cerrar sesión sin conexión]`.
 - **Área:** frontend.
+- **Estado (2026-09-28): corregido en `6a10c27`.** Verificado en `docs/testing/saneamiento-sprint-1.md` (punto D).
 
 ### DEF-QA-004 — PostgreSQL registra la sentencia completa, con el hash y datos personales, cuando falla una restricción
 - **Afecta:** CLAUDE.md §8 (registros sin secretos ni datos personales innecesarios); RNF-05 (el hash es material de ataque fuera de línea); R-03.
@@ -174,18 +177,21 @@ Clasificación: PASS, FAIL, BLOCKED o NOT IN SCOPE. Para lo que el diseño cierr
 - **Observado:** `docker compose logs db` muestra `STATEMENT: INSERT INTO "usuario" ("password", …) VALUES ('argon2$argon2id$v=19$m=65536,t=3,p=1$…', NULL, 'Ana Prueba', '+56910000002', 'a@example.com')` y `DETAIL: Key (correo)=(…) already exists.` (5 casos en la base de pruebas, datos ficticios). La cuenta perdedora se revierte, pero su hash queda en el registro.
 - **Evidencia:** `docker compose logs db`, líneas `STATEMENT` de las 12:26 a las 12:36 UTC del 2026-09-28.
 - **Área:** infraestructura (configuración de `db`, por ejemplo `log_min_error_statement` y `log_error_verbosity`). La decisión de qué registrar la toma `architect`.
+- **Estado (2026-09-28): corregido en `ff323ad`** (ADR-003, Enmienda E-1). Verificado en `docs/testing/saneamiento-sprint-1.md` (punto E). Queda un caso análogo del lado de la aplicación: DEF-QA-007, en ese mismo informe.
 
 ### DEF-QA-005 — README y propuesta del S1 describen como pendiente lo que ya está implementado
 - **Afecta:** RNF-23 ("instrucciones escritas junto al código"); trazabilidad (CLAUDE.md §15).
 - **Severidad:** baja.
 - **Observado:** `README.md` dice "Pendiente del sprint: bitácora, respuesta ante acceso denegado y reautenticación". La línea "Estado de implementación" de la propuesta del S1 menciona ADR-010 y ADR-011 "en Borrador" y lista como pendientes `@requiere_rol`, `obtener_autorizado`, los enlaces firmados y `assert_campos_ausentes`. Todo eso está en el commit `3a18002` y ambas ADR están Aceptadas. La reautenticación sí sigue pendiente.
 - **Área:** implementador o documentación (la propuesta la actualiza su autor; QA no la modifica).
+- **Estado (2026-09-28): corregido en `b6dea6d`.**
 
 ### DEF-QA-006 — Las páginas de error del proxy y el 400 por Host no permitido son técnicas y en inglés
 - **Afecta:** CLAUDE.md §9 ("ningún error debe mostrar códigos internos al usuario"); RNF-15 (S2).
 - **Severidad:** baja.
 - **Observado:** una ruta estática inexistente muestra la página de Nginx "404 Not Found / nginx"; un cuerpo mayor de 1 MB, "413 Request Entity Too Large"; un Host no permitido, "Bad Request (400)" en HTML de Django. Dentro de los formularios no afecta: `api.js` convierte una respuesta ilegible en un mensaje en español.
 - **Área:** infraestructura (`error_page` en Nginx) o backend. Prioridad baja.
+- **Estado (2026-09-28): abierto.** Sigue presente en `e776b70` (ver `docs/testing/saneamiento-sprint-1.md`, sección 6).
 
 ### OBS-01 — Fila manual en la bitácora de la base principal (uso indebido del autor `sistema`)
 - **Hecho:** durante el despliegue del 2026-09-28 se insertó a mano, en la base principal, `bitacora.id = 1`: fecha 2026-09-28 13:53:57 UTC, `autor_tipo = 'sistema'`, `autor_id` NULL, `accion = 'verificacion'`, `entidad = 'despliegue'`, `entidad_ref = '0'`, `motivo = 'verificación de triggers'`. Además, `docker compose logs db` registra a las 13:55:40 dos intentos rechazados por `bitacora_autor_coherente`.
