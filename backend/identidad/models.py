@@ -12,7 +12,8 @@ correo (E-6): lo normaliza el servicio. Los invariantes que cruzan tablas (rol <
 cada perfil, cuenta sin correo => perfil_maestro) se verifican en
 ``identidad.servicios`` dentro de la misma transacción.
 
-No se modelan estados de cuenta (ADR-013, punto 1.7) ni sesiones (ADR-005).
+No se modelan estados de cuenta (ADR-013, punto 1.7). Las sesiones las guarda
+``django.contrib.sessions`` (ADR-005).
 """
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.db import models
@@ -24,6 +25,7 @@ from identidad.validadores import (
     RUT_LARGO_MAXIMO,
     TELEFONO_LARGO_MAXIMO,
 )
+from territorio.models import Comuna
 
 
 class Rol(models.TextChoices):
@@ -117,11 +119,8 @@ class UsuarioRol(models.Model):
 class PerfilCliente(models.Model):
     """Perfil de cliente (RF-01). Existe si y solo si el usuario tiene el rol cliente.
 
-    PENDIENTE (ADR-012, Borrador): RF-01 exige la comuna de una lista cerrada.
-    El catálogo territorial no está decidido, así que la columna ``comuna`` no
-    se crea aquí. Se agregará en una migración propia (FK NOT NULL) cuando se
-    acepte ADR-012; ninguna ruta crea todavía perfiles de cliente, así que no
-    habrá filas que migrar.
+    ``comuna``: de la lista cerrada del catálogo territorial (RF-01, CA-01.1,
+    ADR-012). Región y provincia se derivan de ella.
     """
 
     usuario = models.OneToOneField(
@@ -130,6 +129,9 @@ class PerfilCliente(models.Model):
         primary_key=True,
         related_name="perfil_cliente",
         db_column="usuario_id",
+    )
+    comuna = models.ForeignKey(
+        Comuna, on_delete=models.PROTECT, related_name="+", db_column="comuna_codigo"
     )
 
     class Meta:
@@ -169,3 +171,26 @@ class PerfilMaestro(models.Model):
     def __str__(self):
         # Sin el RUT: dato personal.
         return f"Perfil de maestro del usuario {self.usuario_id}"
+
+
+class IntentoAutenticacion(models.Model):
+    """Fallo de inicio de sesión (401) para el limitador (RNF-10, ADR-007).
+
+    No es la bitácora. No guarda contraseña, correo ni RUT: ``clave`` es el
+    HMAC del identificador normalizado. Solo lo lee el limitador y nunca se
+    usa para deshabilitar una cuenta (M-07, M-08).
+    """
+
+    origen = models.GenericIPAddressField()
+    clave = models.CharField(max_length=64)
+    fecha = models.DateTimeField()
+
+    class Meta:
+        db_table = "intento_autenticacion"
+        indexes = [
+            models.Index(fields=["origen", "fecha"], name="intento_origen_fecha"),
+            models.Index(fields=["fecha"], name="intento_fecha"),
+        ]
+
+    def __str__(self):
+        return f"Intento fallido {self.pk}"

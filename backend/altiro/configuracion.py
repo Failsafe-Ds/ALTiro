@@ -59,3 +59,17 @@ def leer_booleano(nombre, por_defecto):
     if valor in _FALSOS:
         return False
     raise ImproperlyConfigured(f"La variable de entorno {nombre} debe ser 'true' o 'false'.")
+
+
+def leer_entero(nombre, por_defecto):
+    """Devuelve una variable entera positiva; si no existe, ``por_defecto``."""
+    valor = os.environ.get(nombre, "").strip()
+    if not valor:
+        return por_defecto
+    try:
+        entero = int(valor)
+    except ValueError:
+        raise ImproperlyConfigured(f"La variable de entorno {nombre} debe ser un número entero.") from None
+    if entero <= 0:
+        raise ImproperlyConfigured(f"La variable de entorno {nombre} debe ser mayor que cero.")
+    return entero

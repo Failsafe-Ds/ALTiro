@@ -13,11 +13,9 @@ No son endpoints. Cada vía de creación:
 ``None`` o ``""``: todo valor recibido se valida (E-2, E-7). Nunca se
 convierte en silencio un valor recibido en NULL.
 
-Pendientes (fuera de esta capa):
-- Comuna de ``perfil_cliente``: ADR-012 en Borrador; no se recibe.
-- Contraseña: la cuenta se crea con contraseña no utilizable. La política
-  (``validadores.validar_contrasena_nueva``) y el hash (ADR-004, Borrador) se
-  conectan en RF-01/RF-03.
+Contraseña: toda cuenta nueva la recibe, se valida con la política de ADR-013
+(punto 3, E-4) y se guarda con el hasher de ADR-004. Comuna de
+``perfil_cliente``: código del catálogo territorial (ADR-012).
 """
 from django.db import IntegrityError, transaction
 
@@ -35,7 +33,9 @@ from identidad.validadores import (
     normalizar_nombre,
     normalizar_rut,
     normalizar_telefono,
+    validar_contrasena_nueva,
 )
+from territorio.servicios import buscar_comuna
 
 # Centinela: el dato no vino en la petición.
 AUSENTE = object()
@@ -43,7 +43,7 @@ AUSENTE = object()
 _MENSAJE_CORREO_EN_USO = (
     "Este correo ya está registrado. Si es tuyo, inicia sesión y agrega el perfil desde tu cuenta."
 )
-_MENSAJE_RUT_EN_USO = "Este RUT ya fue registrado. Si es tuyo, inicia sesión con él."
+_MENSAJE_RUT_EN_USO = "Ese RUT ya tiene una postulación. Si es tuyo, inicia sesión con tu RUT."  # CA-11.3
 _MENSAJES_DATO_DE_CONTACTO = {
     "telefono": (
         "Tu cuenta no tiene teléfono y este perfil lo necesita: ingrésalo para continuar.",
@@ -119,9 +119,9 @@ def _asignar_rol(usuario, rol):
     UsuarioRol.objects.create(usuario=usuario, rol=rol)
 
 
-def _crear_usuario(*, nombre, telefono, correo):
+def _crear_usuario(*, nombre, telefono, correo, contrasena):
     usuario = Usuario(nombre=nombre, telefono=telefono, correo=correo)
-    usuario.set_unusable_password()
+    usuario.set_password(contrasena)
     _guardar(usuario, force_insert=True)
     return usuario
 
@@ -178,56 +178,60 @@ def _crear_perfil_maestro(usuario, rut):
 # --- Vías de creación sin sesión (cuenta nueva) ---
 
 @transaction.atomic
-def crear_cuenta_cliente(*, nombre, telefono, correo):
-    """Cuenta nueva con ``perfil_cliente`` y rol ``cliente`` (base de RF-01).
+def crear_cuenta_cliente(*, nombre, telefono, correo, contrasena, comuna):
+    """Cuenta nueva con ``perfil_cliente`` y rol ``cliente`` (RF-01).
 
-    Correo y teléfono obligatorios. Falta la comuna (ADR-012, Borrador).
+    Nombre, teléfono, correo, contraseña y comuna obligatorios.
     """
     nombre = normalizar_nombre(nombre)
     correo = normalizar_correo(correo)
     telefono = normalizar_telefono(telefono)
+    validar_contrasena_nueva(contrasena)
+    comuna = buscar_comuna(comuna)
     _correo_libre(correo)
-    usuario = _crear_usuario(nombre=nombre, telefono=telefono, correo=correo)
-    _guardar(PerfilCliente(usuario=usuario), force_insert=True)
+    usuario = _crear_usuario(nombre=nombre, telefono=telefono, correo=correo, contrasena=contrasena)
+    _guardar(PerfilCliente(usuario=usuario, comuna=comuna), force_insert=True)
     _asignar_rol(usuario, Rol.CLIENTE)
     _exigir_invariantes(usuario)
     return usuario
 
 
 @transaction.atomic
-def crear_cuenta_maestro(*, nombre, telefono, rut, correo=AUSENTE):
-    """Cuenta nueva con ``perfil_maestro`` y rol ``maestro`` (base de RF-03).
+def crear_cuenta_maestro(*, nombre, telefono, rut, contrasena, correo=AUSENTE):
+    """Cuenta nueva con ``perfil_maestro`` y rol ``maestro`` (RF-03, paso 1).
 
-    RUT y teléfono obligatorios. Correo opcional (§3.4, E-7): ``AUSENTE`` deja
-    el correo NULL; cualquier valor recibido, incluidos ``None``, ``""`` o solo
-    espacios, se valida como correo.
+    RUT, nombre, teléfono y contraseña obligatorios. Correo opcional (§3.4,
+    E-7): ``AUSENTE`` deja el correo NULL; cualquier valor recibido, incluidos
+    ``None``, ``""`` o solo espacios, se valida como correo.
     """
     nombre = normalizar_nombre(nombre)
     rut = normalizar_rut(rut)
     correo = None if correo is AUSENTE else normalizar_correo(correo)
     telefono = normalizar_telefono(telefono)
+    validar_contrasena_nueva(contrasena)
     _rut_libre(rut)
     if correo is not None:
         _correo_libre(correo)
-    usuario = _crear_usuario(nombre=nombre, telefono=telefono, correo=correo)
+    usuario = _crear_usuario(nombre=nombre, telefono=telefono, correo=correo, contrasena=contrasena)
     _crear_perfil_maestro(usuario, rut)
     _exigir_invariantes(usuario)
     return usuario
 
 
 @transaction.atomic
-def crear_cuenta_administrativa(*, nombre, correo, roles, telefono=AUSENTE):
+def crear_cuenta_administrativa(*, nombre, correo, roles, contrasena, telefono=AUSENTE):
     """Cuenta exclusivamente administrativa (ADR-013, punto 8).
 
-    Correo obligatorio; teléfono opcional (si viene, se normaliza); solo roles
-    administrativos, al menos uno.
+    Correo y contraseña obligatorios; teléfono opcional (si viene, se
+    normaliza); solo roles administrativos, al menos uno.
     """
     nombre = normalizar_nombre(nombre)
     correo = normalizar_correo(correo)
     roles = _roles_administrativos(roles)
     telefono = None if telefono is AUSENTE else normalizar_telefono(telefono)
+    validar_contrasena_nueva(contrasena)
     _correo_libre(correo)
-    usuario = _crear_usuario(nombre=nombre, telefono=telefono, correo=correo)
+    usuario = _crear_usuario(nombre=nombre, telefono=telefono, correo=correo, contrasena=contrasena)
     for rol in sorted(roles):
         _asignar_rol(usuario, rol)
     _exigir_invariantes(usuario)
@@ -249,22 +253,23 @@ def _roles_administrativos(roles):
 # --- Vías sobre una cuenta existente (con sesión) ---
 
 @transaction.atomic
-def agregar_perfil_cliente(usuario, *, correo=AUSENTE, telefono=AUSENTE):
+def agregar_perfil_cliente(usuario, *, comuna, correo=AUSENTE, telefono=AUSENTE):
     """Agrega ``perfil_cliente`` y el rol ``cliente`` (ADR-013, puntos 2 y 7; E-1, E-2).
 
-    Teléfono y correo: si la cuenta no los tiene, son obligatorios y se guardan
-    en la misma transacción; si ya los tiene, no deben venir. Falta la comuna
-    (ADR-012, Borrador).
+    Comuna obligatoria. Teléfono y correo: si la cuenta no los tiene, son
+    obligatorios y se guardan en la misma transacción; si ya los tiene, no
+    deben venir.
     """
     usuario = _bloquear(usuario)
     if PerfilCliente.objects.filter(usuario=usuario).exists():
         raise ErrorValidacion("perfil", "Tu cuenta ya tiene el perfil de cliente.")
     telefono = _dato_faltante(usuario, "telefono", telefono, normalizar_telefono)
     correo = _dato_faltante(usuario, "correo", correo, normalizar_correo)
+    comuna = buscar_comuna(comuna)
     if correo is not AUSENTE:
         _correo_libre(correo)
     _completar_usuario(usuario, telefono=telefono, correo=correo)
-    _guardar(PerfilCliente(usuario=usuario), force_insert=True)
+    _guardar(PerfilCliente(usuario=usuario, comuna=comuna), force_insert=True)
     _asignar_rol(usuario, Rol.CLIENTE)
     _exigir_invariantes(usuario)
     return usuario

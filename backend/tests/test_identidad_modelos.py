@@ -47,9 +47,13 @@ def test_usuario_sin_permissions_mixin_ni_campos_de_roles_de_django():
     assert not nombres & {"is_superuser", "is_staff", "groups", "user_permissions"}
 
 
-def test_no_se_instalan_admin_auth_contenttypes_ni_sessions():
-    for etiqueta in ("admin", "auth", "contenttypes", "sessions"):
+def test_no_se_instalan_admin_auth_ni_contenttypes():
+    for etiqueta in ("admin", "auth", "contenttypes"):
         assert not apps.is_installed(f"django.contrib.{etiqueta}")
+
+
+def test_sesiones_de_django_instaladas_adr_005():
+    assert apps.is_installed("django.contrib.sessions")
 
 
 @pytest.mark.django_db
@@ -87,7 +91,8 @@ def test_tablas_de_identidad_creadas_y_sin_tablas_de_auth():
     tablas = set(connection.introspection.table_names())
 
     assert {"usuario", "usuario_rol", "perfil_cliente", "perfil_maestro"} <= tablas
-    assert not {t for t in tablas if t.startswith(("auth_", "django_content_type", "django_session"))}
+    assert not {t for t in tablas if t.startswith(("auth_", "django_content_type"))}
+    assert "django_session" in tablas  # ADR-005
 
 
 # --- Correo (PI-052, PI-053 parcial) ---
@@ -209,9 +214,9 @@ def test_pi131_la_bd_rechaza_un_rol_duplicado_para_el_mismo_usuario():
 @pytest.mark.django_db
 def test_pi131_la_bd_rechaza_un_segundo_perfil_de_cliente_para_el_mismo_usuario():
     usuario = _usuario(correo="c@example.com")
-    PerfilCliente.objects.create(usuario=usuario)
+    PerfilCliente.objects.create(usuario=usuario, comuna_id=8101)
 
-    _falla_en_bd(lambda: PerfilCliente.objects.create(usuario=usuario))
+    _falla_en_bd(lambda: PerfilCliente.objects.create(usuario=usuario, comuna_id=8101))
     assert PerfilCliente.objects.filter(usuario=usuario).count() == 1
 
 

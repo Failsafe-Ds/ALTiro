@@ -24,6 +24,9 @@ from identidad.servicios import (
     verificar_invariantes,
 )
 
+# Datos ficticios: contraseña de prueba y comuna del catálogo CUT (Concepción).
+CONTRASENA = "clave de prueba segura"
+COMUNA = "8101"
 TEL_A = "+56 9 1000 0001"
 TEL_B = "+56 9 1000 0002"
 TEL_A_CANONICO = "+56910000001"
@@ -49,16 +52,24 @@ def _sin_cambios_de_identidad(total_usuarios):
 
 
 def _cliente(correo="ana.prueba@example.com", telefono=TEL_A):
-    return crear_cuenta_cliente(nombre="Ana Prueba", telefono=telefono, correo=correo)
+    return crear_cuenta_cliente(
+        nombre="Ana Prueba", telefono=telefono, correo=correo, contrasena=CONTRASENA, comuna=COMUNA
+    )
 
 
 def _maestro(rut="11.111.111-1", correo=AUSENTE, telefono=TEL_A):
-    return crear_cuenta_maestro(nombre="Maestro Uno", telefono=telefono, rut=rut, correo=correo)
+    return crear_cuenta_maestro(
+        nombre="Maestro Uno", telefono=telefono, rut=rut, correo=correo, contrasena=CONTRASENA
+    )
 
 
 def _admin(roles=(Rol.CURATORIA,), **campos):
     return crear_cuenta_administrativa(
-        nombre="Admin Prueba", correo="admin@example.com", roles=list(roles), **campos
+        nombre="Admin Prueba",
+        correo="admin@example.com",
+        roles=list(roles),
+        contrasena=CONTRASENA,
+        **campos,
     )
 
 
@@ -75,6 +86,7 @@ def _fallar_al_asignar_rol(monkeypatch):
 @pytest.mark.django_db
 def test_crear_cuenta_cliente_crea_perfil_y_rol_con_datos_normalizados():
     usuario = crear_cuenta_cliente(
+        contrasena=CONTRASENA, comuna=COMUNA,
         nombre="  Ana Prueba ", telefono=TEL_A, correo="  Ana.Prueba@Example.COM  "
     )
 
@@ -88,12 +100,45 @@ def test_crear_cuenta_cliente_crea_perfil_y_rol_con_datos_normalizados():
 
 
 @pytest.mark.django_db
-def test_la_cuenta_creada_no_tiene_contrasena_utilizable_mientras_falte_adr_004():
+def test_rnf05_la_contrasena_se_guarda_con_argon2id_y_no_en_claro():
     usuario = _cliente()
 
     usuario.refresh_from_db()
-    assert usuario.password
-    assert not usuario.has_usable_password()
+    assert "$argon2id$" in usuario.password  # PI-172, ADR-004
+    assert "m=65536,t=3,p=1" in usuario.password
+    assert CONTRASENA not in usuario.password
+    assert usuario.check_password(CONTRASENA)
+
+
+@pytest.mark.django_db
+def test_pi171_misma_contrasena_produce_hashes_distintos():
+    uno = _cliente(correo="uno@example.com")
+    dos = _cliente(correo="dos@example.com", telefono=TEL_B)
+
+    assert Usuario.objects.get(pk=uno.pk).password != Usuario.objects.get(pk=dos.pk).password
+
+
+@pytest.mark.django_db
+def test_la_cuenta_nueva_aplica_la_politica_de_contrasena():
+    with pytest.raises(ErrorValidacion) as error:
+        crear_cuenta_cliente(
+            nombre="Ana Prueba", telefono=TEL_A, correo="ana@example.com", contrasena="corta", comuna=COMUNA
+        )
+
+    assert error.value.campo == "contrasena"
+    _sin_cambios_de_identidad(0)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("comuna", [None, "", "99999", "abc", True])
+def test_ca011_cuenta_cliente_exige_comuna_de_la_lista(comuna):
+    with pytest.raises(ErrorValidacion) as error:
+        crear_cuenta_cliente(
+            nombre="Ana Prueba", telefono=TEL_A, correo="ana@example.com", contrasena=CONTRASENA, comuna=comuna
+        )
+
+    assert error.value.campo == "comuna"
+    _sin_cambios_de_identidad(0)
 
 
 @pytest.mark.django_db
@@ -211,9 +256,13 @@ def test_cuenta_maestro_exige_telefono_valido(telefono):
 
 @pytest.mark.django_db
 def test_pi070_cliente_con_telefono_y_nombre_de_un_maestro_es_otra_cuenta():
-    maestro = crear_cuenta_maestro(nombre="Ana Prueba", telefono=TEL_A, rut="11.111.111-1")
+    maestro = crear_cuenta_maestro(
+        nombre="Ana Prueba", telefono=TEL_A, rut="11.111.111-1", contrasena=CONTRASENA
+    )
 
-    cliente = crear_cuenta_cliente(nombre="Ana Prueba", telefono=TEL_A, correo="ana@example.com")
+    cliente = crear_cuenta_cliente(
+        nombre="Ana Prueba", telefono=TEL_A, correo="ana@example.com", contrasena=CONTRASENA, comuna=COMUNA
+    )
 
     assert cliente.pk != maestro.pk
     assert _roles(maestro) == {Rol.MAESTRO}
@@ -308,7 +357,7 @@ def test_pi085_fallo_al_asignar_el_rol_revierte_el_perfil(monkeypatch):
 def test_pi090_maestro_con_correo_agrega_perfil_de_cliente():
     maestro = _maestro(correo="mae1@example.com")
 
-    usuario = agregar_perfil_cliente(maestro)
+    usuario = agregar_perfil_cliente(maestro, comuna=COMUNA)
 
     assert usuario.pk == maestro.pk
     assert _roles(usuario) == {Rol.MAESTRO, Rol.CLIENTE}
@@ -322,7 +371,7 @@ def test_pi091_cuenta_con_correo_que_envia_correo_se_rechaza_sin_cambios(correo)
     maestro = _maestro(correo="mae1@example.com")
 
     with pytest.raises(ErrorValidacion) as error:
-        agregar_perfil_cliente(maestro, correo=correo)
+        agregar_perfil_cliente(maestro, comuna=COMUNA, correo=correo)
 
     assert error.value.campo == "correo"
     maestro.refresh_from_db()
@@ -335,7 +384,7 @@ def test_pi091_cuenta_con_correo_que_envia_correo_se_rechaza_sin_cambios(correo)
 def test_pi092_maestro_sin_correo_agrega_su_primer_correo_con_el_perfil():
     maestro = _maestro()
 
-    agregar_perfil_cliente(maestro, correo=" Nuevo@Example.com ")
+    agregar_perfil_cliente(maestro, comuna=COMUNA, correo=" Nuevo@Example.com ")
 
     maestro.refresh_from_db()
     assert maestro.correo == "nuevo@example.com"
@@ -349,7 +398,7 @@ def test_pi093_pi094_maestro_sin_correo_debe_entregarlo(correo):
     maestro = _maestro()
 
     with pytest.raises(ErrorValidacion) as error:
-        agregar_perfil_cliente(maestro, correo=correo)
+        agregar_perfil_cliente(maestro, comuna=COMUNA, correo=correo)
 
     assert error.value.campo == "correo"
     maestro.refresh_from_db()
@@ -364,7 +413,7 @@ def test_pi095_correo_de_otra_cuenta_se_rechaza_sin_cambios():
     maestro = _maestro()
 
     with pytest.raises(ErrorValidacion) as error:
-        agregar_perfil_cliente(maestro, correo="X@Example.com")
+        agregar_perfil_cliente(maestro, comuna=COMUNA, correo="X@Example.com")
 
     assert error.value.campo == "correo"
     maestro.refresh_from_db()
@@ -378,7 +427,7 @@ def test_pi096_fallo_despues_de_guardar_el_correo_revierte_todo(monkeypatch):
     _fallar_al_asignar_rol(monkeypatch)
 
     with pytest.raises(RuntimeError):
-        agregar_perfil_cliente(maestro, correo="nuevo@example.com")
+        agregar_perfil_cliente(maestro, comuna=COMUNA, correo="nuevo@example.com")
 
     maestro.refresh_from_db()
     assert maestro.correo is None
@@ -391,7 +440,7 @@ def test_pi099_cuenta_que_ya_es_cliente_no_agrega_otro_perfil():
     cliente = _cliente()
 
     with pytest.raises(ErrorValidacion) as error:
-        agregar_perfil_cliente(cliente)
+        agregar_perfil_cliente(cliente, comuna=COMUNA)
 
     assert error.value.campo == "perfil"
     assert PerfilCliente.objects.count() == 1
@@ -402,7 +451,7 @@ def test_pi099_cuenta_que_ya_es_cliente_no_agrega_otro_perfil():
 
 def _agregar(perfil, usuario, **campos):
     if perfil == "cliente":
-        return agregar_perfil_cliente(usuario, **campos)
+        return agregar_perfil_cliente(usuario, comuna=COMUNA, **campos)
     return agregar_perfil_maestro(usuario, rut="11.111.111-1", **campos)
 
 
@@ -482,7 +531,7 @@ def test_pi066_cuenta_con_telefono_que_lo_envia_se_rechaza_sin_cambios(perfil, t
 
     with pytest.raises(ErrorValidacion) as error:
         if perfil == "cliente":
-            agregar_perfil_cliente(cuenta, telefono=telefono)
+            agregar_perfil_cliente(cuenta, comuna=COMUNA, telefono=telefono)
         else:
             agregar_perfil_maestro(cuenta, rut="22.222.222-2", telefono=telefono)
 
@@ -500,7 +549,9 @@ def test_pi066_cuenta_con_telefono_que_lo_envia_se_rechaza_sin_cambios(perfil, t
 @pytest.mark.parametrize("correo", [None, "", "  "])
 def test_pi110_cuenta_administrativa_exige_correo(correo):
     with pytest.raises(ErrorValidacion) as error:
-        crear_cuenta_administrativa(nombre="Admin Prueba", correo=correo, roles=[Rol.CURATORIA])
+        crear_cuenta_administrativa(
+            nombre="Admin Prueba", correo=correo, roles=[Rol.CURATORIA], contrasena=CONTRASENA
+        )
 
     assert error.value.campo == "correo"
     _sin_cambios_de_identidad(0)
@@ -599,7 +650,7 @@ def test_verificar_invariantes_detecta_escrituras_que_saltan_el_servicio():
     PerfilMaestro.objects.create(usuario=perfil_sin_rol, rut="111111111")
     sin_identificador = _usuario_directo(correo=None)
     cliente_sin_telefono = _usuario_directo(correo="c@example.com", telefono=None)
-    PerfilCliente.objects.create(usuario=cliente_sin_telefono)
+    PerfilCliente.objects.create(usuario=cliente_sin_telefono, comuna_id=8101)
     UsuarioRol.objects.create(usuario=cliente_sin_telefono, rol=Rol.CLIENTE)
     admin_sin_correo = _usuario_directo(correo=None, telefono=None)
     UsuarioRol.objects.create(usuario=admin_sin_correo, rol=Rol.CURATORIA)
@@ -687,8 +738,8 @@ def test_pi284_misma_cuenta_agrega_perfil_de_cliente_dos_veces_a_la_vez():
     maestro = _maestro(correo="mae1@example.com")
 
     resultados = _en_paralelo(
-        lambda: agregar_perfil_cliente(maestro),
-        lambda: agregar_perfil_cliente(maestro),
+        lambda: agregar_perfil_cliente(maestro, comuna=COMUNA),
+        lambda: agregar_perfil_cliente(maestro, comuna=COMUNA),
     )
 
     _un_exito_y_un_error_en(resultados, "perfil")

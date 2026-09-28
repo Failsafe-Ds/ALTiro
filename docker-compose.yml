@@ -57,6 +57,9 @@ services:
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://localhost,https://127.0.0.1}
       DJANGO_CONFIAR_PROXY_TLS: "true"
+      # La app solo es accesible desde el proxy (red interna): confía en X-Real-IP (ADR-007).
+      ALTIRO_CONFIAR_X_REAL_IP: "true"
+      ALTIRO_SESION_INACTIVIDAD_SEGUNDOS: ${ALTIRO_SESION_INACTIVIDAD_SEGUNDOS:-1800}
       # La app se conecta con su propio rol, nunca con POSTGRES_USER.
       ALTIRO_DB_HOST: db
       ALTIRO_DB_PORT: "5432"

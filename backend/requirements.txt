@@ -6,3 +6,8 @@ sqlparse==0.6.0
 psycopg==3.3.6
 psycopg-binary==3.3.6
 gunicorn==26.2.0
+# Hash de contraseñas Argon2id (ADR-004) y sus dependencias transitivas.
+argon2-cffi==25.1.0
+argon2-cffi-bindings==26.1.0
+cffi==2.1.1
+pycparser==3.0

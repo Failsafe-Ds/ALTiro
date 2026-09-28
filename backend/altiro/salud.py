@@ -5,9 +5,12 @@ from django.db import DatabaseError, connection
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
+from comun.api import publica
+
 logger = logging.getLogger(__name__)
 
 
+@publica
 @require_GET
 def salud(request):
     """Responde 200 si la aplicación funciona y la base de datos responde; 503 si no.

@@ -37,6 +37,9 @@ server {
         proxy_pass http://app:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Origen del intento para el limitador (RNF-10, ADR-007). Se sobrescribe
+        # siempre: el cliente no puede inyectar su propio X-Real-IP.
+        proxy_set_header X-Real-IP $remote_addr;
 
         # Evita cabeceras duplicadas: estas las emite Nginx arriba.
         proxy_hide_header X-Content-Type-Options;

@@ -97,3 +97,7 @@ curl -k https://127.0.0.1/api/health/        # {"estado": "ok", "base_datos": "o
 curl -I http://127.0.0.1/                     # 307 hacia https://
 docker compose exec app pytest                # pruebas del backend
 ```
+
+> **Cambios en `infra/proxy/templates/`**: Nginx lee la plantilla al arrancar.
+> Como está montada (no se copia a la imagen), `docker compose up -d` no la
+> recarga sola: después de cambiarla ejecute `docker compose restart proxy`.
