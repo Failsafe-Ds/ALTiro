@@ -2,7 +2,8 @@
 
 Plataforma web que conecta hogares con maestros independientes verificados.
 La documentación funcional está en `docs/` (`docs/informe-altiro.md`) y las
-decisiones técnicas en `docs/decisions/`.
+decisiones técnicas en `docs/decisions/`. Los desplazamientos de alcance
+(informe §5.3.6) se registran en `docs/alcance/bitacora-de-alcance.md`.
 
 Estado actual: **Sprint 1 (identidad y acceso)**. Registro de cliente (RF-01),
 inicio y cierre de sesión (RF-02), postulación de maestro (RF-03), catálogo

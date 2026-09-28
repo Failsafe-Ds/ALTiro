@@ -196,6 +196,7 @@ Clasificación: PASS, FAIL, BLOCKED o NOT IN SCOPE. Para lo que el diseño cierr
   3. Verificar triggers solo en la base de pruebas, dentro de una transacción revertida (procedimiento de la sección 3.2), o con `pytest tests/test_bitacora.py`.
   4. Si el equipo necesita una base principal limpia para la revisión del sprint o la demostración, la única vía coherente con RNF-11 es recrear el volumen `datos_db`. Hoy solo tiene datos ficticios. Debe hacerse por decisión explícita y registrada del equipo, no como corrección silenciosa.
   5. Cuando existan vistas de la bitácora (CA-19.3 en S2, RF-37 en S5), la fila aparecerá: el registro del punto 1 permite explicarla.
+- **Estado (2026-09-28): resuelta.** Por decisión del equipo de desarrollo, y como la base local solo tenía datos ficticios, se recreó el volumen `altiro_datos_db` (recomendación 4). Se aplicaron las 8 migraciones desde cero y `bitacora` y `acceso_denegado` quedaron vacías. No se conserva como incidente permanente.
 
 ### Otras observaciones (no son defectos)
 - El puerto 80 refleja la cabecera `Host` en la redirección (`Location: https://evil.example.com:443/`). Solo lo explota quien controla la cabecera Host del propio navegador; el riesgo es mínimo en la demostración.
@@ -204,6 +205,8 @@ Clasificación: PASS, FAIL, BLOCKED o NOT IN SCOPE. Para lo que el diseño cierr
 ---
 
 ## 6. Desplazamientos que deben registrarse en la bitácora de alcance (§5.3.6)
+
+> **Registrados el 2026-09-28** en `docs/alcance/bitacora-de-alcance.md` (DA-01 a DA-11).
 
 El informe asigna al S1 "RF-01 a RF-03, RNF-05 a RNF-12 y RNF-23 a RNF-24" (§5.3.5). Cada punto se registra con fecha, motivo y quién lo autorizó. QA no los registra.
 
