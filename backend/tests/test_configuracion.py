@@ -97,14 +97,14 @@ def test_leer_booleano_rechaza_valores_ambiguos(monkeypatch):
 
 def _secretos_actuales():
     valores = []
-    for variable in ("DJANGO_SECRET_KEY_FILE", "ALTIRO_DB_PASSWORD_FILE"):
+    for variable in ("DJANGO_SECRET_KEY_FILE", "ALTIRO_DB_PASSWORD_FILE", "ALTIRO_DOCUMENTOS_CLAVE_FILE"):
         ruta = os.environ.get(variable)
         if ruta and os.path.exists(ruta):
             valores.append(Path(ruta).read_text(encoding="utf-8").strip())
     return valores
 
 
-@pytest.mark.parametrize("variable", ["DJANGO_SECRET_KEY_FILE", "ALTIRO_DB_PASSWORD_FILE"])
+@pytest.mark.parametrize("variable", ["DJANGO_SECRET_KEY_FILE", "ALTIRO_DB_PASSWORD_FILE", "ALTIRO_DOCUMENTOS_CLAVE_FILE"])
 @pytest.mark.parametrize("modo", ["ausente", "archivo_inexistente"])
 def test_la_aplicacion_no_arranca_si_falta_un_secreto(variable, modo, tmp_path):
     entorno = os.environ.copy()
@@ -156,3 +156,73 @@ def test_csrf_se_verifica_antes_que_la_autorizacion():
 def test_sin_hsts_en_django():
     # ADR-008
     assert settings.SECURE_HSTS_SECONDS == 0
+
+
+# --- Clave y directorio de documentos (ADR-015, RNF-24) ---
+
+
+def _manage_check(entorno):
+    return subprocess.run(
+        [sys.executable, "manage.py", "check"],
+        cwd=BACKEND_DIR,
+        env=entorno,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+
+@pytest.mark.parametrize(
+    "contenido",
+    ["corta", "zz" * 32, "ab" * 31, "ab" * 33, "ab" * 16],
+    ids=["texto", "no_hexadecimal", "31_bytes", "33_bytes", "16_bytes"],
+)
+def test_la_aplicacion_no_arranca_si_la_clave_de_documentos_no_mide_32_bytes(contenido, tmp_path):
+    archivo = tmp_path / "documentos_clave"
+    archivo.write_text(contenido, encoding="utf-8")
+    entorno = os.environ.copy()
+    entorno["DJANGO_SETTINGS_MODULE"] = "altiro.settings"
+    entorno["ALTIRO_DOCUMENTOS_CLAVE_FILE"] = str(archivo)
+
+    resultado = _manage_check(entorno)
+
+    assert resultado.returncode != 0
+    salida = resultado.stdout + resultado.stderr
+    assert "ALTIRO_DOCUMENTOS_CLAVE_FILE" in salida
+    assert contenido not in salida
+    for secreto in _secretos_actuales():
+        assert secreto not in salida
+
+
+def test_la_aplicacion_no_arranca_sin_el_directorio_de_documentos():
+    entorno = os.environ.copy()
+    entorno["DJANGO_SETTINGS_MODULE"] = "altiro.settings"
+    entorno.pop("ALTIRO_DOCUMENTOS_DIR", None)
+
+    resultado = _manage_check(entorno)
+
+    assert resultado.returncode != 0
+    assert "ALTIRO_DOCUMENTOS_DIR" in resultado.stdout + resultado.stderr
+
+
+def test_la_clave_de_documentos_mide_32_bytes():
+    assert isinstance(settings.ALTIRO_DOCUMENTOS_KEY, bytes)
+    assert len(settings.ALTIRO_DOCUMENTOS_KEY) == 32
+
+
+def test_leer_clave_aes256_acepta_64_caracteres_hexadecimales(tmp_path, monkeypatch):
+    from altiro.configuracion import leer_clave_aes256
+
+    archivo = tmp_path / "clave"
+    archivo.write_text("0f" * 32 + "\n", encoding="utf-8")
+    monkeypatch.setenv("PRUEBA_CLAVE_FILE", str(archivo))
+
+    assert leer_clave_aes256("PRUEBA_CLAVE") == bytes([15]) * 32
+
+
+def test_las_subidas_quedan_en_memoria_y_nunca_en_tmp():
+    # ADR-015, D-3: dos archivos de 8 MB caben en memoria; no hay manejador a disco.
+    assert settings.FILE_UPLOAD_MAX_MEMORY_SIZE >= 2 * settings.ALTIRO_DOCUMENTO_MAXIMO_BYTES
+    assert settings.ALTIRO_DOCUMENTO_MAXIMO_BYTES == 8 * 1024 * 1024
+    assert settings.FILE_UPLOAD_HANDLERS == ["django.core.files.uploadhandler.MemoryFileUploadHandler"]
+    assert settings.DATA_UPLOAD_MAX_NUMBER_FILES == 2

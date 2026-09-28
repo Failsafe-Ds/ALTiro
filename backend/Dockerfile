@@ -18,6 +18,13 @@ COPY requirements.txt requirements-pruebas.txt ./
 # del contenedor (ADR-014).
 RUN pip install -r requirements.txt -r requirements-pruebas.txt && pip check
 
+# Punto de montaje del volumen "documentos" (ADR-015, D-3). Docker copia el
+# dueño y los permisos de este directorio de la imagen al volumen con nombre
+# la primera vez que lo monta vacío: así el volumen queda de 10001:10001 y 0700
+# sin montarlo en "init" (solo lo montan app y, desde el incremento 5, el
+# planificador). Un volumen creado antes con otro dueño no se corrige solo.
+RUN mkdir /documentos && chown altiro:altiro /documentos && chmod 0700 /documentos
+
 COPY . .
 # Defensa ante fines de línea CRLF si el archivo se editó en Windows (ADR-009).
 RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod 0755 /app/entrypoint.sh

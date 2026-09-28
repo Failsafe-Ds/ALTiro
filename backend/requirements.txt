@@ -11,3 +11,9 @@ argon2-cffi==25.1.0
 argon2-cffi-bindings==26.1.0
 cffi==2.1.1
 pycparser==3.0
+# Documentos del maestro (ADR-015): decodificación y recodificación de imágenes
+# (Pillow, sin dependencias obligatorias) y cifrado AES-256-GCM (cryptography,
+# que depende de cffi y pycparser, ya fijadas arriba). Revisión de avisos:
+# docs/testing/revision-dependencias-s2.md.
+Pillow==12.3.0
+cryptography==50.0.1

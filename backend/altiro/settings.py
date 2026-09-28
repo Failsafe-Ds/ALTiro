@@ -15,6 +15,7 @@ from pathlib import Path
 
 from altiro.configuracion import (
     leer_booleano,
+    leer_clave_aes256,
     leer_entero,
     leer_lista,
     leer_secreto,
@@ -104,6 +105,30 @@ CSRF_FAILURE_VIEW = "comun.api.fallo_csrf"
 # Sin HSTS en la demostración (ADR-008). Django no lo emite con valor 0.
 SECURE_HSTS_SECONDS = 0
 
+# --- Documentos del maestro (ADR-015) ---
+# Volumen montado solo en app (y planificador), nunca en el proxy (D-3).
+ALTIRO_DOCUMENTOS_DIR = Path(leer_variable("ALTIRO_DOCUMENTOS_DIR"))
+# Clave AES-256-GCM (D-4). Sin ella la aplicación no arranca (RNF-24). El
+# nombre termina en "KEY" a propósito: el filtro de Django que oculta ajustes
+# sensibles en los informes de error solo reconoce API, TOKEN, KEY, SECRET,
+# PASS y SIGNATURE. Nunca se escribe en registros.
+ALTIRO_DOCUMENTOS_KEY = leer_clave_aes256("ALTIRO_DOCUMENTOS_CLAVE")
+# Máximo por archivo (D-5): lo verifica expediente.imagenes.
+ALTIRO_DOCUMENTO_MAXIMO_BYTES = 8 * 1024 * 1024
+# La foto nunca se escribe en claro en /tmp (D-3): la subida admite dos
+# archivos (anverso y reverso de la cédula) más el resto del formulario, y todo
+# queda en memoria. Coincide con client_max_body_size de la ruta de subida en
+# el proxy (17m). Solo se instala el manejador en memoria: si una petición
+# supera este tamaño, sus archivos se descartan sin tocar el disco y la vista
+# responde 413.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * ALTIRO_DOCUMENTO_MAXIMO_BYTES + 1024 * 1024
+FILE_UPLOAD_HANDLERS = ["django.core.files.uploadhandler.MemoryFileUploadHandler"]
+# Campos que no son archivos (y cuerpos JSON): 1 MB, igual que el proxy fuera
+# de la ruta de subida.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
+# Solo dos archivos por petición (anverso y reverso).
+DATA_UPLOAD_MAX_NUMBER_FILES = 2
+
 # --- Registros ---
 # Solo a la consola del contenedor. Nunca registrar contraseñas, tokens,
 # cookies ni cuerpos de petición.
@@ -131,6 +156,9 @@ LOGGING = {
     "loggers": {
         "django.request": {"filters": ["trazas_seguras"]},
         "django.db.backends": {"level": "INFO"},
+        # Pillow escribe en DEBUG los valores de las etiquetas EXIF (GPS,
+        # cámara) al leer una foto: nunca por debajo de WARNING (ADR-015, NTI-09).
+        "PIL": {"level": "WARNING"},
     },
     "root": {"handlers": ["consola"], "level": "INFO"},
 }

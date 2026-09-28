@@ -76,9 +76,17 @@ services:
       ALTIRO_DB_NAME: ${POSTGRES_DB:-altiro}
       ALTIRO_DB_USER: ${ALTIRO_DB_APP_USER:-altiro_app}
       ALTIRO_DB_PASSWORD_FILE: /secretos/db_app_password
+      # Documentos del maestro (ADR-015): clave de cifrado generada por "init"
+      # y directorio del volumen "documentos".
+      ALTIRO_DOCUMENTOS_CLAVE_FILE: /secretos/documentos_clave
+      ALTIRO_DOCUMENTOS_DIR: /documentos
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
     volumes:
       - secretos:/secretos:ro
+      # Solo en app (y, desde el incremento 5, en el planificador); nunca en
+      # proxy (ADR-015, D-3). El dueño 10001 y el modo 0700 los toma de
+      # /documentos de la imagen al crearse el volumen (backend/Dockerfile).
+      - documentos:/documentos
     networks:
       - interna
     depends_on:
@@ -137,3 +145,6 @@ volumes:
   datos_db: {}
   secretos: {}
   certificados: {}
+  # Documentos del maestro, cifrados (ADR-015). Se respaldan por separado de
+  # la clave secretos/documentos_clave (RNF-19).
+  documentos: {}

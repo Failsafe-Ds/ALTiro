@@ -43,6 +43,12 @@ generar_secreto "$SECRETOS_DIR/db_admin_password" "0:$PG_GID" 0440
 generar_secreto "$SECRETOS_DIR/db_app_password" "$APP_UID:$PG_GID" 0440
 # Clave de Django: solo la app.
 generar_secreto "$SECRETOS_DIR/django_secret_key" "$APP_UID:$APP_UID" 0400
+# Clave de cifrado de los documentos del maestro (ADR-015, D-4): 32 bytes
+# aleatorios escritos en hexadecimal (64 caracteres), solo para la app (y el
+# planificador, que corre con el mismo UID). Nunca se regenera si ya existe:
+# perderla o cambiarla deja ilegibles los documentos guardados. Se respalda
+# aparte de los datos (RNF-19).
+generar_secreto "$SECRETOS_DIR/documentos_clave" "$APP_UID:$APP_UID" 0400
 
 # Certificado: se regenera si falta, si cambió el SAN o si vence en menos de un día.
 regenerar=0

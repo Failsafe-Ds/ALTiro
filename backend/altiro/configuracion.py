@@ -73,3 +73,22 @@ def leer_entero(nombre, por_defecto):
     if entero <= 0:
         raise ImproperlyConfigured(f"La variable de entorno {nombre} debe ser mayor que cero.")
     return entero
+
+
+def leer_clave_aes256(nombre):
+    """Devuelve la clave de 32 bytes del secreto ``nombre`` (ADR-015, D-4).
+
+    El archivo guarda los 32 bytes en hexadecimal (64 caracteres), como los
+    demás secretos que genera ``init``. Si falta o no mide 32 bytes, la
+    aplicación no arranca (RNF-24). El mensaje nunca incluye el valor.
+    """
+    texto = leer_secreto(nombre)
+    try:
+        clave = bytes.fromhex(texto)
+    except ValueError:
+        clave = b""
+    if len(clave) != 32:
+        raise ImproperlyConfigured(
+            f"El archivo indicado en {nombre}_FILE debe contener 32 bytes en hexadecimal (64 caracteres)."
+        )
+    return clave

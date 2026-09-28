@@ -66,6 +66,34 @@ server {
         error_page 500 502 503 504 @api_no_disponible;
     }
 
+    # Subida de documentos del maestro (ADR-015, D-5): la única ruta con más de
+    # 1 MB. Dos fotos de hasta 8 MB (anverso y reverso de la cédula) más el
+    # resto del formulario: 17 MB, igual que FILE_UPLOAD_MAX_MEMORY_SIZE en
+    # Django. client_body_buffer_size igual al máximo: Nginx guarda el cuerpo en
+    # memoria y no escribe la foto en un archivo temporal en disco. Mismas
+    # cabeceras y errores en JSON que /api/.
+    location = /api/maestros/expediente/documentos {
+        client_max_body_size 17m;
+        client_body_buffer_size 17m;
+
+        proxy_pass http://app:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_hide_header X-Content-Type-Options;
+        proxy_hide_header Referrer-Policy;
+        proxy_hide_header Strict-Transport-Security;
+
+        error_page 413 @api_413_documentos;
+        error_page 500 502 503 504 @api_no_disponible;
+    }
+
+    location @api_413_documentos {
+        default_type application/json;
+        return 413 '{"mensaje": "Las fotos son demasiado pesadas: cada una puede pesar hasta 8 MB. Tómalas de nuevo con menos resolución.", "errores": {}}';
+    }
+
     location @api_413 {
         default_type application/json;
         return 413 '{"mensaje": "Lo que enviaste es demasiado grande. Reduce su tamaño e inténtalo de nuevo.", "errores": {}}';

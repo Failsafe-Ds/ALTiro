@@ -11,3 +11,11 @@ class ErrorEstado(Exception):
     def __init__(self, mensaje):
         super().__init__(mensaje)
         self.mensaje = mensaje
+
+
+class ErroresValidacion(Exception):
+    """Datos recibidos inválidos, por campo (400). No se guardó nada."""
+
+    def __init__(self, errores):
+        super().__init__(", ".join(sorted(errores)))
+        self.errores = errores

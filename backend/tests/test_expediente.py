@@ -298,7 +298,7 @@ def test_el_maestro_ve_su_expediente_sin_cache(navegador_maestro):
             "motivo": "",
             "oficios": [],
             "documentos": [],
-            "faltantes": [{"tipo": "cedula", "oficio": None}, {"tipo": "antecedentes", "oficio": None}],
+            "faltantes": [{"tipo": "cedula_identidad", "oficio": None}, {"tipo": "certificado_antecedentes", "oficio": None}],
             "avisos": [],
         }
     }
@@ -347,8 +347,8 @@ def test_faltantes_incluyen_una_licencia_por_oficio_regulado_declarado(navegador
     faltantes = navegador_maestro.get(URL_EXPEDIENTE).json()["expediente"]["faltantes"]
 
     assert faltantes == [
-        {"tipo": "cedula", "oficio": None},
-        {"tipo": "antecedentes", "oficio": None},
+        {"tipo": "cedula_identidad", "oficio": None},
+        {"tipo": "certificado_antecedentes", "oficio": None},
         {"tipo": "licencia_sec", "oficio": {"codigo": "gas", "nombre": "Gas"}},
         {"tipo": "licencia_sec", "oficio": {"codigo": "electricidad", "nombre": "Electricidad"}},
     ]

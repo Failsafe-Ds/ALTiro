@@ -20,10 +20,14 @@ MENSAJE_CLAVE_DESCONOCIDA = (
 MENSAJE_CUERPO_INVALIDO = "No pudimos leer los datos enviados. Recarga la página e inténtalo de nuevo."
 MENSAJE_CAMPO_NO_PERMITIDO = "Este dato no corresponde aquí: quítalo e inténtalo de nuevo."
 MENSAJE_TEXTO_INVALIDO = "Este dato tiene caracteres que no se pueden usar. Escríbelo de nuevo."
+MENSAJE_VALOR_REPETIDO = "Este dato llegó repetido. Recarga la página e inténtalo de nuevo."
+MENSAJE_ARCHIVO_ESPERADO = "Aquí va una foto. Elige la foto de nuevo e inténtalo otra vez."
 
-# Todos los campos que aparecen en alguna lista de campos permitidos (E-2).
+# Todos los campos que aparecen en alguna lista de campos permitidos (E-2),
+# incluidos los del formulario de documentos (multipart).
 CAMPOS_CONOCIDOS = frozenset(
-    {"nombre", "telefono", "correo", "contrasena", "comuna", "rut", "identificador", "oficios"}
+    {"nombre", "telefono", "correo", "contrasena", "comuna", "rut", "identificador", "oficios",
+     "tipo", "oficio", "fecha_emision", "fecha_vencimiento", "archivo", "archivo_reverso"}
 )
 
 
@@ -118,6 +122,41 @@ def leer_json(request, permitidos):
     return datos
 
 
+def leer_multipart(request, campos, archivos):
+    """Lee un formulario ``multipart/form-data`` con la disciplina de ``leer_json`` (E-2).
+
+    - ``campos``: campos de texto permitidos; ``archivos``: campos de archivo permitidos.
+    - Otro tipo de cuerpo o clave desconocida (texto o archivo): ``ErrorSolicitud``.
+    - Campo conocido no permitido, archivo enviado como texto (o al revés),
+      valor repetido o texto no procesable: ``ErroresDeCampo``.
+    Devuelve ``(datos, archivos)``: diccionarios con un solo valor por campo.
+    Los errores de lectura del cuerpo los responde ``solicitud_invalida`` (400).
+    """
+    if request.content_type != "multipart/form-data":
+        raise ErrorSolicitud(MENSAJE_CUERPO_INVALIDO)
+    textos, adjuntos = request.POST, request.FILES
+    if (set(textos) | set(adjuntos)) - CAMPOS_CONOCIDOS:
+        raise ErrorSolicitud(MENSAJE_CLAVE_DESCONOCIDA)
+    errores = {}
+    for campo in textos:
+        if campo in archivos:
+            errores[campo] = MENSAJE_ARCHIVO_ESPERADO
+        elif campo not in campos:
+            errores[campo] = MENSAJE_CAMPO_NO_PERMITIDO
+        elif len(textos.getlist(campo)) > 1:
+            errores[campo] = MENSAJE_VALOR_REPETIDO
+        elif not _texto_procesable(textos[campo]) or "\x00" in textos[campo]:
+            errores[campo] = MENSAJE_TEXTO_INVALIDO
+    for campo in adjuntos:
+        if campo not in archivos:
+            errores[campo] = MENSAJE_CAMPO_NO_PERMITIDO
+        elif len(adjuntos.getlist(campo)) > 1:
+            errores[campo] = MENSAJE_VALOR_REPETIDO
+    if errores:
+        raise ErroresDeCampo(errores)
+    return {campo: textos[campo] for campo in textos}, {campo: adjuntos[campo] for campo in adjuntos}
+
+
 def manejar_errores(vista):
     """Traduce ``ErrorSolicitud`` y ``ErroresDeCampo`` al formato común."""
 
@@ -172,6 +211,12 @@ def respuesta_no_encontrado():
 
 def no_encontrado(request, exception=None):
     return respuesta_no_encontrado()
+
+
+def solicitud_invalida(request, exception=None):
+    """handler400 (DEF-QA-006, RNF-15): Host no permitido, cuerpo multipart ilegible,
+    demasiados campos o archivos. JSON en español; nunca el motivo interno."""
+    return respuesta_error(400, "No pudimos procesar tu solicitud. Revisa la dirección e inténtalo de nuevo.")
 
 
 def error_interno(request):

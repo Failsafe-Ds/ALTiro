@@ -1,7 +1,7 @@
 """URLconf de pruebas: todas las rutas de ``altiro.urls`` más las del recurso ficticio."""
 from django.urls import include, path
 
-from altiro.urls import handler404, handler500  # noqa: F401
+from altiro.urls import handler400, handler404, handler500  # noqa: F401
 from tests.recurso_prueba import vistas
 
 urlpatterns = [

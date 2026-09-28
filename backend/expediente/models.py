@@ -13,7 +13,7 @@ al borrar un perfil o un usuario.
 import uuid
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db.models.functions import Now
 from django.utils import timezone
 
@@ -100,3 +100,108 @@ class OficioMaestro(models.Model):
 
     def __str__(self):
         return f"Oficio {self.oficio_id} del maestro {self.maestro_id}"
+
+
+class TipoDocumento(models.TextChoices):
+    """Documentos exigidos (ADR-017, punto 3; supuesto a validar, P-03)."""
+
+    CEDULA_IDENTIDAD = "cedula_identidad", "Cédula de identidad"
+    CERTIFICADO_ANTECEDENTES = "certificado_antecedentes", "Certificado de antecedentes"
+    LICENCIA_SEC = "licencia_sec", "Licencia SEC"
+
+
+class EstadoDocumento(models.TextChoices):
+    """ADR-017, punto 2. La vigencia se calcula (``expediente.vigencia``), no es un estado."""
+
+    EN_REVISION = "en_revision", "En revisión"
+    OBSERVADO = "observado", "Observado"
+    VALIDADO = "validado", "Validado"
+    REEMPLAZADO = "reemplazado", "Reemplazado"
+
+
+class Documento(models.Model):
+    """Documento del expediente (RF-04; ADR-015; ADR-017, puntos 2, 4 y 5).
+
+    - ``archivo`` y ``archivo_reverso`` son el nombre UUID4 del archivo cifrado
+      en el volumen de documentos (``expediente.almacenamiento``); nunca el
+      nombre original ni una ruta, y nunca se entregan al cliente.
+    - Un solo documento actual (estado distinto de ``reemplazado``) por
+      (expediente, tipo, oficio), con ``oficio`` nulo tratado como un valor
+      (D-11). Un documento ``reemplazado`` conserva su archivo hasta RNF-26/V-04.
+    """
+
+    ref = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    expediente = models.ForeignKey(
+        Expediente, on_delete=models.PROTECT, related_name="documentos", db_column="expediente_id"
+    )
+    tipo = models.CharField(max_length=30, choices=TipoDocumento.choices)
+    # Solo en la licencia SEC: el oficio regulado que habilita.
+    oficio = models.ForeignKey(
+        Oficio, on_delete=models.PROTECT, null=True, blank=True, related_name="+", db_column="oficio_id"
+    )
+    fecha_emision = models.DateField()
+    # Opcional (RF-04, CA-11.2): sin vencimiento, el documento siempre está vigente.
+    fecha_vencimiento = models.DateField(null=True, blank=True)
+    estado = models.CharField(
+        max_length=20, choices=EstadoDocumento.choices, default=EstadoDocumento.EN_REVISION
+    )
+    # Motivo de curatoría al observar (CA-17.2).
+    motivo_observacion = models.TextField(default="", blank=True)
+    archivo = models.UUIDField(unique=True)
+    # Solo en la cédula: la parte de atrás (ADR-017, punto 3: "por ambos lados").
+    archivo_reverso = models.UUIDField(unique=True, null=True, blank=True)
+    cargado_en = models.DateTimeField(default=timezone.now, db_default=Now())
+    revisado_en = models.DateTimeField(null=True, blank=True)
+    # Quién revisó: solo lo ve curatoría (ADR-010, E-1).
+    revisado_por = models.ForeignKey(
+        Usuario, on_delete=models.PROTECT, null=True, blank=True, related_name="+", db_column="revisado_por_id"
+    )
+    # Documento revisado al que este sustituye (D-11).
+    reemplaza_a = models.ForeignKey(
+        "self", on_delete=models.PROTECT, null=True, blank=True, related_name="+", db_column="reemplaza_a_id"
+    )
+
+    class Meta:
+        db_table = "documento"
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(tipo__in=[valor for valor, _ in TipoDocumento.choices]),
+                name="documento_tipo_valido",
+            ),
+            models.CheckConstraint(
+                condition=Q(estado__in=[valor for valor, _ in EstadoDocumento.choices]),
+                name="documento_estado_valido",
+            ),
+            # El oficio va solo, y siempre, en la licencia SEC (RF-33).
+            models.CheckConstraint(
+                condition=(Q(tipo=TipoDocumento.LICENCIA_SEC) & Q(oficio__isnull=False))
+                | (~Q(tipo=TipoDocumento.LICENCIA_SEC) & Q(oficio__isnull=True)),
+                name="documento_oficio_solo_licencia",
+            ),
+            models.CheckConstraint(
+                condition=Q(fecha_vencimiento__isnull=True) | Q(fecha_vencimiento__gt=F("fecha_emision")),
+                name="documento_vencimiento_posterior",
+            ),
+            # Observar exige un motivo (CA-17.2).
+            models.CheckConstraint(
+                condition=~Q(estado=EstadoDocumento.OBSERVADO) | Q(motivo_observacion__regex=r"\S"),
+                name="documento_motivo_observacion",
+            ),
+            # La cédula lleva las dos caras; los demás documentos, una.
+            models.CheckConstraint(
+                condition=(Q(tipo=TipoDocumento.CEDULA_IDENTIDAD) & Q(archivo_reverso__isnull=False))
+                | (~Q(tipo=TipoDocumento.CEDULA_IDENTIDAD) & Q(archivo_reverso__isnull=True)),
+                name="documento_reverso_solo_cedula",
+            ),
+            # Un documento actual por (expediente, tipo, oficio) (D-11).
+            models.UniqueConstraint(
+                fields=["expediente", "tipo", "oficio"],
+                condition=~Q(estado=EstadoDocumento.REEMPLAZADO),
+                nulls_distinct=False,
+                name="documento_actual_unico",
+            ),
+        ]
+
+    def __str__(self):
+        # Sin datos personales ni nombres de archivo: este texto puede terminar en registros.
+        return f"Documento {self.ref}"
