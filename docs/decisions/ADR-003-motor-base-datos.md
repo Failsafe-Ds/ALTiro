@@ -38,3 +38,28 @@ Para el correo sin distinguir mayúsculas, ADR-013 cerró la elección: normaliz
 - **Impacto:** se pierden el DETAIL de los deadlocks y el CONTEXT de las funciones en el log del servidor; para diagnosticar se sube la verbosidad localmente. Aplicarlo recrea el contenedor `db`, y con eso se borran sus logs anteriores.
 - **Sin decidir (no forman parte de esta enmienda):** `log_line_prefix` con usuario y base, y la rotación de logs de Docker. La retención de logs técnicos es una política que el informe no fija.
 - **Aprobación:** equipo de desarrollo, 2026-09-28 (saneamiento del Sprint 1).
+
+### E-2 — Errores de base de datos en los registros de la aplicación (DEF-QA-007)
+- **Fecha:** 2026-09-28.
+- **Motivo:** E-1 limpió el log del servidor PostgreSQL, pero libpq entrega igual el `DETAIL` al cliente. Ante una excepción de BD no traducida (por ejemplo, un CHECK violado por un error de programación), el logger `django.request` escribía la traza con `DETAIL: Failing row contains (…)`: la fila completa con el hash de la contraseña, nombre, teléfono y correo, dos veces porque Django encadena la excepción de psycopg. Contradice CLAUDE.md §8, NTI-09 y RNF-05. Análisis del agente `architect` del 2026-09-28.
+- **Alternativa descartada:** fijar la verbosidad TERSE de libpq en cada conexión. psycopg 3.3.6 no ofrece API para hacerlo (se comprobó en el contenedor).
+- **Cambio:** filtro de logging `comun.registros.FiltroTrazasSeguras`, aplicado al logger `django.request` (actúa antes de cualquier handler) y al handler `consola` (cubre todo lo que llega a root):
+  - **Qué se filtra:** reemplaza la traza por una versión segura y deja `exc_info = None`, para que ningún formatter vuelva a generar la traza original. Elimina `request` del registro (cookies, token CSRF, cuerpo, META). Nunca se escriben `str(exc)` de un error de BD, `message_detail`, `message_hint`, `context`, `internal_query`, parámetros SQL ni variables locales.
+  - **Qué se conserva:**
+    - la cadena completa de excepciones, con tipo y módulo;
+    - la traza estructural (archivo, línea, función y línea de código);
+    - de `exc.diag`, solo una lista positiva: `sqlstate`, severidad, esquema, tabla, columna, tipo de dato y restricción;
+    - el mensaje primario de PostgreSQL solo en la clase 23 (integridad) y 42501 (mensajes de los triggers de solo inserción), donde no trae valores;
+    - de un `ValidationError`, solo sus códigos;
+    - el mensaje de las demás excepciones, truncado a 200 caracteres;
+    - el nivel, la fecha y hora, el logger, el método, la ruta y el estado.
+  - **No silencia nada:** el filtro devuelve siempre verdadero y los 500 se siguen registrando como `ERROR django.request`.
+  - `django.db.backends` queda fijo en INFO: nunca escribe SQL con sus argumentos.
+- **Sin cambios:** la respuesta al cliente (500 genérico, RNF-15), los contratos de la API y la traducción de unicidad por `diag.constraint_name`.
+- **Riesgos residuales:**
+  - `gunicorn.error` y `sys.excepthook` de los comandos `manage.py` no pasan por el filtro.
+  - El mensaje truncado de excepciones de otras librerías podría traer datos.
+  - `DEBUG=True` o `ADMINS` configurado reabren la exposición y no deben usarse con datos reales.
+  - Regla de código: no interpolar datos personales en mensajes de registro ni de excepción.
+  - Un identificador de petición, el usuario y la operación en cada entrada quedan para RNF-22 (S5).
+- **Aprobación:** equipo de desarrollo, 2026-09-28.

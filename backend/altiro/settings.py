@@ -105,14 +105,30 @@ SECURE_HSTS_SECONDS = 0
 # --- Registros ---
 # Solo a la consola del contenedor. Nunca registrar contraseñas, tokens,
 # cookies ni cuerpos de petición.
+# ADR-003, Enmienda E-2 (DEF-QA-007): el filtro reemplaza la traza por una
+# versión sin mensajes de base de datos (DETAIL con la fila) y quita ``request``.
+# Va en ``django.request`` (antes de cualquier handler) y en el handler
+# ``consola`` (todo lo que llega a root). ``django.db.backends`` queda en INFO:
+# nunca escribe SQL con sus argumentos.
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "trazas_seguras": {"()": "comun.registros.FiltroTrazasSeguras"},
+    },
     "formatters": {
         "simple": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"},
     },
     "handlers": {
-        "consola": {"class": "logging.StreamHandler", "formatter": "simple"},
+        "consola": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+            "filters": ["trazas_seguras"],
+        },
+    },
+    "loggers": {
+        "django.request": {"filters": ["trazas_seguras"]},
+        "django.db.backends": {"level": "INFO"},
     },
     "root": {"handlers": ["consola"], "level": "INFO"},
 }

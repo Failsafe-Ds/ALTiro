@@ -12,8 +12,8 @@ Se provoca en proceso, con datos ficticios, haciendo que la normalización del
 teléfono devuelva un valor que viola ``usuario_telefono_formato``. No usa
 ``transaction=True``: la transacción de la prueba se revierte.
 
-Marcada ``xfail(strict=True)``: cuando se corrija, la prueba pasará y el marcador
-debe retirarse (XPASS estricto hace fallar la suite a propósito).
+Corregido por ADR-003, Enmienda E-2 (``comun.registros.FiltroTrazasSeguras``):
+la traza se conserva, sin el mensaje de la base de datos ni la fila.
 """
 import logging
 
@@ -51,13 +51,19 @@ def test_integrity_error_no_traducido_responde_500_generico(monkeypatch):
     assert sin_texto_prohibido(respuesta)
 
 
-@pytest.mark.xfail(strict=True, reason="DEF-QA-007: la traza de django.request lleva DETAIL con datos personales")
 def test_integrity_error_no_traducido_no_escribe_datos_personales_en_los_registros(monkeypatch, caplog):
     caplog.set_level(logging.INFO)
+    datos = datos_cliente(nombre=NOMBRE, correo=CORREO)
 
     _provocar_500(monkeypatch)
 
     texto = _texto_registrado(caplog)
-    assert "usuario_telefono_formato" in texto  # el error sí se registra
-    for dato in ("Failing row contains", NOMBRE, CORREO, "argon2"):
-        assert dato not in texto, dato
+    # El error sí se registra, con la traza estructural y la restricción.
+    for presente in (
+        "Traceback", "CheckViolation", "IntegrityError", "23514", "usuario_telefono_formato", "servicios.py",
+    ):
+        assert presente in texto, presente
+    for ausente in (
+        "DETAIL", "Failing row contains", NOMBRE, CORREO, datos["telefono"], TELEFONO_INVALIDO, "argon2",
+    ):
+        assert ausente not in texto, ausente

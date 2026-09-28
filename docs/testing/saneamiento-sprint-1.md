@@ -8,6 +8,8 @@
 
 **Veredicto: saneamiento completo con observaciones.** Los defectos DEF-QA-001 a DEF-QA-005 y OBS-01 están corregidos y verificados. La señal CSRF funciona como exigen las enmiendas. La suite pasa completa y no hay regresiones. Quedan abiertos DEF-QA-006, que sigue siendo bajo, y el defecto nuevo DEF-QA-007, de severidad media: un `IntegrityError` no traducido escribe en los registros de `app` el hash y los datos personales. También siguen pendientes RNF-23 en un equipo limpio y los hallazgos de UX en backlog. Ninguno es crítico ni alto. Se recomienda corregir DEF-QA-007 antes de que el S2 agregue restricciones nuevas.
 
+**Actualización 2026-09-28 (re-verificación de DEF-QA-007):** DEF-QA-007 está **corregido y verificado** (ADR-003, Enmienda E-2; ver la sección 5.1). La suite queda en **531 aprobadas, 0 xfail, 0 skip** (527 del backend más 4 de QA en `backend/tests/test_qa_def007_rut.py`). Sigue abierto DEF-QA-006 (baja, backlog).
+
 ---
 
 ## 1. Alcance
@@ -98,6 +100,15 @@ No hay resultados **FAIL** en A a G. El defecto nuevo DEF-QA-007 está fuera de 
 
 No se encontraron otros defectos nuevos.
 
+### 5.1 Re-verificación de DEF-QA-007 — Corregido (2026-09-28)
+- **Corrección:** ADR-003, Enmienda E-2. Filtro `comun.registros.FiltroTrazasSeguras` en el logger `django.request` y en el handler `consola`; `django.db.backends` en INFO. Cambios sin commit sobre `02b88ac`: `backend/comun/registros.py`, `backend/altiro/settings.py` (`LOGGING`), `backend/tests/test_registros_aplicacion.py` y `backend/tests/test_qa_saneamiento_s1.py` (se quitó el `xfail`; no se convirtió en `skip`).
+- **Código:** lista positiva de `diag` (sqlstate, severidad, esquema, tabla, columna, tipo de dato y restricción); mensaje primario solo en la clase 23 y en 42501; `exc_info = None` tras filtrar; `request` eliminado; el filtro devuelve siempre `True`; no usa expresiones regulares; el único `except Exception` rodea `str(exc)` de excepciones que no son de BD. Configuración efectiva en el contenedor: `DEBUG=False`, `ADMINS=[]`, filtro presente en `django.request` y en `consola`, `django.db.backends` en nivel 20.
+- **Pruebas:** `test_integrity_error_no_traducido_no_escribe_datos_personales_en_los_registros` pasa sin marcador. Verifica presencias (`Traceback`, `CheckViolation`, `IntegrityError`, `23514`, `usuario_telefono_formato`, `servicios.py`) y ausencias (`DETAIL`, `Failing row contains`, nombre, correo, teléfono, `argon2`). `test_registros_aplicacion.py` cubre el handler real, la unicidad del correo, 22P02 sin el valor, 42501 de la bitácora, cookies y token CSRF, y la ausencia de los valores en todas las propiedades del `LogRecord`. QA agregó `backend/tests/test_qa_def007_rut.py` (4 pruebas) para el hueco que quedaba: una violación de `perfil_maestro_rut_unico`, con un RUT sintético. La prueba de control confirma que la excepción original sí trae el RUT. Con el filtro, ni `django.request` ni otro logger escriben `DETAIL`, `Key (rut)` ni el RUT (en forma canónica o con formato), y el valor no queda en el `LogRecord`.
+- **Registros reales:** en vivo, con datos ficticios y `normalizar_telefono` forzado en el proceso del `shell` (transacción revertida), el `POST /api/clientes` respondió 500 genérico. `docker compose logs app` muestra `ERROR django.request Internal Server Error: /api/clientes`, `Contexto: método=POST estado=500`, la traza estructural completa y `sqlstate=23514 … restriccion=usuario_telefono_formato`. `docker compose logs db` solo muestra la línea ERROR con el mensaje primario. En ambos registros, completos, hay 0 coincidencias de `DETAIL`, `Failing row`, `argon2`, `INSERT INTO`, `STATEMENT`, `sessionid`, `csrftoken` y de los datos ficticios. Por HTTPS a través de Nginx se enviaron 8 registros simultáneos con el mismo correo ficticio: 1 respondió 201 y 7 respondieron 400 con el mensaje de correo en uso. Hubo una colisión real en la BD (`usuario_correo_unico` en el log de `db`, sin DETAIL). En `app` solo quedaron 7 líneas `WARNING django.request Bad Request`, sin traza ni datos.
+- **Regresión:** suite de 531 aprobadas; healthcheck `healthy` en `app`, `db` y `proxy`; `/api/health/` 200; `GET /api/cuenta` sin sesión 401; `/api/no-existe` 404; HTTP 307 a HTTPS; 125 pruebas de bitácora, `acceso_denegado`, autorización y sesión aprobadas; `flujo.py` en Chromium sin cambios (registro por pasos, 401 genérico, cuenta, perfil de maestro, cierre de sesión y objetivos de al menos 44 px).
+- **Documentación:** ADR-003 E-2 coincide con la implementación. El índice `docs/decisions/README.md` indica "Enmiendas E-1 y E-2 (2026-09-28)".
+- **Riesgos residuales:** los que declara E-2 (`gunicorn.error` y `sys.excepthook` de `manage.py` fuera del filtro; el mensaje truncado de excepciones de otras librerías; `DEBUG=True` o `ADMINS` reabren la exposición; interpolar datos en mensajes queda como regla de código). Además, los handlers por defecto de Django (`console` con `DEBUG=True`, `django.server` de `runserver`) no tienen el filtro. Se aceptan porque no se usan con `DEBUG=False` ni bajo gunicorn.
+
 ## 6. Estado de los defectos del cierre (DEF-QA-001 a 006)
 
 | Defecto | Severidad | Estado | Commit | Evidencia |
@@ -108,22 +119,22 @@ No se encontraron otros defectos nuevos.
 | DEF-QA-004 | baja | **Corregido y verificado** | `ff323ad` (ADR-003 E-1) | E.1 a E.4 |
 | DEF-QA-005 | baja | **Corregido** | `b6dea6d` | El README solo deja pendiente la reautenticación de RNF-09. La línea de estado de la propuesta lista la bitácora y `acceso_denegado` como implementados |
 | DEF-QA-006 | baja | **Abierto** | — | Se mantiene: `/no-existe.html` muestra "404 Not Found / nginx" y un Host no permitido devuelve HTML de Django en inglés (`<html lang="en">`) |
+| DEF-QA-007 | media | **Corregido y verificado** (2026-09-28) | Sin commit sobre `02b88ac` (ADR-003 E-2) | Sección 5.1 |
 | OBS-01 | — | Resuelta | `8d54f3c` y volumen recreado | A.1 y A.2 |
 | Riesgo 2 del cierre (reintento de cualquier 403) | — | Resuelto | `e776b70` (ADR-006 E-1, ADR-011 E-1) | F.1 a F.3 |
 
 ## 7. Pendientes reales antes del Sprint 2
 
-1. **DEF-QA-007** (media): corregirlo antes de agregar las restricciones del S2 (backend, y `architect` si cambia la política de registros). Después, quitar el `xfail`.
-2. **DEF-QA-006** (baja): páginas de error del proxy y 400 por Host no permitido, en español y sin texto técnico, antes de que RNF-15 entre formalmente en el S2.
-3. **RNF-23** (DA-11): medir en un equipo limpio con el procedimiento de la sección 7 de `cierre-sprint-1.md`, antes de la revisión del S1.
-4. **Hallazgos de UX en backlog**, que no están registrados en el repositorio. Conviene incorporarlos al Product Backlog con su descripción completa del informe `ux`:
+1. **DEF-QA-006** (baja, backlog): páginas de error del proxy y 400 por Host no permitido, en español y sin texto técnico, antes de que RNF-15 entre formalmente en el S2.
+2. **RNF-23** (DA-11): medir en un equipo limpio con el procedimiento de la sección 7 de `cierre-sprint-1.md`, antes de la revisión del S1.
+3. **Hallazgos de UX en backlog**, que no están registrados en el repositorio. Conviene incorporarlos al Product Backlog con su descripción completa del informe `ux`:
    - **M-2:** "Volver" del navegador tras cerrar sesión puede mostrar datos desde la caché. En esta QA, en Chromium, volver tras el cierre llevó a `ingresar.html?aviso=sesion` y no mostró el nombre. No se reprodujo en ese escenario; no se probaron otros navegadores ni el bfcache con pestañas en segundo plano. Sigue en backlog.
    - **M-3:** en backlog (descripción en la revisión `ux`; QA no la verificó).
    - **M-4:** lo escrito se guarda en `sessionStorage` sin vencimiento. Confirmado en C.4: `altiro.cuenta.pendiente` guarda el RUT hasta que la misma cuenta vuelve a "Mi cuenta", se cierra sesión desde "Mi cuenta" o se cierra la pestaña. No contiene la contraseña. En un teléfono compartido, otra cuenta no lo ve en pantalla, pero sigue en el almacenamiento de la pestaña.
    - **M-5, M-6 y M-7:** en backlog (descripción en la revisión `ux`; QA no las verificó).
    - **O-1 a O-7:** observaciones de UX en backlog (descripción en la revisión `ux`; QA no las verificó).
-5. **Validaciones pendientes con el representante del producto:** CA-25.3 (DA-04), "vista privada" (ADR-002) y el alcance nacional del catálogo (ADR-012).
-6. **Hacer commit de `backend/tests/test_qa_saneamiento_s1.py`.**
+4. **Validaciones pendientes con el representante del producto:** CA-25.3 (DA-04), "vista privada" (ADR-002) y el alcance nacional del catálogo (ADR-012).
+5. **Hacer commit** de `backend/tests/test_qa_saneamiento_s1.py`, de la corrección de DEF-QA-007 (ADR-003 E-2) y de `backend/tests/test_qa_def007_rut.py`.
 
 ## 8. Evidencia y acciones con efecto
 
@@ -131,6 +142,7 @@ No se encontraron otros defectos nuevos.
 - Se generaron líneas ERROR y FATAL en el log de `db` a propósito (E.3 y E.4), y una línea ERROR por una consulta SQL de QA con una columna errónea (`date_joined`).
 - `test_altiro` se recreó con `--create-db`. El TRUNCATE de E.4 se ejecutó dentro de `BEGIN … ROLLBACK`.
 - No se modificó código de producción. No se borraron volúmenes, imágenes ni bases, y no se hizo commit ni push.
+- Re-verificación de DEF-QA-007: la reproducción en el `shell` se revirtió. La prueba de concurrencia por HTTPS dejó una cuenta ficticia `colision…@example.com` en la base principal, y `flujo.py` dejó una cuenta `navegador…@example.com`. Se generaron a propósito una línea ERROR (23514) y una línea ERROR (23505) en el log de `db`. `test_qa_def007_rut.py` se copió al contenedor `app` con `docker compose cp` para ejecutarlo, porque la imagen incluye las pruebas y no las monta desde el disco. Se descarta al recrear el contenedor.
 
 ## Anexo — Hallazgos de la revisión `ux` (2026-09-28), pendientes para el Product Backlog
 
