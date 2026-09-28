@@ -1,0 +1,9 @@
+# Dependencias de pruebas con versión exacta (ADR-014, RNF-27).
+# time-machine 3.5.1 no tiene dependencias obligatorias (solo extras no usados).
+pytest==9.1.1
+pytest-django==4.14.0
+time-machine==3.5.1
+iniconfig==2.3.0
+packaging==26.3
+pluggy==1.6.0
+pygments==2.21.0

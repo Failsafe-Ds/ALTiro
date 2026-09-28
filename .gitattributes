@@ -1,0 +1,7 @@
+# Fines de línea LF en el repositorio y en la copia de trabajo, aunque el
+# equipo use core.autocrlf=true en Windows: los archivos se montan o copian
+# en contenedores Linux (ADR-009).
+* text=auto eol=lf
+# En Windows, CRLF rompe los scripts dentro de los contenedores (ADR-009).
+*.sh text eol=lf
+*.docx binary

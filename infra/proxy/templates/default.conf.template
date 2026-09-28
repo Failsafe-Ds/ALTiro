@@ -1,0 +1,51 @@
+# Plantilla procesada por el entrypoint de la imagen oficial de Nginx (envsubst):
+# solo se sustituyen variables de entorno definidas (ALTIRO_HTTPS_PORT);
+# las variables propias de Nginx ($host, $uri, ...) quedan intactas.
+# ADR-008: único punto de entrada, HTTPS local autofirmado, sin HSTS.
+
+server_tokens off;
+
+# Puerto 80: solo redirige a HTTPS. 307 (temporal) para no quedar en la caché
+# del navegador como ocurriría con un 301.
+server {
+    listen 80 default_server;
+    server_name _;
+
+    return 307 https://$host:${ALTIRO_HTTPS_PORT}$request_uri;
+}
+
+server {
+    listen 443 ssl default_server;
+    http2 on;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/certificados/cert.pem;
+    ssl_certificate_key /etc/nginx/certificados/key.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    # Cabeceras de seguridad emitidas en un solo lugar (ADR-008).
+    # Sin Strict-Transport-Security en la demostración.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "same-origin" always;
+
+    root  /usr/share/nginx/html;
+    index index.html;
+
+    # API JSON (ADR-002).
+    location /api/ {
+        proxy_pass http://app:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Evita cabeceras duplicadas: estas las emite Nginx arriba.
+        proxy_hide_header X-Content-Type-Options;
+        proxy_hide_header Referrer-Policy;
+        proxy_hide_header Strict-Transport-Security;
+    }
+
+    # Frontend estático (HTML, CSS, JS).
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

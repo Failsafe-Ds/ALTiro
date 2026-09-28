@@ -1,0 +1,99 @@
+# AlTiro — prueba de concepto
+
+Plataforma web que conecta hogares con maestros independientes verificados.
+La documentación funcional está en `docs/` (`docs/informe-altiro.md`) y las
+decisiones técnicas en `docs/decisions/`.
+
+Estado actual: **esqueleto técnico** (infraestructura base) y el **modelo de
+datos de identidad** (ADR-013) con sus servicios. Aún no hay endpoints ni
+pantallas de negocio.
+
+## Requisitos
+
+- Docker Desktop (o Docker Engine) con Docker Compose v2.
+- Puertos 80 y 443 libres en el equipo (configurables, ver `.env.example`).
+
+## Levantar el sistema (un solo comando)
+
+```sh
+docker compose up -d --build
+```
+
+Luego abra <https://127.0.0.1/> (o <https://localhost/>).
+
+No hace falta crear `.env`: `docker-compose.yml` trae valores por defecto.
+Para cambiarlos, cree un `.env` a partir de `.env.example` (el `.env` no se versiona).
+
+## Certificado propio de demostración
+
+La conexión es siempre cifrada (RNF-12). En la demostración local se usa un
+**certificado propio, autofirmado, identificado como "AlTiro demo local,
+autofirmado"**. No lo emite ninguna autoridad de certificación, por lo que el
+navegador mostrará una advertencia: es esperado en esta demostración.
+
+- Lo genera automáticamente el servicio `init` si no existe.
+- Su nombre alternativo (SAN) se configura con `ALTIRO_TLS_SAN`.
+- La configuración de demostración **no emite** `Strict-Transport-Security` (ADR-008).
+- El puerto 80 solo redirige a HTTPS (307).
+- Por defecto solo se publica en `127.0.0.1`; para exponerlo a la red local
+  defina `ALTIRO_BIND_ADDR` y agregue la IP al SAN y a `DJANGO_ALLOWED_HOSTS`.
+
+## Servicios
+
+| Servicio | Función | Puertos publicados |
+|---|---|---|
+| `init` | Genera secretos y certificado si no existen (se ejecuta y termina) | ninguno |
+| `db` | PostgreSQL 16 | ninguno |
+| `app` | Backend Django (API JSON bajo `/api/`) | ninguno |
+| `proxy` | Nginx: HTTPS y frontend estático | 80, 443 en `127.0.0.1` |
+
+Secretos (contraseñas de la base y clave de Django) y certificado viven en los
+volúmenes `secretos` y `certificados`, nunca en el repositorio.
+
+## Roles de PostgreSQL
+
+La aplicación **no** se conecta como superusuario.
+
+| Rol | Uso | Atributos |
+|---|---|---|
+| `altiro_admin` (`POSTGRES_USER`) | Solo inicializa la base; la app no conoce su contraseña | superusuario de la imagen |
+| `altiro_app` (`ALTIRO_DB_APP_USER`) | Conexión de Django | `NOSUPERUSER NOCREATEROLE NOREPLICATION NOBYPASSRLS CREATEDB` |
+
+- En la base `altiro`, `altiro_app` tiene `CONNECT` y `TEMPORARY`, y en el
+  esquema `public`, `USAGE` y `CREATE`: las tablas que crean las migraciones
+  quedan a su nombre.
+- Se quita `CONNECT` a `PUBLIC` en `postgres`, `template1` y `altiro`: la app no
+  puede conectarse a otras bases.
+- `CREATEDB` existe solo para que pytest-django cree la base de pruebas
+  `test_altiro`, que se conserva entre ejecuciones (`pytest --create-db` la recrea).
+
+Lo hace `infra/db/initdb/10-rol-app.sh`, que la imagen de PostgreSQL ejecuta
+**solo cuando el volumen `datos_db` está vacío**.
+
+> **Volumen `datos_db` ya existente** (creado antes de este cambio o con otros
+> nombres de rol): el script no se ejecuta solo. Como es idempotente, puede
+> aplicarse a mano sin borrar datos:
+>
+> ```sh
+> docker compose up -d db
+> docker compose exec -u postgres db sh /docker-entrypoint-initdb.d/10-rol-app.sh
+> docker compose up -d
+> ```
+>
+> Esto requiere que el volumen se haya creado con el mismo `POSTGRES_USER`. Si
+> no es así, habrá que decidir explícitamente si se recrea el volumen (se
+> pierden los datos).
+>
+> Las contraseñas de la base se aplican al inicializar el volumen `datos_db`
+> (la de `altiro_app`, también al volver a ejecutar el script). Si se elimina
+> el volumen `secretos` y se conserva `datos_db`, la aplicación no podrá
+> conectarse a la base.
+
+## Verificaciones rápidas
+
+```sh
+docker compose ps
+curl -k https://127.0.0.1/api/health/        # {"estado": "ok", "base_datos": "ok"}
+curl -I http://127.0.0.1/                     # 307 hacia https://
+docker compose exec app pytest                # pruebas del backend
+```

@@ -1,0 +1,126 @@
+# AlTiro — prueba de concepto local.
+# Comando único (RNF-23, ADR-009): docker compose up -d --build
+# No depende de que exista .env: cada variable tiene un valor por defecto aquí.
+# Solo el servicio "proxy" publica puertos (ADR-003, ADR-008).
+
+name: altiro
+
+services:
+  # Ejecución única e idempotente: genera secretos y el certificado autofirmado
+  # si no existen (ADR-008, ADR-009). No tiene red.
+  init:
+    build: ./infra/init
+    image: altiro-init:local
+    environment:
+      ALTIRO_TLS_SAN: ${ALTIRO_TLS_SAN:-DNS:localhost,IP:127.0.0.1}
+    volumes:
+      - secretos:/secretos
+      - certificados:/certificados
+    network_mode: none
+    restart: "no"
+
+  db:
+    image: postgres:16.15-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-altiro}
+      # Rol administrativo (superusuario de la imagen): solo inicializa la base.
+      POSTGRES_USER: ${POSTGRES_USER:-altiro_admin}
+      POSTGRES_PASSWORD_FILE: /secretos/db_admin_password
+      # Rol de la aplicación, sin superusuario; lo crea infra/db/initdb.
+      ALTIRO_DB_APP_USER: ${ALTIRO_DB_APP_USER:-altiro_app}
+      ALTIRO_DB_APP_PASSWORD_FILE: /secretos/db_app_password
+    volumes:
+      - datos_db:/var/lib/postgresql/data
+      - secretos:/secretos:ro
+      - ./infra/db/initdb:/docker-entrypoint-initdb.d:ro
+    networks:
+      - interna
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      # Por TCP: durante la inicialización el servidor temporal solo escucha en
+      # el socket local, así que la base no se declara sana antes de crear el rol.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  app:
+    build: ./backend
+    image: altiro-app:local
+    environment:
+      DJANGO_SECRET_KEY_FILE: /secretos/django_secret_key
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://localhost,https://127.0.0.1}
+      DJANGO_CONFIAR_PROXY_TLS: "true"
+      # La app se conecta con su propio rol, nunca con POSTGRES_USER.
+      ALTIRO_DB_HOST: db
+      ALTIRO_DB_PORT: "5432"
+      ALTIRO_DB_NAME: ${POSTGRES_DB:-altiro}
+      ALTIRO_DB_USER: ${ALTIRO_DB_APP_USER:-altiro_app}
+      ALTIRO_DB_PASSWORD_FILE: /secretos/db_app_password
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+    volumes:
+      - secretos:/secretos:ro
+    networks:
+      - interna
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys, urllib.request; r = urllib.request.urlopen('http://127.0.0.1:8000/api/health/', timeout=4); sys.exit(0 if r.status == 200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  proxy:
+    image: nginx:1.30.5-alpine
+    environment:
+      ALTIRO_HTTPS_PORT: ${ALTIRO_HTTPS_PORT:-443}
+    ports:
+      # 127.0.0.1 por defecto; exponer a la red local solo con ALTIRO_BIND_ADDR (ADR-008).
+      - "${ALTIRO_BIND_ADDR:-127.0.0.1}:${ALTIRO_HTTP_PORT:-80}:80"
+      - "${ALTIRO_BIND_ADDR:-127.0.0.1}:${ALTIRO_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./infra/proxy/templates:/etc/nginx/templates:ro
+      - ./frontend:/usr/share/nginx/html:ro
+      - certificados:/etc/nginx/certificados:ro
+    networks:
+      - frontal
+      - interna
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsk -o /dev/null https://127.0.0.1/ || wget -q -O /dev/null --no-check-certificate https://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    restart: unless-stopped
+
+networks:
+  # Red con salida, usada solo por el proxy para publicar puertos.
+  frontal: {}
+  # Red sin salida al exterior: proxy <-> app <-> db.
+  interna:
+    internal: true
+
+volumes:
+  datos_db: {}
+  secretos: {}
+  certificados: {}

@@ -1,0 +1,37 @@
+# Configuración local y secretos (ADR-009, RNF-24)
+.env
+.env.*
+!.env.example
+secretos/
+*.secret
+db_admin_password
+db_app_password
+django_secret_key
+
+# Certificados y claves (ADR-008)
+certificados/
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# Respaldos de base de datos
+*.dump
+*.sql.gz
+respaldos/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Registros y sistema
+*.log
+.DS_Store
+Thumbs.db
