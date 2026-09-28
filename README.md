@@ -7,8 +7,9 @@ decisiones técnicas en `docs/decisions/`.
 Estado actual: **Sprint 1 (identidad y acceso)**. Registro de cliente (RF-01),
 inicio y cierre de sesión (RF-02), postulación de maestro (RF-03), catálogo
 territorial, sesiones que expiran a los 30 minutos y bloqueo tras 5 intentos
-fallidos. Pendiente del sprint: bitácora, respuesta ante acceso denegado y
-reautenticación (ver `docs/decisions/sprint-1-propuesta-arquitectura.md`).
+fallidos, autorización centralizada, bitácora de solo inserción y registro de
+accesos denegados. Cierre: `docs/testing/cierre-sprint-1.md` (listo con
+observaciones). Pendiente: reautenticación de RNF-09 (pregunta de alcance §2.1).
 
 ## Requisitos
 
