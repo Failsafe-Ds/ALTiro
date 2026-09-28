@@ -21,6 +21,16 @@ services:
 
   db:
     image: postgres:16.15-bookworm
+    # ADR-003, Enmienda E-1 (DEF-QA-004): el log del servidor no escribe la
+    # sentencia (STATEMENT) ni DETAIL/HINT/CONTEXT/QUERY de los errores, que
+    # pueden llevar datos personales. Siguen registrándose los ERROR con el
+    # nombre de la restricción. "error"/"default" solo para diagnóstico local.
+    command:
+      - postgres
+      - -c
+      - log_min_error_statement=${ALTIRO_DB_LOG_MIN_ERROR_STATEMENT:-panic}
+      - -c
+      - log_error_verbosity=${ALTIRO_DB_LOG_ERROR_VERBOSITY:-terse}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-altiro}
       # Rol administrativo (superusuario de la imagen): solo inicializa la base.

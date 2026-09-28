@@ -116,6 +116,12 @@ Lo hace `infra/db/initdb/10-rol-app.sh`, que la imagen de PostgreSQL ejecuta
 > el volumen `secretos` y se conserva `datos_db`, la aplicación no podrá
 > conectarse a la base.
 
+**Registros de PostgreSQL** (ADR-003, E-1): por defecto no escriben la sentencia
+ni el detalle de los errores. Para diagnosticar, y solo con datos ficticios, ponga
+`ALTIRO_DB_LOG_MIN_ERROR_STATEMENT=error` y `ALTIRO_DB_LOG_ERROR_VERBOSITY=default`
+en `.env`, ejecute `docker compose up -d db`, y al terminar vuelva a `panic`/`terse`
+y repita el comando.
+
 ## Verificaciones rápidas
 
 ```sh
