@@ -14,9 +14,19 @@ Orden: primero la política y después los parámetros. Así cualquier acceso de
 un tercero responde el 404 idéntico y queda registrado (HU-25, CA-25.2), sean
 cuales sean sus parámetros; y un 400 solo llega a quien sí tiene acceso.
 
-Solo se abre el documento actual: uno ``reemplazado`` responde el 404 neutro,
-sin registro (quien pregunta sí tiene relación con él). Abrir documentos
-reemplazados (historial) queda pendiente de decisión.
+Documentos reemplazados (ADR-017, E-3):
+
+- Por ``/api/documentos/<ref>/enlace`` solo se pide el enlace del documento
+  actual: uno ``reemplazado`` responde el 404 neutro, sin registro (quien
+  pregunta sí tiene relación con él). El dueño ve y abre solo los actuales.
+- ``GET /api/curatoria/documentos/<uuid:ref>/enlace``: curatoría pide el
+  enlace de cualquier documento de un expediente ajeno, también uno
+  reemplazado, desde el historial. Exige el rol y aplica el conflicto de
+  interés (ADR-011, E-2): el dueño con rol ``curatoria`` recibe el 403
+  registrado.
+- El archivo de un documento reemplazado solo se entrega a curatoría que no es
+  dueña (con un token de 600 s emitido para ella); el dueño recibe el 404
+  neutro, sin registro.
 
 Ninguna respuesta incluye rutas del volumen ni nombres de archivo internos.
 """
@@ -29,11 +39,12 @@ from django.utils import timezone
 
 from autorizacion import enlaces
 from autorizacion.acceso import obtener_autorizado
+from autorizacion.decoradores import requiere_rol
 from autorizacion.excepciones import RecursoNoEncontrado
 from comun.api import ErrorSolicitud, error_interno, manejar_errores, metodos
 from expediente import almacenamiento
 from expediente.models import Documento, EstadoDocumento
-from expediente.politicas import PoliticaDocumento
+from expediente.politicas import PoliticaDocumento, PoliticaDocumentoCuratoria, es_dueno_del_expediente
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +70,18 @@ CABECERAS_ARCHIVO = {
 }
 
 
-def _documento_autorizado(request, ref):
-    """Documento actual con la política aplicada (404 idéntico, registrado si es ajeno)."""
+def _documento_autorizado(request, ref, admite_reemplazado_para_curatoria=False):
+    """Documento con la política aplicada (404 idéntico, registrado si es ajeno).
+
+    Un documento reemplazado responde el 404 neutro sin registro, salvo que se
+    admita para curatoría no dueña (descarga, ADR-017, E-3).
+    """
     documento = obtener_autorizado(
         Documento.objects.select_related("expediente"), ref, request.usuario, PoliticaDocumento()
     )
-    if documento.estado == EstadoDocumento.REEMPLAZADO:
+    if documento.estado == EstadoDocumento.REEMPLAZADO and (
+        not admite_reemplazado_para_curatoria or es_dueno_del_expediente(request.usuario, documento.expediente)
+    ):
         raise RecursoNoEncontrado()
     return documento
 
@@ -89,7 +106,21 @@ def _cara_del_enlace(request, documento):
 @metodos("GET")
 @manejar_errores
 def documento_enlace(request, ref):
-    documento = _documento_autorizado(request, ref)
+    return _respuesta_enlace(request, _documento_autorizado(request, ref))
+
+
+@metodos("GET")
+@requiere_rol("curatoria")
+@manejar_errores
+def curatoria_documento_enlace(request, ref):
+    """Enlace para curatoría: documentos actuales o reemplazados de un expediente ajeno (ADR-017, E-3)."""
+    documento = obtener_autorizado(
+        Documento.objects.select_related("expediente"), ref, request.usuario, PoliticaDocumentoCuratoria()
+    )
+    return _respuesta_enlace(request, documento)
+
+
+def _respuesta_enlace(request, documento):
     cara = _cara_del_enlace(request, documento)
     # El timestamp del token es el segundo entero en curso: caduca 600 s después.
     caduca_en = timezone.now().replace(microsecond=0) + datetime.timedelta(seconds=enlaces.VIGENCIA_SEGUNDOS)
@@ -117,7 +148,7 @@ def _cara_y_token(request):
 
 @metodos("GET")
 def documento_archivo(request, ref):
-    documento = _documento_autorizado(request, ref)
+    documento = _documento_autorizado(request, ref, admite_reemplazado_para_curatoria=True)
     cara, token = _cara_y_token(request)
     try:
         referencia = enlaces.verificar(token, request.usuario.pk, cara)

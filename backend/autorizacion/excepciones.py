@@ -7,6 +7,9 @@ Las traduce ``autorizacion.middleware.AutorizacionMiddleware``:
   registra en ``acceso_denegado`` y responde exactamente el mismo 404.
 - ``RolRequerido``: falta el rol en una ruta cuya existencia no es secreta;
   se registra (``entidad_ref`` NULL) y responde 403.
+- ``ConflictoDeInteres``: el usuario tiene el rol, pero actúa sobre un recurso
+  propio donde la política declara conflicto (ADR-011, E-2; ADR-013, punto 2.5);
+  se registra y responde 403 con un mensaje accionable, sin ``AlTiro-Rechazo``.
 """
 
 
@@ -29,3 +32,12 @@ class RolRequerido(Exception):
     def __init__(self, roles):
         super().__init__(", ".join(roles))
         self.roles = tuple(roles)
+
+
+class ConflictoDeInteres(Exception):
+    """El usuario tiene el rol, pero el recurso es suyo y la política declara conflicto de interés."""
+
+    def __init__(self, entidad, ref):
+        super().__init__(entidad)
+        self.entidad = entidad
+        self.ref = ref

@@ -187,6 +187,12 @@ class Documento(models.Model):
                 condition=~Q(estado=EstadoDocumento.OBSERVADO) | Q(motivo_observacion__regex=r"\S"),
                 name="documento_motivo_observacion",
             ),
+            # Validar no deja motivo de observación: así un documento reemplazado
+            # sin ese motivo estaba validado (ADR-017, E-1; expediente.vigencia.fue_validado).
+            models.CheckConstraint(
+                condition=~Q(estado=EstadoDocumento.VALIDADO) | Q(motivo_observacion=""),
+                name="documento_validado_sin_observacion",
+            ),
             # La cédula lleva las dos caras; los demás documentos, una.
             models.CheckConstraint(
                 condition=(Q(tipo=TipoDocumento.CEDULA_IDENTIDAD) & Q(archivo_reverso__isnull=False))

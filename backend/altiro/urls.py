@@ -3,6 +3,7 @@ from django.urls import path
 from altiro.salud import salud
 from catalogo import vistas as catalogo
 from expediente import vistas as expediente
+from expediente import vistas_curatoria as curatoria
 from expediente import vistas_documentos as documentos
 from identidad import vistas as identidad
 from territorio import vistas as territorio
@@ -31,6 +32,27 @@ urlpatterns = [
     # Enlace de 600 s y descarga de un documento: dueño o curatoría (RNF-06, CA-25.2; ADR-015).
     path("api/documentos/<uuid:ref>/enlace", documentos.documento_enlace, name="documento_enlace"),
     path("api/documentos/<uuid:ref>/archivo", documentos.documento_archivo, name="documento_archivo"),
+    # Curatoría: rol curatoria y conflicto de interés (HU-19, CA-19.4; ADR-011, E-2; propuesta del S2, §4).
+    path("api/curatoria/expedientes", curatoria.cola, name="curatoria_cola"),
+    path("api/curatoria/expedientes/<uuid:ref>", curatoria.detalle, name="curatoria_detalle"),
+    path(
+        "api/curatoria/expedientes/<uuid:ref>/estado",
+        curatoria.cambiar_estado,
+        name="curatoria_cambiar_estado",
+    ),
+    # Historial de solo lectura (CA-19.3; ADR-010, E-1).
+    path("api/curatoria/expedientes/<uuid:ref>/historial", curatoria.historial, name="curatoria_historial"),
+    path(
+        "api/curatoria/documentos/<uuid:ref>/revision",
+        curatoria.revisar_documento,
+        name="curatoria_revisar_documento",
+    ),
+    # Enlace de 600 s también para documentos reemplazados (ADR-017, E-3).
+    path(
+        "api/curatoria/documentos/<uuid:ref>/enlace",
+        documentos.curatoria_documento_enlace,
+        name="curatoria_documento_enlace",
+    ),
 ]
 
 handler400 = "comun.api.solicitud_invalida"

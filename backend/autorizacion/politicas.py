@@ -24,9 +24,18 @@ documentada.
 
 
 class Politica:
-    """Base: ``entidad`` nombra el tipo de recurso en ``acceso_denegado``."""
+    """Base: ``entidad`` nombra el tipo de recurso en ``acceso_denegado``.
+
+    - ``conflicto``: verdadero si el usuario no puede actuar sobre el recurso
+      por conflicto de interés aunque tenga el rol (ADR-011, E-2). Por defecto
+      no hay conflicto. ``obtener_autorizado`` lo evalúa antes que ``permite``.
+    - ``permite``: por defecto, deniega.
+    """
 
     entidad = None
+
+    def conflicto(self, usuario, objeto):
+        return False
 
     def permite(self, usuario, objeto):
         return False

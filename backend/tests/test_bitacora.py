@@ -3,14 +3,21 @@
 Sin ``transaction=True``: las filas escritas se revierten con la transacción
 de cada prueba (pytest.ini usa --reuse-db).
 """
+import inspect
+import re
+import sys
+import uuid
+
 import pytest
 from django.db import DatabaseError, IntegrityError, connection, transaction
+from django.test import Client
 
 from bitacora.models import Bitacora
 from bitacora.servicios import SISTEMA, ErrorBitacora, registrar
 from comun.solo_insercion import OperacionNoPermitida
-from identidad.models import Usuario
-from tests.ayudas import crear_cliente
+from identidad import servicios as servicios_identidad
+from identidad.models import Rol, Usuario
+from tests.ayudas import CONTRASENA, crear_cliente, iniciar_sesion
 from tests.control_terceros import rutas
 
 pytestmark = pytest.mark.django_db
@@ -129,11 +136,71 @@ def test_el_orm_no_permite_borrar():
     assert Bitacora.objects.filter(pk=entrada.pk).exists()
 
 
-def test_ninguna_ruta_de_la_api_expone_la_bitacora_ni_los_accesos_denegados():
+# Reescrita según ADR-010, E-1 (antes: "ninguna ruta expone la bitácora"). Verifica
+# tres cosas: no hay escritura sobre la bitácora desde la API, la única lectura es
+# el historial de un expediente (solo GET) y ninguna ruta lee ``acceso_denegado``.
+
+RUTA_HISTORIAL = "api/curatoria/expedientes/<uuid:ref>/historial"
+
+
+def _fuente_de_la_vista(ruta):
+    return inspect.getsource(sys.modules[ruta.vista.__module__])
+
+
+def _vista_original(vista):
+    while hasattr(vista, "__wrapped__"):
+        vista = vista.__wrapped__
+    return vista
+
+
+def test_ninguna_ruta_edita_ni_borra_la_bitacora():
     for ruta in rutas():
         assert "bitacora" not in ruta.patron and "acceso" not in ruta.patron, ruta
         modulo = getattr(ruta.vista, "__module__", "")
         assert not modulo.startswith(("bitacora", "autorizacion")), ruta
+        fuente = _fuente_de_la_vista(ruta)
+        # Las vistas no escriben la bitácora: solo el servicio registrar() inserta
+        # entradas nuevas, y el modelo y los triggers rechazan editar o borrar (pruebas de arriba).
+        assert "Bitacora.objects.create" not in fuente, ruta
+        assert not re.search(r"Bitacora\.objects\.[^\n]*\.(update|delete|bulk_update)\(", fuente), ruta
+
+
+def test_la_unica_ruta_que_lee_la_bitacora_es_el_historial_y_solo_acepta_get():
+    lectoras = {
+        ruta.patron
+        for ruta in rutas()
+        if "Bitacora" in inspect.getsource(_vista_original(ruta.vista))
+    }
+    assert lectoras == {RUTA_HISTORIAL}
+
+    (historial,) = [ruta for ruta in rutas() if ruta.patron == RUTA_HISTORIAL]
+    fuente = inspect.getsource(_vista_original(historial.vista))
+    assert "Bitacora.objects.filter(" in fuente
+    assert "registrar" not in fuente
+    assert historial.vista.roles_requeridos == ("curatoria",)
+
+
+@pytest.mark.parametrize("metodo", ["post", "put", "patch", "delete"])
+def test_el_historial_no_acepta_metodos_de_escritura(metodo):
+    servicios_identidad.crear_cuenta_administrativa(
+        nombre="Cura Prueba", correo="cura@example.com", roles=[Rol.CURATORIA], contrasena=CONTRASENA
+    )
+    client = Client()
+    assert iniciar_sesion(client, "cura@example.com").status_code == 200
+    antes = Bitacora.objects.count()
+
+    respuesta = getattr(client, metodo)(f"/api/curatoria/expedientes/{uuid.uuid4()}/historial")
+
+    assert respuesta.status_code == 405
+    assert respuesta["Allow"] == "GET"
+    assert Bitacora.objects.count() == antes
+
+
+def test_ninguna_ruta_lee_los_accesos_denegados():
+    for ruta in rutas():
+        fuente = _fuente_de_la_vista(ruta)
+        assert "RegistroAccesoDenegado" not in fuente, ruta
+        assert "acceso_denegado" not in fuente, ruta
 
 
 # --- Servicio registrar (RF-37, CA-19.3) ---

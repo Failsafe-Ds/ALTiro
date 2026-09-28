@@ -46,8 +46,8 @@ class ImagenInvalida(Exception):
         self.mensaje = mensaje
 
 
-MENSAJE_FORMATO = "Este archivo no es una foto que podamos leer. Toma la foto de nuevo o elige una foto JPG o PNG."
-MENSAJE_PESO = "La foto pesa más de 8 MB. Tómala de nuevo con menos resolución o elige otra foto."
+MENSAJE_FORMATO = "Envía una foto. Este archivo no es una foto que podamos leer."
+MENSAJE_PESO = "La foto es muy pesada. Toma la foto de nuevo o elige otra."
 MENSAJE_PIXELES = "La foto es demasiado grande. Tómala de nuevo con menos resolución o elige otra foto."
 MENSAJE_VACIA = "La foto llegó vacía. Elígela de nuevo e inténtalo otra vez."
 

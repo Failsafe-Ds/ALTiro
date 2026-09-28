@@ -180,3 +180,17 @@ Pruebas automatizadas (solo datos e imágenes sintéticas): vigencia y zona hora
 
 - **Riesgos:** R-01 (un defecto en `PoliticaDocumento` expone cédulas); R-09 (archivos conservados hasta S5); pérdida de la clave de cifrado; certificado autofirmado en Android para RNF-13; memoria (RNF-04); RNF-13 fuera de umbral por el ingreso intermedio (D-13); nombres de oficios sin confirmar.
 - **Registros para la bitácora de alcance** (§5.3.6): RF-34, CA-24.1 y la parte de servicios de CA-24.3 a S3; CA-24.4 a S4; evidencia de RNF-25 a S3 y S4; adelanto del catálogo mínimo de oficios (S3 → S2) y del planificador (S4 → S2, cierra DA-06); cierre de DA-01 y de la parte S2 de DA-05; eventual desplazamiento de la evidencia de RNF-13; desviación de M-02 si se elige D-4 B.
+
+---
+
+## 9. Aclaraciones de implementación (incremento 4, 2026-09-28)
+
+Decisiones técnicas tomadas al implementar la curatoría. Son compatibles con ADR-011 E-2 y ADR-017 y se presentan para revisión en la revisión del sprint:
+
+1. **Ruta adicional:** `GET /api/curatoria/documentos/<uuid:ref>/enlace`, con el rol `curatoria` y el conflicto de interés. Entrega el enlace de documentos actuales y **reemplazados** (ADR-017 E-3). La ruta general `/api/documentos/<ref>/enlace` sigue entregando solo documentos actuales. `/archivo` acepta un documento reemplazado solo para curatoría que no sea dueña.
+2. **Licencia reemplazada que estuvo validada (E-1):** se reconoce porque no tiene motivo de observación. Lo garantiza el CHECK `documento_validado_sin_observacion` (migración 0004).
+3. **Revisión de documentos:** solo se revisan documentos `en_revision`, y una sola vez. Un documento validado u observado responde 409.
+4. **De `suspendido` a `aprobado`:** exige la lista completa de faltantes, igual que cualquier aprobación, no solo la licencia.
+5. **Motivo:** hasta 1000 caracteres, sin caracteres nulos (validación de entrada).
+6. **Minimización:** el detalle de curatoría entrega nombre y RUT, pero no teléfono ni correo, porque ninguna HU ni RF le asigna a curatoría una función de contacto.
+7. **Cola:** páginas de 20, del más antiguo al más reciente. Un filtro desconocido responde 400. `?por_vencer` llega en el incremento 5.

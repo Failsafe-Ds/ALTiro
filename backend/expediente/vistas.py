@@ -21,16 +21,14 @@ from comun.api import (
 )
 from expediente import servicios, vigencia
 from expediente.errores import ErrorEstado, ErroresValidacion
-from expediente.models import Expediente, OficioMaestro
+from expediente.models import EstadoDocumento, Expediente, OficioMaestro
 from identidad.errores import ErrorValidacion
 
 CAMPOS_DECLARAR_OFICIOS = {"oficios"}
 CAMPOS_DOCUMENTO = {"tipo", "oficio", "fecha_emision", "fecha_vencimiento"}
 ARCHIVOS_DOCUMENTO = {"archivo", "archivo_reverso"}
 
-MENSAJE_SUBIDA_GRANDE = (
-    "Las fotos son demasiado pesadas: cada una puede pesar hasta 8 MB. Tómalas de nuevo con menos resolución."
-)
+MENSAJE_SUBIDA_GRANDE = "Las fotos son muy pesadas. Tómalas de nuevo o elige otras."
 
 
 def _mi_expediente(request):
@@ -42,7 +40,12 @@ def _oficio_resumido(oficio):
 
 
 def datos_documento(documento):
-    """Lista explícita (RF-08): sin archivos, rutas, revisor ni ids internos."""
+    """Lista explícita (RF-08): sin archivos, rutas, revisor ni ids internos.
+
+    ``motivo_observacion``: lo que curatoría escribió al observar (CA-17.2);
+    ``null`` si no está observado. Nunca quién revisó ni cuándo (ADR-010, E-1).
+    """
+    observado = documento.estado == EstadoDocumento.OBSERVADO
     return {
         "ref": str(documento.ref),
         "tipo": documento.tipo,
@@ -50,6 +53,7 @@ def datos_documento(documento):
         "estado": documento.estado,
         "fecha_emision": documento.fecha_emision.isoformat(),
         "fecha_vencimiento": documento.fecha_vencimiento.isoformat() if documento.fecha_vencimiento else None,
+        "motivo_observacion": documento.motivo_observacion if observado else None,
     }
 
 

@@ -5,6 +5,10 @@
 - ``declarar_oficios``: el maestro reemplaza su declaración de oficios, solo
   en ``en_revision`` u ``observado``.
 - ``cargar_documento``: el maestro carga un documento (RF-04; ADR-015; ADR-017).
+- ``cambiar_estado``: curatoría cambia el estado del expediente (RF-32, RF-33,
+  CA-19.1 a CA-19.4; ADR-017, punto 2; propuesta del S2, §3).
+- ``revisar_documento``: curatoría valida u observa un documento (CA-17.2;
+  ADR-017, punto 4).
 """
 import datetime
 import re
@@ -12,9 +16,13 @@ import uuid
 
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
+from autorizacion.excepciones import ConflictoDeInteres
+from bitacora import servicios as bitacora
 from catalogo.models import Oficio
 from expediente import almacenamiento, imagenes, vigencia
+from expediente.politicas import PoliticaDocumentoCuratoria, PoliticaExpedienteCuratoria
 from expediente.errores import ErrorEstado, ErroresValidacion
 from expediente.models import (
     ESTADOS_EDITABLES,
@@ -97,7 +105,10 @@ _FECHA = re.compile(r"\d{4}-\d{2}-\d{2}")
 MENSAJE_TIPO = "Elige qué documento vas a subir."
 MENSAJE_NO_CORRESPONDE = "Este dato no corresponde a este documento: quítalo e inténtalo de nuevo."
 MENSAJE_OFICIO_FALTA = "Elige el oficio al que corresponde esta licencia."
-MENSAJE_OFICIO_NO_REGULADO = "Elige un oficio que necesite licencia SEC, como gas o electricidad."
+MENSAJE_OFICIO_NO_REGULADO = (
+    "Elige un oficio que necesite licencia de la Superintendencia de Electricidad y Combustibles (SEC), "
+    "como gas o electricidad."
+)
 MENSAJE_OFICIO_NO_DECLARADO = "Primero agrega este oficio a tus oficios y después sube su licencia."
 MENSAJE_FECHA_EMISION_FALTA = "Escribe la fecha en que se emitió el documento."
 MENSAJE_FECHA_INVALIDA = "Escribe una fecha válida, con día, mes y año."
@@ -275,3 +286,211 @@ def cargar_documento(usuario, datos, archivos):
             almacenamiento.borrar(nombre)
         raise
     return expediente
+
+
+# --- Curatoría: estado del expediente y revisión de documentos ---
+
+# Tabla de transiciones de la propuesta del S2, §3 (ADR-017, punto 2). Cualquier
+# otra, incluida la que no cambia el estado, responde 409. ``rechazado`` es terminal.
+TRANSICIONES = {
+    EstadoExpediente.EN_REVISION: frozenset(
+        {EstadoExpediente.APROBADO, EstadoExpediente.OBSERVADO, EstadoExpediente.RECHAZADO}
+    ),
+    EstadoExpediente.OBSERVADO: frozenset(
+        {EstadoExpediente.APROBADO, EstadoExpediente.EN_REVISION, EstadoExpediente.RECHAZADO}
+    ),
+    EstadoExpediente.APROBADO: frozenset({EstadoExpediente.SUSPENDIDO}),
+    EstadoExpediente.SUSPENDIDO: frozenset({EstadoExpediente.APROBADO}),
+    EstadoExpediente.RECHAZADO: frozenset(),
+}
+
+# Tope defensivo del motivo escrito (validación de entrada; no es una regla del informe).
+MOTIVO_LARGO_MAXIMO = 1000
+
+RESULTADO_VALIDAR = "validar"
+RESULTADO_OBSERVAR = "observar"
+MOTIVO_VALIDADO = "Documento revisado y validado"
+
+MENSAJE_MOTIVO_FALTA = "Escribe el motivo. Es obligatorio y queda registrado."
+MENSAJE_MOTIVO_OBSERVACION_FALTA = "Escribe qué debe corregir el maestro. Es obligatorio y el maestro lo verá."
+MENSAJE_MOTIVO_LARGO = (
+    f"El motivo puede tener hasta {MOTIVO_LARGO_MAXIMO} caracteres. Acórtalo e inténtalo de nuevo."
+)
+MENSAJE_MOTIVO_INVALIDO = "El motivo tiene caracteres que no se pueden usar. Escríbelo de nuevo."
+MENSAJE_ESTADO_NUEVO = "Elige el nuevo estado del expediente."
+MENSAJE_RESULTADO = "Elige si validas u observas el documento."
+MENSAJE_RECARGA = "Recarga la página e inténtalo de nuevo."
+MENSAJE_EXPEDIENTE_CAMBIO = "El expediente cambió mientras lo revisabas. Recarga la página."
+MENSAJE_DOCUMENTO_CAMBIO = "El documento cambió mientras lo revisabas. Recarga la página."
+MENSAJE_DOCUMENTO_REVISADO = (
+    "Este documento ya fue revisado. Si hay que corregir algo, cambia el estado del expediente con un motivo."
+)
+
+_DESCRIPCION_REQUISITO = {
+    vigencia.CEDULA: "la cédula de identidad por ambos lados, validada",
+    vigencia.ANTECEDENTES: "el certificado de antecedentes, validado",
+}
+
+
+def _texto_motivo(valor, obligatorio, mensaje_falta):
+    """Motivo escrito sin espacios sobrantes. Devuelve ``(texto, mensaje_de_error)``."""
+    if valor is None:
+        valor = ""
+    if not isinstance(valor, str):
+        return None, mensaje_falta
+    if "\x00" in valor:
+        return None, MENSAJE_MOTIVO_INVALIDO
+    texto = valor.strip()
+    if obligatorio and not texto:
+        return None, mensaje_falta
+    if len(texto) > MOTIVO_LARGO_MAXIMO:
+        return None, MENSAJE_MOTIVO_LARGO
+    return texto, None
+
+
+def _opcion(valor, opciones):
+    return valor if isinstance(valor, str) and valor in opciones else None
+
+
+def mensaje_transicion(actual, nuevo):
+    return (
+        f"Un expediente «{EstadoExpediente(actual).label.lower()}» no puede pasar a "
+        f"«{EstadoExpediente(nuevo).label.lower()}». Elige otro estado."
+    )
+
+
+def describir_faltante(tipo, oficio):
+    if tipo == vigencia.LICENCIA_SEC:
+        return f"la licencia SEC de {oficio.nombre}, validada y vigente"
+    return _DESCRIPCION_REQUISITO[tipo]
+
+
+def mensaje_faltantes(faltantes):
+    """Mensaje explícito de RF-33 y CA-19.2: nombra cada documento y oficio que falta."""
+    detalle = "; ".join(describir_faltante(tipo, oficio) for tipo, oficio in faltantes)
+    return f"No se puede aprobar el expediente: falta {detalle}."
+
+
+def _sin_conflicto(politica, usuario, objeto):
+    """Defensa en profundidad dentro de la transacción: la misma regla que aplica la vista."""
+    if politica.conflicto(usuario, objeto):
+        raise ConflictoDeInteres(politica.entidad, objeto.ref)
+
+
+def cambiar_estado(usuario, expediente, datos):
+    """Curatoría cambia el estado de ``expediente`` (RF-32, RF-33, CA-19.1 a CA-19.4).
+
+    ``datos``: ``estado_nuevo``, ``estado_actual`` (el que vio quien revisa) y ``motivo``.
+
+    - Datos inválidos o motivo vacío: ``ErroresValidacion`` (400, CA-19.1).
+    - Quien cambia es el dueño: ``ConflictoDeInteres`` (403, CA-19.4).
+    - ``estado_actual`` distinto del guardado: ``ErrorEstado`` (409).
+    - Transición fuera de ``TRANSICIONES``: ``ErrorEstado`` (409).
+    - Aprobar (desde ``en_revision``, ``observado`` o ``suspendido``) con
+      requisitos faltantes: ``ErrorEstado`` (409) con un mensaje que nombra
+      cada documento y oficio (RF-33, CA-19.2; ADR-017, punto 3 y E-1).
+    En esos casos no cambia nada ni se escribe la bitácora. Si cambia, la
+    entrada de la bitácora va en la misma transacción (CA-19.3).
+    Devuelve el expediente actualizado.
+    """
+    errores = {}
+    estado_nuevo = _opcion(datos.get("estado_nuevo"), EstadoExpediente.values)
+    if estado_nuevo is None:
+        errores["estado_nuevo"] = MENSAJE_ESTADO_NUEVO
+    estado_actual = _opcion(datos.get("estado_actual"), EstadoExpediente.values)
+    if estado_actual is None:
+        errores["estado_actual"] = MENSAJE_RECARGA
+    motivo, error = _texto_motivo(datos.get("motivo"), True, MENSAJE_MOTIVO_FALTA)
+    if error:
+        errores["motivo"] = error
+    if errores:
+        raise ErroresValidacion(errores)
+
+    with transaction.atomic():
+        expediente = Expediente.objects.select_for_update().get(pk=expediente.pk)
+        _sin_conflicto(PoliticaExpedienteCuratoria(), usuario, expediente)
+        anterior = expediente.estado
+        if anterior != estado_actual:
+            raise ErrorEstado(MENSAJE_EXPEDIENTE_CAMBIO)
+        if estado_nuevo not in TRANSICIONES[anterior]:
+            raise ErrorEstado(mensaje_transicion(anterior, estado_nuevo))
+        if estado_nuevo == EstadoExpediente.APROBADO:
+            faltantes = vigencia.faltantes_para_aprobar(expediente)
+            if faltantes:
+                raise ErrorEstado(mensaje_faltantes(faltantes))
+        expediente.estado = estado_nuevo
+        expediente.estado_motivo = motivo
+        expediente.estado_cambiado_en = timezone.now()
+        expediente.estado_cambiado_por = usuario
+        expediente.save(update_fields=["estado", "estado_motivo", "estado_cambiado_en", "estado_cambiado_por"])
+        # Solo el estado: sin datos personales (ADR-010).
+        bitacora.registrar(
+            autor=usuario,
+            accion="expediente.cambiar_estado",
+            entidad="expediente",
+            entidad_ref=expediente.ref,
+            valor_anterior={"estado": anterior},
+            valor_nuevo={"estado": estado_nuevo},
+            motivo=motivo,
+        )
+    return expediente
+
+
+def revisar_documento(usuario, documento, datos):
+    """Curatoría valida u observa un documento en revisión (CA-17.2; ADR-017, punto 4).
+
+    ``datos``: ``resultado`` (``validar`` u ``observar``), ``estado_actual`` y ``motivo``.
+
+    - Observar exige motivo; se guarda en ``motivo_observacion`` y el dueño lo
+      ve (CA-17.2), sin saber quién revisó (ADR-010, E-1).
+    - Validar registra en la bitácora el motivo fijo "Documento revisado y
+      validado", completado con el texto opcional.
+    - Solo se revisa un documento ``en_revision``, una vez.
+    Errores: 400 (``ErroresValidacion``), 403 (``ConflictoDeInteres``) o 409
+    (``ErrorEstado``), sin cambios ni bitácora. Devuelve el documento.
+    """
+    errores = {}
+    resultado = _opcion(datos.get("resultado"), {RESULTADO_VALIDAR, RESULTADO_OBSERVAR})
+    if resultado is None:
+        errores["resultado"] = MENSAJE_RESULTADO
+    estado_actual = _opcion(datos.get("estado_actual"), EstadoDocumento.values)
+    if estado_actual is None:
+        errores["estado_actual"] = MENSAJE_RECARGA
+    observar = resultado == RESULTADO_OBSERVAR
+    motivo, error = _texto_motivo(datos.get("motivo"), observar, MENSAJE_MOTIVO_OBSERVACION_FALTA)
+    if error:
+        errores["motivo"] = error
+    if errores:
+        raise ErroresValidacion(errores)
+
+    with transaction.atomic():
+        # Mismo orden de bloqueo que la carga: primero el expediente, después el documento.
+        Expediente.objects.select_for_update().get(pk=documento.expediente_id)
+        documento = Documento.objects.select_for_update().select_related("expediente").get(pk=documento.pk)
+        _sin_conflicto(PoliticaDocumentoCuratoria(), usuario, documento)
+        anterior = documento.estado
+        if anterior != estado_actual:
+            raise ErrorEstado(MENSAJE_DOCUMENTO_CAMBIO)
+        if anterior != EstadoDocumento.EN_REVISION:
+            raise ErrorEstado(MENSAJE_DOCUMENTO_REVISADO)
+        if observar:
+            documento.estado = EstadoDocumento.OBSERVADO
+            documento.motivo_observacion = motivo
+            motivo_bitacora = motivo
+        else:
+            documento.estado = EstadoDocumento.VALIDADO
+            documento.motivo_observacion = ""
+            motivo_bitacora = f"{MOTIVO_VALIDADO}. {motivo}" if motivo else MOTIVO_VALIDADO
+        documento.revisado_en = timezone.now()
+        documento.revisado_por = usuario
+        documento.save(update_fields=["estado", "motivo_observacion", "revisado_en", "revisado_por"])
+        bitacora.registrar(
+            autor=usuario,
+            accion="documento.observar" if observar else "documento.validar",
+            entidad="documento",
+            entidad_ref=documento.ref,
+            valor_anterior={"estado": anterior},
+            valor_nuevo={"estado": documento.estado},
+            motivo=motivo_bitacora,
+        )
+    return documento

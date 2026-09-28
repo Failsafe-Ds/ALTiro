@@ -164,6 +164,8 @@ def test_la_respuesta_devuelve_el_expediente_con_lista_explicita(navegador, maes
             "estado": "en_revision",
             "fecha_emision": documento.fecha_emision.isoformat(),
             "fecha_vencimiento": documento.fecha_vencimiento.isoformat(),
+            # CA-17.2 (incremento 4): el motivo de la observación, null si no está observado.
+            "motivo_observacion": None,
         }
     ]
     assert set(datos) == {"estado", "motivo", "oficios", "documentos", "faltantes", "avisos"}
@@ -365,7 +367,10 @@ def test_foto_de_mas_de_8_mb_responde_400_con_mensaje(navegador, maestro, direct
 
     assert respuesta.status_code == 400
     assert respuesta.json()["errores"] == {"archivo": imagenes.MENSAJE_PESO}
-    assert "8 MB" in imagenes.MENSAJE_PESO
+    # RNF-17: sin unidades ni formatos técnicos en lo que ve el maestro.
+    for termino in ("MB", "JPG", "PNG", "resolución"):
+        assert termino not in imagenes.MENSAJE_PESO
+        assert termino not in imagenes.MENSAJE_FORMATO
     assert not Documento.objects.exists()
 
 
@@ -385,7 +390,8 @@ def test_peticion_sobre_el_maximo_total_responde_413_sin_escribir_a_disco(navega
     respuesta = _subir(navegador, **_datos(archivo=_foto(enorme)))
 
     assert respuesta.status_code == 413
-    assert "8 MB" in respuesta.json()["mensaje"]
+    assert respuesta.json()["mensaje"] == "Las fotos son muy pesadas. Tómalas de nuevo o elige otras."
+    assert "MB" not in respuesta.json()["mensaje"]  # RNF-17
     assert sin_texto_prohibido(respuesta)
     assert not Documento.objects.exists()
 
@@ -542,7 +548,9 @@ def test_reemplazar_un_documento_revisado_lo_conserva_como_reemplazado(
     navegador, maestro, directorio_documentos, django_capture_on_commit_callbacks, estado_revisado
 ):
     assert _subir(navegador, **_datos()).status_code == 201
-    Documento.objects.update(estado=estado_revisado, motivo_observacion="Foto borrosa, repítela.")
+    # Validar no deja motivo de observación (CHECK documento_validado_sin_observacion; ADR-017, E-1).
+    motivo = "Foto borrosa, repítela." if estado_revisado == EstadoDocumento.OBSERVADO else ""
+    Documento.objects.update(estado=estado_revisado, motivo_observacion=motivo)
     revisado = Documento.objects.get()
 
     with django_capture_on_commit_callbacks(execute=True):
@@ -829,7 +837,7 @@ def test_la_respuesta_no_expone_archivos_rutas_ni_revisor(navegador, maestro, di
         assert_campos_ausentes(
             respuesta,
             {"archivo", "archivo_reverso", "ruta", "nombre_archivo", "id", "pk", "expediente_id",
-             "revisado_por", "revisado_por_id", "revisado_en", "reemplaza_a", "reemplaza_a_id", "motivo_observacion",
+             "revisado_por", "revisado_por_id", "revisado_en", "reemplaza_a", "reemplaza_a_id",
              "cargado_en", "rut"},
             valores=[str(documento.archivo), str(documento.archivo_reverso), str(directorio_documentos), "foto.jpg",
                      "reverso.jpg", "/documentos", "111111111"],
