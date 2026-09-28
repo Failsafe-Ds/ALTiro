@@ -73,9 +73,65 @@ const api = (() => {
     return { estado: resultado.estado, datos: resultado.datos };
   }
 
+  // --- Envío de archivos (fotos de documentos, RF-04; ADR-015) ---
+  // Se usa XMLHttpRequest porque fetch no informa el avance de la subida, y el
+  // maestro con señal débil necesita ver que la foto avanza ("Enviando… 40 %").
+  // Mismo formato de respuesta y mismas reglas que pedir(): CSRF en
+  // X-CSRFToken, reintento único solo ante 403 con "AlTiro-Rechazo: csrf"
+  // (ADR-006, E-1), estado 0 sin conexión (RNF-20) y el 413 del proxy, que
+  // llega en JSON con el formato común.
+  function subir(ruta, formData, alProgreso) {
+    return new Promise((resolver) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", ruta);
+      xhr.setRequestHeader("Accept", "application/json");
+      xhr.setRequestHeader("X-CSRFToken", leerCookie("csrftoken"));
+      // Content-Type lo pone el navegador (multipart con su separador).
+      if (alProgreso) {
+        xhr.upload.addEventListener("progress", (evento) => {
+          if (evento.lengthComputable && evento.total > 0) {
+            alProgreso(evento.loaded / evento.total);
+          }
+        });
+      }
+      xhr.addEventListener("load", () => {
+        const rechazoCsrf = xhr.status === 403 && xhr.getResponseHeader("AlTiro-Rechazo") === "csrf";
+        let cuerpo = null;
+        try {
+          cuerpo = JSON.parse(xhr.responseText);
+        } catch (error) {
+          cuerpo = null;
+        }
+        if (xhr.status === 0) {
+          resolver({ estado: 0, datos: SIN_CONEXION });
+          return;
+        }
+        resolver({ estado: xhr.status, datos: cuerpo || RESPUESTA_ILEGIBLE, rechazoCsrf });
+      });
+      for (const falla of ["error", "abort", "timeout"]) {
+        xhr.addEventListener(falla, () => resolver({ estado: 0, datos: SIN_CONEXION }));
+      }
+      xhr.send(formData);
+    });
+  }
+
+  async function enviarArchivo(ruta, formData, alProgreso) {
+    if (!leerCookie("csrftoken")) {
+      await renovarCsrf();
+    }
+    let resultado = await subir(ruta, formData, alProgreso);
+    // Misma regla que en pedir(): el rechazo CSRF ocurre antes de la vista, sin efectos.
+    if (resultado.rechazoCsrf) {
+      await renovarCsrf();
+      resultado = await subir(ruta, formData, alProgreso);
+    }
+    return { estado: resultado.estado, datos: resultado.datos };
+  }
+
   return {
     obtener: (ruta) => pedir("GET", ruta),
     enviar: (ruta, datos) => pedir("POST", ruta, datos),
     borrar: (ruta) => pedir("DELETE", ruta),
+    enviarArchivo,
   };
 })();

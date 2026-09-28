@@ -43,7 +43,9 @@
     const { estado, datos } = await api.enviar("/api/maestros/postulaciones", formulario.leer(form));
     if (estado === 201) {
       pasos.terminar();
-      location.assign("ingresar.html?aviso=registrado");
+      // D-13 / ADR-013 E-8: la postulación no inicia sesión. Se va a ingresar
+      // sin el RUT en la dirección, y tras ingresar se sigue con los documentos.
+      location.assign("ingresar.html?aviso=registrado&siguiente=postulacion");
       return;
     }
     // Un 400 puede deberse a una sesión iniciada en otra pestaña: el servidor

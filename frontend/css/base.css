@@ -294,3 +294,236 @@ legend {
   padding: 0;
   margin-bottom: 1rem;
 }
+
+/* El atributo hidden gana siempre (algunos elementos tienen display propio). */
+[hidden] {
+  display: none !important;
+}
+
+h3 {
+  font-size: 1.1rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.enlace-encabezado {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  font-weight: 600;
+}
+
+.aviso button {
+  margin-top: 0.75rem;
+}
+
+legend:focus,
+h1:focus,
+h2:focus {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* --- Expediente del maestro (HU-11, HU-17) --- */
+
+.lista-oficios {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+}
+
+/* Casillas grandes para el pulgar (RNF-14). La marca de la casilla indica la
+   elección; el borde más grueso la refuerza (no solo el color, RNF-16). */
+.casilla-grande {
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-height: 56px;
+  margin: 0;
+  padding: 0.75rem;
+  border: 2px solid var(--borde);
+  border-radius: var(--radio);
+  cursor: pointer;
+}
+
+.casilla-grande:has(input:checked) {
+  border: 3px solid var(--primario);
+  background: var(--fondo-suave);
+}
+
+.casilla-grande input {
+  flex: none;
+  width: 1.75rem;
+  min-height: 1.75rem;
+  height: 1.75rem;
+}
+
+.casilla-texto {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+}
+
+.nota-licencia {
+  font-weight: 400;
+  color: var(--texto-suave);
+  font-size: 0.95rem;
+}
+
+.nota-licencia::before {
+  content: "🪪 ";
+}
+
+.etiqueta {
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+}
+
+.foto {
+  padding: 0.75rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+.foto-botones {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.foto-estado {
+  margin: 0.25rem 0 0.5rem;
+  font-weight: 600;
+}
+
+.foto-estado:empty {
+  display: none;
+}
+
+.vista-previa {
+  display: block;
+  max-width: 100%;
+  max-height: 16rem;
+  margin: 0.5rem 0;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+.icono {
+  margin-right: 0.4rem;
+}
+
+.progreso-envio {
+  font-weight: 700;
+  margin: 0.5rem 0 0;
+}
+
+.progreso-envio:empty {
+  display: none;
+}
+
+/* Estados: ícono y texto, además del color (RNF-16). Contrastes >= 4,5:1. */
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border: 2px solid;
+  border-radius: var(--radio);
+  font-weight: 700;
+}
+
+.estado-revision {
+  color: var(--texto);
+  background: var(--fondo-suave);
+}
+
+.estado-observado {
+  color: #8a4b00;
+  background: #fff4e5;
+}
+
+.estado-aprobado {
+  color: var(--exito);
+  background: var(--exito-fondo);
+}
+
+.estado-rechazado {
+  color: var(--error);
+  background: var(--error-fondo);
+}
+
+.estado-suspendido {
+  color: var(--texto-suave);
+  background: var(--fondo-suave);
+  border-style: dashed;
+}
+
+.linea-estado {
+  font-weight: 600;
+}
+
+.motivo {
+  padding: 0.75rem 1rem;
+  border-left: 6px solid #8a4b00;
+  background: #fff4e5;
+  color: var(--texto);
+  font-weight: 600;
+  border-radius: var(--radio);
+}
+
+.lista-documentos {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.documento-resumen {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.documento-nombre {
+  font-weight: 600;
+}
+
+.documento h2 {
+  margin-top: 0;
+}
+
+.documento p {
+  margin: 0.35rem 0;
+}
+
+.documento .acciones {
+  margin-top: 0.75rem;
+}
+
+.tarjeta ul {
+  padding-left: 1.25rem;
+}
+
+/* Visor de fotos de documentos. */
+.visor {
+  width: calc(100% - 2rem);
+  max-width: 40rem;
+  padding: 1rem;
+  border: 2px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+.visor::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.visor h2 {
+  margin-top: 0;
+}
+
+.visor img {
+  display: block;
+  max-width: 100%;
+  max-height: 65vh;
+  margin: 0 auto;
+}

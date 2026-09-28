@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi postulación — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/expediente.js" defer></script>
+  <script src="js/foto.js" defer></script>
+  <script src="js/mi-postulacion.js" defer></script>
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" href="cuenta.html">Mi cuenta</a>
+  </header>
+  <main>
+    <h1>Mi postulación</h1>
+    <p id="cargando" role="status">Cargando tu postulación…</p>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+
+    <!-- Paso: oficios (HU-11) -->
+    <form id="form-oficios" class="oculto" novalidate>
+      <p class="progreso"></p>
+      <div class="aviso" role="alert" tabindex="-1"></div>
+      <fieldset aria-describedby="ayuda-oficios error-oficios">
+        <legend tabindex="-1">¿Qué oficios haces?</legend>
+        <span class="ayuda" id="ayuda-oficios">Marca todos los que hagas. Para los que dicen «necesita licencia» te pediremos una foto de tu licencia de la Superintendencia de Electricidad y Combustibles (SEC).</span>
+        <div id="lista-oficios" class="lista-oficios"></div>
+        <span class="error-campo" id="error-oficios"></span>
+      </fieldset>
+      <div class="acciones">
+        <button type="submit">Guardar y continuar</button>
+        <button type="button" class="boton-secundario oculto" id="oficios-volver">Volver al resumen</button>
+      </div>
+    </form>
+
+    <!-- Paso: un documento (RF-04, CA-11.2). Máximo 4 campos: fotos y fechas. -->
+    <form id="form-documento" class="oculto" novalidate>
+      <p class="progreso"></p>
+      <div class="aviso" role="alert" tabindex="-1"></div>
+      <fieldset>
+        <legend id="titulo-documento" tabindex="-1"></legend>
+        <p class="ayuda" id="ayuda-documento"></p>
+        <div id="documento-entregado" class="tarjeta oculto"></div>
+        <div id="fotos"></div>
+        <div class="campo">
+          <label for="fecha_emision">Fecha de emisión</label>
+          <span class="ayuda" id="ayuda-fecha_emision">El día en que te entregaron el documento. Sale impresa en él.</span>
+          <input id="fecha_emision" name="fecha_emision" type="date" required
+                 aria-describedby="ayuda-fecha_emision error-fecha_emision">
+          <span class="error-campo" id="error-fecha_emision"></span>
+        </div>
+        <div class="campo">
+          <label for="fecha_vencimiento">Fecha de vencimiento (si tiene)</label>
+          <span class="ayuda" id="ayuda-fecha_vencimiento">Si tu documento no tiene fecha de término, déjala en blanco.</span>
+          <input id="fecha_vencimiento" name="fecha_vencimiento" type="date"
+                 aria-describedby="ayuda-fecha_vencimiento error-fecha_vencimiento">
+          <span class="error-campo" id="error-fecha_vencimiento"></span>
+        </div>
+        <p id="progreso-envio" class="progreso-envio" role="status"></p>
+      </fieldset>
+      <div class="acciones">
+        <button type="submit" id="enviar-documento">Enviar documento</button>
+        <button type="button" class="boton-secundario oculto" id="documento-seguir">Seguir sin cambiarlo</button>
+        <button type="button" class="boton-secundario" id="documento-volver">Volver</button>
+      </div>
+    </form>
+
+    <!-- Resumen (HU-17, CA-17.2) -->
+    <section id="resumen" class="oculto" aria-labelledby="titulo-resumen">
+      <div id="aviso-resumen" class="aviso" role="status" tabindex="-1"></div>
+      <h2 id="titulo-resumen" tabindex="-1"></h2>
+      <p class="linea-estado">Estado: <span id="estado-expediente"></span></p>
+      <p id="texto-resumen"></p>
+      <p id="motivo-expediente" class="motivo oculto"></p>
+      <div id="bloque-faltan" class="tarjeta oculto">
+        <h3>Te falta entregar</h3>
+        <ul id="lista-faltan"></ul>
+        <button type="button" id="continuar">Continuar con mi postulación</button>
+      </div>
+      <h3>Tus documentos</h3>
+      <p id="sin-documentos" class="oculto">Todavía no has enviado documentos.</p>
+      <ul id="lista-resumen" class="lista-documentos"></ul>
+      <div class="acciones">
+        <a class="boton" href="mis-documentos.html">Ver mis documentos y sus fotos</a>
+        <button type="button" class="boton-secundario oculto" id="cambiar-oficios">Cambiar mis oficios</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
