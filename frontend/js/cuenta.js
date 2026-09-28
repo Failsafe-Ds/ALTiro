@@ -1,4 +1,7 @@
 // Mi cuenta (RF-02): datos propios, agregar un segundo perfil (ADR-013, punto 2) y cerrar sesión.
+// - Si la sesión termina mientras se agrega un perfil, se avisa y se ofrece
+//   volver a ingresar, conservando lo escrito (propuesta del S1, §6; RNF-09; DEF-QA-002).
+// - "Cerrar sesión" solo da la sesión por cerrada si el servidor lo confirma (RF-02; DEF-QA-003).
 "use strict";
 
 (async () => {
@@ -10,7 +13,13 @@
     moderacion: "Moderación",
     control_gestion: "Control de gestión",
   };
+  const NOMBRES_DATO = { telefono: "teléfono", correo: "correo" };
+  // Lo escrito al terminar la sesión, para devolverlo al volver a esta página.
+  // sessionStorage (se borra al cerrar la pestaña), sin contraseñas (ADR-002).
+  const CLAVE_PENDIENTE = "altiro.cuenta.pendiente";
   const aviso = document.getElementById("aviso-cuenta");
+  const avisoSesion = document.getElementById("sesion-terminada");
+  let huella = "";
 
   function irAIngresar() {
     location.assign("ingresar.html?aviso=sesion");
@@ -28,6 +37,24 @@
 
   function mostrar(elemento, visible) {
     elemento.classList.toggle("oculto", !visible);
+  }
+
+  function avisarCuenta(texto, tipo) {
+    aviso.className = "aviso aviso-" + tipo;
+    aviso.textContent = texto;
+    aviso.focus();
+  }
+
+  // Identifica la cuenta sin guardar sus datos: lo escrito solo se devuelve a
+  // la misma cuenta (teléfonos compartidos, ADR-002). Sin crypto.subtle no se guarda nada.
+  async function calcularHuella(cuenta) {
+    try {
+      const texto = JSON.stringify([cuenta.nombre, cuenta.correo, cuenta.telefono]);
+      const resumen = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
+      return Array.from(new Uint8Array(resumen), (b) => b.toString(16).padStart(2, "0")).join("");
+    } catch (error) {
+      return "";
+    }
   }
 
   function pintar(cuenta) {
@@ -57,35 +84,179 @@
     mostrar(document.getElementById("campo-telefono-maestro"), !cuenta.telefono);
   }
 
+  // --- Sesión terminada (DEF-QA-002) ---
+
+  function guardarPendiente(form) {
+    if (!huella) {
+      return false;
+    }
+    const valores = {};
+    for (const campo of form.querySelectorAll("input[name], select[name]")) {
+      if (campo.type !== "password" && campo.value !== "" && !campo.closest(".oculto")) {
+        valores[campo.name] = campo.value;
+      }
+    }
+    try {
+      sessionStorage.setItem(CLAVE_PENDIENTE, JSON.stringify({ huella, form: form.id, valores }));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // No se reinterpreta la operación como un registro ni se piden datos de
+  // visitante: se explica qué pasó y se ofrece volver a ingresar.
+  function sesionTerminada(form) {
+    formulario.limpiarErrores(form);
+    const guardado = guardarPendiente(form);
+    const enlace = document.createElement("a");
+    enlace.className = "boton";
+    enlace.href = "ingresar.html";
+    enlace.textContent = "Ingresar de nuevo";
+    avisoSesion.className = "aviso aviso-error";
+    avisoSesion.replaceChildren(
+      "Tu sesión terminó. Vuelve a ingresar para continuar." +
+        (guardado ? " Lo que escribiste seguirá aquí cuando vuelvas a «Mi cuenta» en esta pestaña." : ""),
+      enlace
+    );
+    avisoSesion.focus();
+  }
+
+  // Devuelve lo guardado solo si es de esta misma cuenta, y lo borra siempre.
+  function tomarPendiente() {
+    const pendiente = formulario.recuperar(CLAVE_PENDIENTE);
+    formulario.olvidar(CLAVE_PENDIENTE);
+    return pendiente && huella && pendiente.huella === huella ? pendiente : null;
+  }
+
+  function restaurar(pendiente) {
+    const form = pendiente && document.getElementById(pendiente.form);
+    if (!form || form.closest(".oculto")) {
+      return;
+    }
+    for (const [nombre, valor] of Object.entries(pendiente.valores || {})) {
+      const campo = form.querySelector(`[name="${nombre}"]`);
+      if (campo && campo.type !== "password" && !campo.closest(".oculto") && nombre !== "region" && nombre !== "comuna") {
+        campo.value = valor;
+      }
+    }
+    avisarCuenta("Recuperamos lo que habías escrito. Revísalo y vuelve a enviarlo.", "exito");
+  }
+
+  // --- Errores de los formularios ---
+
+  function campoDe(form, id) {
+    return form.querySelector(`[aria-describedby~="error-${id}"]`) || form.querySelector(`[name="${id}"]`);
+  }
+
+  // Un error sobre algo que la persona no ve (un campo oculto o ausente, o el
+  // perfil completo) indica que la cuenta cambió o que la sesión terminó.
+  function hayQueRevisarCuenta(form, errores) {
+    return Object.keys(errores).some((id) => {
+      const campo = campoDe(form, id);
+      return id.startsWith("perfil") || !campo || Boolean(campo.closest(".oculto"));
+    });
+  }
+
   // En esta página hay dos formularios: algunos errores se muestran en
   // elementos con otro id (por ejemplo, error-telefono-maestro).
   function conectarFormulario(form, ruta, textoExito, idsDeError = {}) {
     formulario.prepararBoton(form);
+    const seccion = form.closest("section");
+    const textoBoton = form.querySelector('button[type="submit"]').textContent;
     form.addEventListener("submit", async (evento) => {
       evento.preventDefault();
       formulario.limpiarErrores(form);
+      avisoSesion.replaceChildren();
+      avisoSesion.className = "aviso";
       formulario.ocupado(form, true);
       const { estado, datos } = await api.enviar(ruta, formulario.leer(form));
-      formulario.ocupado(form, false);
-      if (estado === 401) {
-        irAIngresar();
+      if (estado === 201) {
+        formulario.ocupado(form, false);
+        pintar(datos.cuenta);
+        avisarCuenta(textoExito, "exito");
         return;
       }
-      if (estado === 201) {
-        pintar(datos.cuenta);
-        aviso.className = "aviso aviso-exito";
-        aviso.textContent = textoExito;
-        aviso.focus();
+      if (estado === 401) {
+        formulario.ocupado(form, false);
+        sesionTerminada(form);
         return;
       }
       const errores = {};
       for (const [campo, texto] of Object.entries(datos.errores || {})) {
         errores[idsDeError[campo] || campo] = texto;
       }
-      const campo = formulario.mostrarErrores(form, { mensaje: datos.mensaje, errores });
+      let mensaje = datos.mensaje;
+      if (estado === 400 && hayQueRevisarCuenta(form, errores)) {
+        // Los endpoints de perfil también atienden a visitantes: sin sesión, el
+        // servidor responde como a un registro nuevo. Se consulta la cuenta
+        // para saber si la sesión terminó o si la cuenta cambió.
+        const revision = await api.obtener("/api/cuenta");
+        if (revision.estado === 401) {
+          formulario.ocupado(form, false);
+          sesionTerminada(form);
+          return;
+        }
+        if (revision.estado === 200) {
+          pintar(revision.datos.cuenta);
+          if (seccion.classList.contains("oculto")) {
+            // El perfil ya estaba agregado (por ejemplo, desde otra pestaña).
+            formulario.ocupado(form, false);
+            avisarCuenta(datos.errores.perfil || "Tu cuenta ya tiene este perfil.", "exito");
+            return;
+          }
+          // Datos de contacto que la cuenta ya tiene: el campo ya no se muestra
+          // ni se envía, así que basta con volver a enviar.
+          const yaTiene = [];
+          for (const [campo, nombre] of Object.entries(NOMBRES_DATO)) {
+            const id = idsDeError[campo] || campo;
+            const elemento = campoDe(form, id);
+            if (errores[id] && elemento && elemento.closest(".oculto")) {
+              delete errores[id];
+              yaTiene.push(nombre);
+            }
+          }
+          if (yaTiene.length) {
+            mensaje =
+              `Tu cuenta ya tiene ${yaTiene.join(" y ")}, así que no necesitas escribirlo. ` +
+              `Revisa los datos y pulsa «${textoBoton}» de nuevo.`;
+          }
+        }
+      }
+      formulario.ocupado(form, false);
+      const campo = formulario.mostrarErrores(form, { mensaje, errores });
       if (campo) {
         campo.focus();
       }
+    });
+  }
+
+  // --- Cerrar sesión (RF-02; DEF-QA-003) ---
+  // Solo se muestra la sesión como cerrada si el servidor lo confirma (204) o
+  // si ya no había sesión (401). Si no, la página se mantiene y se puede reintentar.
+  function conectarCierre() {
+    const boton = document.getElementById("cerrar-sesion");
+    const avisoCerrar = document.getElementById("aviso-cerrar");
+    const texto = boton.textContent;
+    boton.addEventListener("click", async () => {
+      avisoCerrar.textContent = "";
+      avisoCerrar.className = "aviso";
+      boton.disabled = true;
+      boton.textContent = "Cerrando sesión…";
+      const { estado } = await api.borrar("/api/sesion");
+      if (estado === 204 || estado === 401) {
+        formulario.olvidar(CLAVE_PENDIENTE);
+        location.assign("index.html?aviso=sesion-cerrada");
+        return;
+      }
+      boton.disabled = false;
+      boton.textContent = texto;
+      avisoCerrar.className = "aviso aviso-error";
+      avisoCerrar.textContent =
+        estado === 0
+          ? "No pudimos cerrar tu sesión porque no hay conexión: tu sesión sigue abierta en este teléfono. Revisa tu señal o tu wifi y pulsa «Cerrar sesión» de nuevo."
+          : "No pudimos cerrar tu sesión: sigue abierta en este teléfono. Pulsa «Cerrar sesión» de nuevo; si no funciona, recarga la página e inténtalo otra vez.";
+      avisoCerrar.focus();
     });
   }
 
@@ -100,9 +271,16 @@
     return;
   }
   pintar(datos.cuenta);
+  conectarCierre();
+  huella = await calcularHuella(datos.cuenta);
+  const pendiente = tomarPendiente();
 
   const formCliente = document.getElementById("agregar-cliente");
-  await territorio.conectar(formCliente.region, formCliente.comuna);
+  await territorio.conectar(
+    formCliente.region,
+    formCliente.comuna,
+    pendiente && pendiente.form === formCliente.id ? pendiente.valores : {}
+  );
   conectarFormulario(formCliente, "/api/clientes", "Listo: ya puedes pedir trabajos con tu cuenta.");
   conectarFormulario(
     document.getElementById("agregar-maestro"),
@@ -110,9 +288,5 @@
     "Listo: tu postulación como maestro quedó registrada.",
     { telefono: "telefono-maestro", perfil: "perfil-maestro" }
   );
-
-  document.getElementById("cerrar-sesion").addEventListener("click", async () => {
-    await api.borrar("/api/sesion");
-    location.assign("index.html");
-  });
+  restaurar(pendiente);
 })();

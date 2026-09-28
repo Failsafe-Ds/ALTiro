@@ -13,7 +13,17 @@
   <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
   <main>
     <h1>Postular como maestro</h1>
-    <form id="postulacion" novalidate>
+    <section id="con-sesion" class="tarjeta oculto" aria-labelledby="titulo-con-sesion">
+      <h2 id="titulo-con-sesion" tabindex="-1">Ya tienes una sesión iniciada</h2>
+      <p id="con-sesion-texto"></p>
+      <p>Si esta no es tu cuenta, o quieres crear una distinta, primero cierra sesión en «Mi cuenta».</p>
+      <div class="acciones">
+        <a class="boton" href="cuenta.html">Ir a mi cuenta</a>
+      </div>
+    </section>
+
+    <p id="cargando" role="status">Cargando…</p>
+    <form id="postulacion" class="solo-visitante oculto" method="post" novalidate>
       <p class="progreso" aria-live="polite"></p>
       <div class="aviso" role="alert" tabindex="-1"></div>
 
@@ -65,7 +75,7 @@
         </div>
       </fieldset>
     </form>
-    <p>¿Ya postulaste? <a href="ingresar.html">Ingresa con tu RUT</a>.</p>
+    <p class="solo-visitante oculto">¿Ya postulaste? <a href="ingresar.html">Ingresa con tu RUT</a>.</p>
   </main>
 </body>
 </html>

@@ -189,6 +189,10 @@ button[disabled] {
   display: none;
 }
 
+.aviso .boton {
+  margin-top: 0.75rem;
+}
+
 .aviso-error {
   color: var(--error);
   background: var(--error-fondo);

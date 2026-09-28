@@ -71,6 +71,55 @@ const formulario = (() => {
     return primero;
   }
 
+  // --- Sesión iniciada en páginas de cuenta nueva (DEF-QA-001; ADR-013, punto 2 y E-2) ---
+
+  // Texto de comun.api.MENSAJE_CAMPO_NO_PERMITIDO. La API no entrega un código
+  // de error, así que se reconoce por su texto. Es solo un respaldo: las páginas
+  // primero consultan GET /api/cuenta para conocer la causa real.
+  const NO_PERMITIDO = "Este dato no corresponde aquí: quítalo e inténtalo de nuevo.";
+
+  // Reemplaza el mensaje genérico de campo no permitido por uno que la persona
+  // pueda seguir en este contexto (textos = { mensaje, campo }). No descarta
+  // ningún error: cada campo afectado conserva su aviso.
+  function traducirNoPermitido(datos, textos) {
+    let hubo = false;
+    const errores = {};
+    for (const [campo, texto] of Object.entries(datos.errores || {})) {
+      hubo = hubo || texto === NO_PERMITIDO;
+      errores[campo] = texto === NO_PERMITIDO ? textos.campo : texto;
+    }
+    return hubo ? { mensaje: textos.mensaje, errores } : datos;
+  }
+
+  // Con sesión iniciada no se ofrece el formulario de visitante: se explica cómo
+  // seguir desde "Mi cuenta" (textos = { perfil, conPerfil, sinPerfil }).
+  // La contraseña escrita se borra del DOM.
+  function derivarACuenta(cuenta, textos, enfocar) {
+    for (const campo of document.querySelectorAll('input[type="password"]')) {
+      campo.value = "";
+    }
+    for (const elemento of document.querySelectorAll(".solo-visitante")) {
+      elemento.classList.add("oculto");
+    }
+    document.getElementById("con-sesion-texto").textContent = cuenta[textos.perfil]
+      ? textos.conPerfil
+      : textos.sinPerfil;
+    document.getElementById("cargando").classList.add("oculto");
+    document.getElementById("con-sesion").classList.remove("oculto");
+    if (enfocar) {
+      document.getElementById("titulo-con-sesion").focus();
+    }
+  }
+
+  // Sin sesión (o sin poder saberlo, por ejemplo sin conexión): se muestra el
+  // formulario de visitante, que la página deja oculto mientras consulta.
+  function mostrarVisitante() {
+    document.getElementById("cargando").classList.add("oculto");
+    for (const elemento of document.querySelectorAll(".solo-visitante")) {
+      elemento.classList.remove("oculto");
+    }
+  }
+
   // --- Progreso guardado (RNF-20) ---
 
   function guardar(form, clave, paso) {
@@ -212,5 +261,18 @@ const formulario = (() => {
     }
   });
 
-  return { leer, limpiarErrores, mostrarErrores, avisar, porPasos, ocupado, prepararBoton, recuperar, olvidar };
+  return {
+    leer,
+    limpiarErrores,
+    mostrarErrores,
+    avisar,
+    porPasos,
+    ocupado,
+    prepararBoton,
+    recuperar,
+    olvidar,
+    traducirNoPermitido,
+    derivarACuenta,
+    mostrarVisitante,
+  };
 })();
