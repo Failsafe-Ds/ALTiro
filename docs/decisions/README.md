@@ -23,7 +23,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | — | [Propuesta de arquitectura del Sprint 1](sprint-1-propuesta-arquitectura.md) | Borrador |
 | — | [Propuesta de arquitectura del Sprint 2](sprint-2-propuesta-arquitectura.md) | Borrador |
 | [ADR-001](ADR-001-framework-web.md) | Framework web | Aceptada (2026-09-27) |
-| [ADR-002](ADR-002-estilo-interfaz.md) | Estilo de interfaz (API JSON + frontend estático) | Aceptada (2026-09-27) |
+| [ADR-002](ADR-002-estilo-interfaz.md) | Estilo de interfaz (API JSON + frontend estático) | Aceptada (2026-09-27); Enmienda E-1 (2026-09-28) |
 | [ADR-003](ADR-003-motor-base-datos.md) | Motor de base de datos relacional (PostgreSQL 16) | Aceptada (2026-09-27); Enmiendas E-1 y E-2 (2026-09-28) |
 | [ADR-004](ADR-004-hash-contrasenas.md) | Hash de contraseñas (Argon2id, 64 MiB, t=3) | Aceptada (2026-09-28) |
 | [ADR-005](ADR-005-sesiones.md) | Manejo de sesiones | Aceptada (2026-09-28) |

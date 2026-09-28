@@ -121,6 +121,26 @@ const formulario = (() => {
   }
 
   // --- Progreso guardado (RNF-20) ---
+  // Hallazgo UX M-4: todo lo guardado lleva la hora ("guardado") y vence
+  // VIGENCIA_MS después del último cambio. Así, en un teléfono compartido no
+  // queda indefinidamente un RUT, correo o teléfono escrito por otra persona
+  // (ADR-002), y quien perdió la señal o la sesión (30 min, RNF-09) tiene
+  // tiempo de sobra para volver y seguir (RNF-20). Lo vencido o sin hora se
+  // descarta. Al cerrar sesión con éxito se borran todas las claves altiro.*.
+
+  const PREFIJO = "altiro.";
+  const VIGENCIA_MS = 2 * 60 * 60 * 1000;
+
+  // Guarda un objeto con la hora actual. Nunca debe incluir contraseñas.
+  function guardarDatos(clave, datos) {
+    try {
+      sessionStorage.setItem(clave, JSON.stringify(Object.assign({}, datos, { guardado: Date.now() })));
+      return true;
+    } catch (error) {
+      // Almacenamiento no disponible: el formulario sigue funcionando.
+      return false;
+    }
+  }
 
   function guardar(form, clave, paso) {
     const valores = {};
@@ -129,19 +149,12 @@ const formulario = (() => {
         valores[campo.name] = campo.value;
       }
     }
-    try {
-      sessionStorage.setItem(clave, JSON.stringify({ paso, valores }));
-    } catch (error) {
-      // Almacenamiento no disponible: el formulario sigue funcionando.
-    }
+    guardarDatos(clave, { paso, valores });
   }
 
-  function recuperar(clave) {
-    try {
-      return JSON.parse(sessionStorage.getItem(clave)) || null;
-    } catch (error) {
-      return null;
-    }
+  function vigente(guardado) {
+    const edad = Date.now() - guardado;
+    return typeof guardado === "number" && edad >= 0 && edad <= VIGENCIA_MS;
   }
 
   function olvidar(clave) {
@@ -150,6 +163,45 @@ const formulario = (() => {
     } catch (error) {
       // Nada que hacer.
     }
+  }
+
+  // Devuelve lo guardado solo si no venció; si venció, lo borra.
+  function recuperar(clave) {
+    let previo = null;
+    try {
+      previo = JSON.parse(sessionStorage.getItem(clave));
+    } catch (error) {
+      previo = null;
+    }
+    if (!previo || typeof previo !== "object") {
+      return null;
+    }
+    if (!vigente(previo.guardado)) {
+      olvidar(clave);
+      return null;
+    }
+    return previo;
+  }
+
+  function clavesPropias() {
+    try {
+      return Object.keys(sessionStorage).filter((clave) => clave.startsWith(PREFIJO));
+    } catch (error) {
+      return [];
+    }
+  }
+
+  // Tras cerrar sesión con éxito: no queda nada escrito en este teléfono.
+  function olvidarTodo() {
+    for (const clave of clavesPropias()) {
+      olvidar(clave);
+    }
+  }
+
+  // Al cargar cualquier página con formularios se descarta lo vencido, aunque
+  // la persona no vuelva al formulario que lo guardó.
+  for (const clave of clavesPropias()) {
+    recuperar(clave);
   }
 
   // --- Pasos ---
@@ -269,8 +321,10 @@ const formulario = (() => {
     porPasos,
     ocupado,
     prepararBoton,
+    guardarDatos,
     recuperar,
     olvidar,
+    olvidarTodo,
     traducirNoPermitido,
     derivarACuenta,
     mostrarVisitante,

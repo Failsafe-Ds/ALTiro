@@ -21,3 +21,16 @@ Con frontend estático, el HTML de una página privada puede descargarse sin ses
 - El frontend maneja CSRF y los errores en `js/api.js`.
 - Sin framework, el peso de página favorece RNF-02.
 - Al conservar el progreso de formularios (RNF-20), nunca se guarda la contraseña y se minimizan los datos personales en `localStorage`, porque hay teléfonos compartidos.
+
+## Enmiendas
+
+### E-1 — Vencimiento del progreso guardado en el navegador (M-4)
+- **Fecha:** 2026-09-28.
+- **Motivo:** el progreso de los formularios (RNF-20) quedaba en sessionStorage sin vencimiento. En un teléfono compartido podía quedar el RUT, el correo o el teléfono escrito por otra persona. Es el hallazgo M-4 de la revisión `ux` (`docs/testing/saneamiento-sprint-1.md`, anexo).
+- **Cambio:**
+  - Todo lo guardado lleva la hora del último cambio y **vence a las 2 horas**. El plazo se reinicia con cada cambio.
+  - Al cargar una página con formularios se borran las claves `altiro.*` vencidas.
+  - Al cerrar sesión con éxito se borran todas las claves `altiro.*`.
+  - Nunca se guarda la contraseña.
+- **Por qué 2 horas:** la sesión vence a los 30 minutos (RNF-09) y la postulación debería tomar 10 minutos o menos (RNF-13). Dos horas dan margen para recuperar la señal y volver a ingresar (RNF-20) sin conservar los datos indefinidamente.
+- **Aprobación:** equipo de desarrollo, 2026-09-28 (Sprint 2, incremento 0).

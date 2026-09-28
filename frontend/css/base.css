@@ -1,5 +1,7 @@
 /* Estilos base, pensados primero para teléfono (mobile-first).
-   RNF-14: objetivos táctiles de al menos 44 x 44 px. RNF-16: contraste alto.
+   RNF-14: objetivos táctiles de al menos 44 x 44 px.
+   RNF-16 (WCAG 2.2): texto con contraste >= 4,5:1 y bordes, íconos y foco
+   >= 3:1 contra lo que tienen al lado (hallazgo UX O-5).
    Ningún estado depende solo del color: los errores llevan ícono y texto. */
 :root {
   --texto: #1a1a1a;
@@ -13,7 +15,9 @@
   --error-fondo: #fdecee;
   --exito: #1b6e20;
   --exito-fondo: #e8f5e9;
-  --foco: #ffbf47;
+  /* O-5: negro. 21:1 sobre el fondo blanco y 3,15:1 contra el azul de los
+     botones primarios (#ffbf47 daba 1,64:1 sobre blanco). */
+  --foco: #000000;
   --radio: 0.5rem;
 }
 
@@ -156,9 +160,20 @@ button:hover,
   background: var(--primario-oscuro);
 }
 
+/* Mientras se envía, el botón dice "Enviando…" o "Cerrando sesión…": se
+   conserva su contraste (con opacity 0.7 el texto bajaba a 3,5:1) y el
+   borde punteado indica el estado sin depender del color (RNF-16). */
 button[disabled] {
-  opacity: 0.7;
+  border-style: dashed;
   cursor: wait;
+}
+
+button[disabled]:hover {
+  background: var(--primario);
+}
+
+.boton-secundario[disabled]:hover {
+  background: var(--fondo);
 }
 
 .boton-secundario {

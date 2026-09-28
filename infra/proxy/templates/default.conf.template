@@ -32,6 +32,18 @@ server {
     root  /usr/share/nginx/html;
     index index.html;
 
+    # Páginas de error propias, en español y sin texto técnico (DEF-QA-006,
+    # RNF-15, CLAUDE.md §9). Se conserva el código HTTP; un 403 (por ejemplo,
+    # una carpeta sin index.html) se responde como 404 para no revelar qué existe.
+    error_page 403 =404 /errores/404.html;
+    error_page 404 /errores/404.html;
+    error_page 500 502 503 504 /errores/50x.html;
+
+    # Solo se entregan como respuesta a un error, no al pedirlas directamente.
+    location ^~ /errores/ {
+        internal;
+    }
+
     # API JSON (ADR-002).
     location /api/ {
         proxy_pass http://app:8000;
@@ -45,6 +57,23 @@ server {
         proxy_hide_header X-Content-Type-Options;
         proxy_hide_header Referrer-Policy;
         proxy_hide_header Strict-Transport-Security;
+
+        # Errores que genera el propio Nginx (cuerpo demasiado grande, app caída
+        # o que no responde): JSON con el formato común { mensaje, errores } que
+        # entiende js/api.js (DEF-QA-006, RNF-15). Sin proxy_intercept_errors,
+        # las respuestas de la app (400, 404, 500 en JSON) pasan sin cambios.
+        error_page 413 @api_413;
+        error_page 500 502 503 504 @api_no_disponible;
+    }
+
+    location @api_413 {
+        default_type application/json;
+        return 413 '{"mensaje": "Lo que enviaste es demasiado grande. Reduce su tamaño e inténtalo de nuevo.", "errores": {}}';
+    }
+
+    location @api_no_disponible {
+        default_type application/json;
+        return 503 '{"mensaje": "AlTiro no está disponible en este momento. Espera unos minutos e inténtalo de nuevo.", "errores": {}}';
     }
 
     # Frontend estático (HTML, CSS, JS).

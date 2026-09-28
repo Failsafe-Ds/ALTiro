@@ -2,6 +2,9 @@
 // - Si la sesión termina mientras se agrega un perfil, se avisa y se ofrece
 //   volver a ingresar, conservando lo escrito (propuesta del S1, §6; RNF-09; DEF-QA-002).
 // - "Cerrar sesión" solo da la sesión por cerrada si el servidor lo confirma (RF-02; DEF-QA-003).
+// - Hallazgo UX M-2: tras cerrar sesión, "Volver" no debe mostrar los datos
+//   desde la caché del navegador (location.replace, datos vaciados y nueva
+//   consulta a /api/cuenta al volver a mostrar la página).
 "use strict";
 
 (async () => {
@@ -15,14 +18,30 @@
   };
   const NOMBRES_DATO = { telefono: "teléfono", correo: "correo" };
   // Lo escrito al terminar la sesión, para devolverlo al volver a esta página.
-  // sessionStorage (se borra al cerrar la pestaña), sin contraseñas (ADR-002).
+  // sessionStorage (se borra al cerrar la pestaña), sin contraseñas (ADR-002),
+  // con vencimiento (formulario.guardarDatos; hallazgo UX M-4).
   const CLAVE_PENDIENTE = "altiro.cuenta.pendiente";
   const aviso = document.getElementById("aviso-cuenta");
   const avisoSesion = document.getElementById("sesion-terminada");
   let huella = "";
+  // true cuando la página terminó de conectar sus formularios y botones.
+  let lista = false;
 
+  // replace: "Mi cuenta" no queda en el historial de esta pestaña (M-2).
   function irAIngresar() {
-    location.assign("ingresar.html?aviso=sesion");
+    location.replace("ingresar.html?aviso=sesion");
+  }
+
+  // Quita de la página los datos de la cuenta y lo escrito en los formularios,
+  // para que no queden en la copia que el navegador guarda al salir (M-2).
+  function vaciarDatos() {
+    for (const elemento of document.querySelectorAll('[id^="dato-"]')) {
+      elemento.textContent = "";
+    }
+    for (const form of document.querySelectorAll("form")) {
+      form.reset();
+    }
+    huella = "";
   }
 
   function formatearRut(rut) {
@@ -96,12 +115,7 @@
         valores[campo.name] = campo.value;
       }
     }
-    try {
-      sessionStorage.setItem(CLAVE_PENDIENTE, JSON.stringify({ huella, form: form.id, valores }));
-      return true;
-    } catch (error) {
-      return false;
-    }
+    return formulario.guardarDatos(CLAVE_PENDIENTE, { huella, form: form.id, valores });
   }
 
   // No se reinterpreta la operación como un registro ni se piden datos de
@@ -197,6 +211,15 @@
           sesionTerminada(form);
           return;
         }
+        if (revision.estado !== 200) {
+          // Hallazgo UX O-1: sin conexión (estado 0) o con el servidor sin
+          // responder no se sabe si la sesión sigue abierta, así que no se
+          // muestran los errores de visitante: se avisa y se conserva lo escrito.
+          formulario.ocupado(form, false);
+          formulario.limpiarErrores(form);
+          formulario.avisar(form, revision.datos.mensaje, "error");
+          return;
+        }
         if (revision.estado === 200) {
           pintar(revision.datos.cuenta);
           if (seccion.classList.contains("oculto")) {
@@ -245,8 +268,11 @@
       boton.textContent = "Cerrando sesión…";
       const { estado } = await api.borrar("/api/sesion");
       if (estado === 204 || estado === 401) {
-        formulario.olvidar(CLAVE_PENDIENTE);
-        location.assign("index.html?aviso=sesion-cerrada");
+        // M-4: no queda nada escrito en este teléfono. M-2: la página se vacía
+        // antes de salir y "Mi cuenta" no queda en el historial.
+        formulario.olvidarTodo();
+        vaciarDatos();
+        location.replace("index.html?aviso=sesion-cerrada");
         return;
       }
       boton.disabled = false;
@@ -259,6 +285,35 @@
       avisoCerrar.focus();
     });
   }
+
+  // M-2: si el navegador vuelve a mostrar esta página desde su caché ("Volver"),
+  // se consulta de nuevo la cuenta. Si la sesión ya terminó (por ejemplo, se
+  // cerró en otra pestaña), se vacían los datos y se va a "Ingresar".
+  window.addEventListener("pageshow", async (evento) => {
+    if (!evento.persisted) {
+      return;
+    }
+    const revision = await api.obtener("/api/cuenta");
+    if (revision.estado === 200) {
+      if (!lista) {
+        // La primera carga no terminó (por ejemplo, sin conexión): se carga de nuevo.
+        location.reload();
+        return;
+      }
+      pintar(revision.datos.cuenta);
+      huella = await calcularHuella(revision.datos.cuenta);
+      return;
+    }
+    vaciarDatos();
+    if (revision.estado === 401) {
+      irAIngresar();
+      return;
+    }
+    // Sin conexión u otro error: no se muestran datos que no se pudieron comprobar.
+    aviso.className = "aviso aviso-error";
+    aviso.textContent = revision.datos.mensaje;
+    aviso.focus();
+  });
 
   const { estado, datos } = await api.obtener("/api/cuenta");
   if (estado === 401) {
@@ -289,4 +344,5 @@
     { telefono: "telefono-maestro", perfil: "perfil-maestro" }
   );
   restaurar(pendiente);
+  lista = true;
 })();
