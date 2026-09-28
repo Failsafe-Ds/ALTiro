@@ -5,11 +5,31 @@
 
 server_tokens off;
 
+# Registro de acceso sin la cadena de consulta (RNF-06, ADR-015): el enlace de
+# descarga de un documento lleva su token en "?t=…" y no debe quedar en los
+# registros. Se usa la ruta de $request_uri sin la consulta (conserva la ruta
+# original aunque luego haya una redirección interna, como las páginas de
+# error) y el Referer también sin consulta. Se declara en cada server: un
+# access_log a nivel http se sumaría al formato "main" de nginx.conf, que
+# escribe $request completo.
+map $request_uri $altiro_ruta_sin_consulta {
+    "~^(?<ruta>[^?]*)" $ruta;
+    default            "-";
+}
+map $http_referer $altiro_referer_sin_consulta {
+    "~^(?<base>[^?]*)" $base;
+    default            "-";
+}
+log_format altiro_sin_consulta '$remote_addr - $remote_user [$time_local] '
+                               '"$request_method $altiro_ruta_sin_consulta $server_protocol" '
+                               '$status $body_bytes_sent "$altiro_referer_sin_consulta" "$http_user_agent"';
+
 # Puerto 80: solo redirige a HTTPS. 307 (temporal) para no quedar en la caché
 # del navegador como ocurriría con un 301.
 server {
     listen 80 default_server;
     server_name _;
+    access_log /var/log/nginx/access.log altiro_sin_consulta;
 
     return 307 https://$host:${ALTIRO_HTTPS_PORT}$request_uri;
 }
@@ -18,6 +38,7 @@ server {
     listen 443 ssl default_server;
     http2 on;
     server_name _;
+    access_log /var/log/nginx/access.log altiro_sin_consulta;
 
     ssl_certificate     /etc/nginx/certificados/cert.pem;
     ssl_certificate_key /etc/nginx/certificados/key.pem;

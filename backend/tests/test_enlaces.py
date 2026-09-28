@@ -53,3 +53,32 @@ def test_firma_con_otra_sal_es_rechazada():
 
     with pytest.raises(EnlaceInvalido):
         verificar(token, 7)
+
+
+# --- Cara del archivo (incremento 3 del S2) ---
+
+
+def test_enlace_con_cara_se_acepta_solo_para_esa_cara():
+    with time_machine.travel(INICIO, tick=False):
+        token = firmar(REF, 7, "anverso")
+        assert verificar(token, 7, "anverso") == str(REF)
+        for otra in ("reverso", None):
+            with pytest.raises(EnlaceInvalido):
+                verificar(token, 7, otra)
+
+
+def test_enlace_sin_cara_no_sirve_para_una_cara():
+    with time_machine.travel(INICIO, tick=False):
+        token = firmar(REF, 7)
+        with pytest.raises(EnlaceInvalido):
+            verificar(token, 7, "anverso")
+
+
+def test_enlace_con_cara_caduca_igual_a_los_600_segundos():
+    with time_machine.travel(INICIO, tick=False) as viaje:
+        token = firmar(REF, 7, "reverso")
+        viaje.shift(600)
+        assert verificar(token, 7, "reverso") == str(REF)
+        viaje.shift(1)
+        with pytest.raises(EnlaceInvalido):
+            verificar(token, 7, "reverso")

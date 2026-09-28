@@ -12,7 +12,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 
 | ID | Desplazamiento | Nuevo cierre | Tipo |
 |---|---|---|---|
-| DA-01 | Evidencia de RNF-06 | S2 | Temporal |
+| DA-01 | Evidencia de RNF-06 | S2 (cerrado el 2026-09-28) | Temporal (cerrado) |
 | DA-02 | Evidencia de RNF-08 | S4 | Temporal |
 | DA-03 | RNF-07 se cumple de forma acumulativa | S2 a S5 | Temporal |
 | DA-04 | CA-25.3 en "Terminado sin validar" | Revisión del S1 | Temporal |
@@ -37,6 +37,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 - **Cambio:** en S1 se entrega solo la utilidad de enlace firmado (`autorizacion/enlaces.py`, 600 s) con sus pruebas. El volumen de documentos, la descarga y la evidencia del umbral se cierran en S2.
 - **Motivo:** los documentos que protege RNF-06 (cédula, antecedentes, licencias) existen desde S2 (RF-04).
 - **Impacto:** RNF-06 queda "infraestructura preparada / evidencia final pendiente" al cierre del S1. Sin riesgo de exposición: en S1 no hay documentos.
+- **Estado (2026-09-28): cerrado en S2, incremento 3.** Volumen `documentos` montado solo en `app`; entrega por vista con la política reaplicada; enlace válido a los 590 s y rechazado a los 605 s en vivo (600 y 601 s en pruebas); el token no queda en los registros de Nginx ni de la aplicación.
 - **Autorización:** equipo de desarrollo.
 - **Relacionado:** RNF-06, RF-04, HU-11, R-01, M-02; ADR-001, ADR-011.
 
@@ -73,6 +74,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 - **Cambio:** CA-25.1 (órdenes) se demuestra en S4 y CA-25.2 (documentos) en S2. En S1 el mecanismo se prueba sobre el recurso ficticio.
 - **Motivo:** las órdenes y los documentos no existen en S1.
 - **Impacto:** HU-25 no se cierra en S1; solo CA-25.3 (ver DA-04).
+- **Estado (2026-09-28):** CA-25.2 **cerrado en S2, incremento 3**. Un cliente, otro maestro y los roles comercial, moderación y control de gestión reciben el 404 neutro al pedir el documento de identidad de un maestro, y queda una fila en `acceso_denegado`. CA-25.1 sigue pendiente para S4.
 - **Autorización:** equipo de desarrollo.
 - **Relacionado:** HU-25, CA-25.1, CA-25.2, NTI-09; ADR-011.
 

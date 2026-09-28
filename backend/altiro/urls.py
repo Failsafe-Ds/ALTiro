@@ -3,6 +3,7 @@ from django.urls import path
 from altiro.salud import salud
 from catalogo import vistas as catalogo
 from expediente import vistas as expediente
+from expediente import vistas_documentos as documentos
 from identidad import vistas as identidad
 from territorio import vistas as territorio
 
@@ -27,6 +28,9 @@ urlpatterns = [
     path("api/maestros/expediente/oficios", expediente.mis_oficios, name="mis_oficios"),
     # Carga de documentos, multipart (ADR-015; ADR-017, punto 5).
     path("api/maestros/expediente/documentos", expediente.mis_documentos, name="mis_documentos"),
+    # Enlace de 600 s y descarga de un documento: dueño o curatoría (RNF-06, CA-25.2; ADR-015).
+    path("api/documentos/<uuid:ref>/enlace", documentos.documento_enlace, name="documento_enlace"),
+    path("api/documentos/<uuid:ref>/archivo", documentos.documento_archivo, name="documento_archivo"),
 ]
 
 handler400 = "comun.api.solicitud_invalida"
