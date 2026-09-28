@@ -18,3 +18,10 @@ def recurso(request, ref):
 @requiere_rol("curatoria")
 def solo_curatoria(request):
     return JsonResponse({"mensaje": "Acceso permitido."})
+
+
+@metodos("POST")
+@requiere_rol("curatoria")
+def accion_solo_curatoria(request):
+    """Variante que cambia datos (POST, sujeta a CSRF) para ADR-006 E-1 y ADR-011 E-1."""
+    return JsonResponse({"mensaje": "Acción permitida."})

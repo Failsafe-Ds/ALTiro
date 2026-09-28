@@ -44,11 +44,13 @@ const api = (() => {
     } catch (error) {
       return { estado: 0, datos: SIN_CONEXION };
     }
+    // Señal interna (ADR-006, E-1): solo el rechazo CSRF lleva esta cabecera.
+    const rechazoCsrf = respuesta.status === 403 && respuesta.headers.get("AlTiro-Rechazo") === "csrf";
     if (respuesta.status === 204) {
-      return { estado: 204, datos: null };
+      return { estado: 204, datos: null, rechazoCsrf };
     }
     const cuerpo = await respuesta.json().catch(() => null);
-    return { estado: respuesta.status, datos: cuerpo || RESPUESTA_ILEGIBLE };
+    return { estado: respuesta.status, datos: cuerpo || RESPUESTA_ILEGIBLE, rechazoCsrf };
   }
 
   async function pedir(metodo, ruta, datos) {
@@ -56,13 +58,19 @@ const api = (() => {
       await renovarCsrf();
     }
     let resultado = await ejecutar(metodo, ruta, datos);
-    // Token CSRF vencido o rotado (por ejemplo, tras iniciar sesión): se pide
-    // uno nuevo y se reintenta una sola vez.
-    if (resultado.estado === 403 && metodo !== "GET") {
+    // ADR-006, Enmienda E-1 (y ADR-011, E-1): se reintenta una sola vez, tras
+    // pedir un token nuevo, solo si el método cambia datos, la respuesta es 403
+    // y trae "AlTiro-Rechazo: csrf" (token vencido o rotado tras iniciar sesión).
+    // Ese rechazo ocurre antes de ejecutar la vista, así que no tuvo efectos.
+    // Cualquier otro 403 (por ejemplo, falta de rol) no se reintenta: repetirlo
+    // duplicaría el registro en acceso_denegado. El resultado del reintento se
+    // devuelve tal cual, aunque sea otro 403.
+    if (metodo !== "GET" && resultado.rechazoCsrf) {
       await renovarCsrf();
       resultado = await ejecutar(metodo, ruta, datos);
     }
-    return resultado;
+    // La señal no sale de este módulo: las páginas reciben { estado, datos }.
+    return { estado: resultado.estado, datos: resultado.datos };
   }
 
   return {

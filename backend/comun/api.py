@@ -136,11 +136,26 @@ def manejar_errores(vista):
 # --- Respuestas de Django en formato JSON ---
 
 
+# Señal de rechazo CSRF (ADR-006, Enmienda E-1; ADR-011, Enmienda E-1).
+# Solo la lleva la respuesta de ``fallo_csrf``: el cliente reintenta una única
+# vez (tras GET /api/sesion/csrf) un 403 de un método distinto de GET que traiga
+# esta cabecera con este valor. Ningún otro 403 —en particular, la falta de
+# rol— la lleva, y por eso no se reintenta.
+CABECERA_RECHAZO = "AlTiro-Rechazo"
+RECHAZO_CSRF = "csrf"
+
+
 def fallo_csrf(request, reason=""):
-    """CSRF_FAILURE_VIEW (ADR-006). No muestra el motivo interno."""
-    return respuesta_error(
+    """CSRF_FAILURE_VIEW (ADR-006). No muestra el motivo interno.
+
+    CsrfViewMiddleware rechaza en ``process_view``, antes de la vista: esta
+    respuesta no tuvo efectos ni dejó registro (ADR-006, E-1).
+    """
+    respuesta = respuesta_error(
         403, "Tu formulario venció o se abrió desde otro sitio. Recarga la página e inténtalo de nuevo."
     )
+    respuesta[CABECERA_RECHAZO] = RECHAZO_CSRF
+    return respuesta
 
 
 MENSAJE_NO_ENCONTRADO = "No encontramos lo que buscas. Revisa la dirección o vuelve al inicio."

@@ -34,3 +34,11 @@ Aprobada por el equipo de desarrollo a partir del análisis del agente `architec
 3. **Qué se registra en `acceso_denegado`:** el recurso ajeno denegado por la política y el 403 por falta de rol de un usuario autenticado (regla de HU-25: "cualquier otro acceso se deniega y queda registrado"). Nunca se registran los 401 anónimos, los fallos de CSRF, los 404 de referencias inexistentes ni los rechazos por reglas de negocio (400/409).
 4. **Recurso:** se guarda el método más el **patrón** de la ruta, nunca la ruta cruda ni la cadena de consulta (minimización).
 5. `obtener_autorizado` busca por `ref` sin filtrar por dueño y después aplica la política, para distinguir un recurso inexistente de uno ajeno.
+
+## Enmiendas
+
+### E-1 — El 403 por falta de rol no se reintenta
+- **Fecha:** 2026-09-28.
+- **Motivo:** asegurar que cada denegación deje exactamente una fila en `acceso_denegado` (punto 3 de «Decisión»).
+- **Cambio:** el 403 por `RolRequerido` nunca lleva la cabecera `AlTiro-Rechazo` (ADR-006, E-1), y el cliente no lo reintenta. El comportamiento del servidor no cambia.
+- **Aprobación:** equipo de desarrollo, 2026-09-28.

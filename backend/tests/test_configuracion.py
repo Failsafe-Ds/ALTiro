@@ -145,6 +145,14 @@ def test_csrf_activo_y_cookies_seguras():
     assert settings.SESSION_COOKIE_SECURE is True
 
 
+def test_csrf_se_verifica_antes_que_la_autorizacion():
+    # ADR-006 E-1: un 403 con AlTiro-Rechazo: csrf no ejecutó la vista ni dejó
+    # registro en acceso_denegado; exige CSRF antes que AutorizacionMiddleware.
+    csrf = settings.MIDDLEWARE.index("django.middleware.csrf.CsrfViewMiddleware")
+    autorizacion = settings.MIDDLEWARE.index("autorizacion.middleware.AutorizacionMiddleware")
+    assert csrf < autorizacion
+
+
 def test_sin_hsts_en_django():
     # ADR-008
     assert settings.SECURE_HSTS_SECONDS == 0
