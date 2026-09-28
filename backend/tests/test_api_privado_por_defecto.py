@@ -1,6 +1,7 @@
 """Toda ruta /api/ es privada salvo las declaradas públicas (RF-02, CA-25.3; propuesta del S1, §5)."""
 import pytest
-from django.urls import get_resolver
+
+from tests.control_terceros import rutas, url_de_ejemplo
 
 # Lista cerrada de rutas públicas. Agregar una ruta pública exige cambiar esta prueba.
 RUTAS_PUBLICAS = {
@@ -15,7 +16,8 @@ RUTAS_PUBLICAS = {
 
 
 def _rutas_api():
-    return {str(patron.pattern): patron.callback for patron in get_resolver().url_patterns}
+    """Patrón -> vista de todas las rutas, entrando en los include."""
+    return {ruta.patron: ruta.vista for ruta in rutas()}
 
 
 def test_las_unicas_vistas_publicas_son_las_declaradas():
@@ -31,7 +33,7 @@ def test_toda_ruta_privada_responde_401_sin_sesion(client, metodo):
     assert privadas, "debe existir al menos una ruta privada"
 
     for ruta in privadas:
-        respuesta = getattr(client, metodo)("/" + ruta)
+        respuesta = getattr(client, metodo)(url_de_ejemplo(ruta))
         assert respuesta.status_code == 401, ruta
         assert "Inicia sesión" in respuesta.json()["mensaje"]
 

@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",  # ADR-005
     "territorio",
     "identidad",
+    "autorizacion",  # RNF-07, CA-25.3 (ADR-010, ADR-011)
+    "bitacora",  # RNF-11 (ADR-010)
 ]
 
 # ADR-001: fijado desde la primera migración.
@@ -44,6 +46,8 @@ MIDDLEWARE = [
     # Antes que CSRF: una ruta privada sin sesión responde 401, no 403.
     "comun.middleware.PrivadoPorDefectoMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",  # ADR-006
+    # Traduce las denegaciones a 404/403 y las registra (ADR-010, ADR-011).
+    "autorizacion.middleware.AutorizacionMiddleware",
 ]
 
 ROOT_URLCONF = "altiro.urls"

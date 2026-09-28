@@ -79,11 +79,31 @@ def test_la_bd_tiene_las_siete_restricciones_con_nombre():
 
 @pytest.mark.django_db
 def test_no_existen_columnas_sin_respaldo_aprobado():
-    # Decisión del equipo: activo, creado_en y asignado_en no entran todavía.
+    # Decisión del equipo: activo y creado_en no entran todavía. asignado_en sí
+    # existe desde ADR-010, «Decisión», punto 7 (ver test_usuario_rol_tiene_asignado_en).
     with connection.cursor() as cursor:
         for tabla in ("usuario", "usuario_rol", "perfil_cliente", "perfil_maestro"):
             columnas = {c.name for c in connection.introspection.get_table_description(cursor, tabla)}
-            assert not columnas & {"activo", "creado_en", "asignado_en"}, tabla
+            assert not columnas & {"activo", "creado_en"}, tabla
+            if tabla != "usuario_rol":
+                assert "asignado_en" not in columnas, tabla
+
+
+@pytest.mark.django_db
+def test_usuario_rol_tiene_asignado_en_con_valor_por_defecto():
+    # ADR-010, «Decisión», punto 7: fecha de la asignación, también fuera del ORM.
+    usuario = _usuario(correo="c@example.com")
+    rol = UsuarioRol.objects.create(usuario=usuario, rol=Rol.CURATORIA)
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO usuario_rol (usuario_id, rol) VALUES (%s, 'comercial') RETURNING asignado_en",
+            [usuario.pk],
+        )
+        (asignado_en_sql,) = cursor.fetchone()
+
+    rol.refresh_from_db()
+    assert rol.asignado_en is not None
+    assert asignado_en_sql is not None
 
 
 @pytest.mark.django_db

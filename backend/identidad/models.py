@@ -18,6 +18,8 @@ No se modelan estados de cuenta (ADR-013, punto 1.7). Las sesiones las guarda
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Now
+from django.utils import timezone
 
 from identidad.validadores import (
     CORREO_LARGO_MAXIMO,
@@ -101,6 +103,8 @@ class UsuarioRol(models.Model):
         db_index=False,
     )
     rol = models.CharField(max_length=20, choices=Rol.choices)
+    # Fecha de asignación (ADR-010, «Decisión», punto 7). En la BD, DEFAULT now().
+    asignado_en = models.DateTimeField(default=timezone.now, db_default=Now())
 
     class Meta:
         db_table = "usuario_rol"

@@ -10,6 +10,7 @@ Formato de error común, sin trazas ni nombres internos::
 import functools
 import json
 
+from django.core.exceptions import ImproperlyConfigured
 from django.http import JsonResponse
 
 MENSAJE_REVISA_CAMPOS = "Revisa los campos marcados."
@@ -51,7 +52,13 @@ def respuesta_errores_de_campo(errores):
 
 
 def publica(vista):
-    """Marca una vista como accesible sin sesión (propuesta del S1, §5, punto 1)."""
+    """Marca una vista como accesible sin sesión (propuesta del S1, §5, punto 1).
+
+    Una vista que exige un rol (``autorizacion.decoradores.requiere_rol``) no
+    puede ser pública: la combinación es un error de configuración.
+    """
+    if getattr(vista, "roles_requeridos", None):
+        raise ImproperlyConfigured("Una vista que exige un rol no puede marcarse como pública.")
     vista.publica = True
     return vista
 
@@ -136,8 +143,20 @@ def fallo_csrf(request, reason=""):
     )
 
 
+MENSAJE_NO_ENCONTRADO = "No encontramos lo que buscas. Revisa la dirección o vuelve al inicio."
+
+
+def respuesta_no_encontrado():
+    """Único 404 neutro de la API (ADR-011, punto 2).
+
+    Lo usan la ruta inexistente, el recurso inexistente y el recurso ajeno: el
+    cuerpo es idéntico byte a byte, para no revelar si un recurso existe.
+    """
+    return respuesta_error(404, MENSAJE_NO_ENCONTRADO)
+
+
 def no_encontrado(request, exception=None):
-    return respuesta_error(404, "No encontramos lo que buscas. Revisa la dirección o vuelve al inicio.")
+    return respuesta_no_encontrado()
 
 
 def error_interno(request):

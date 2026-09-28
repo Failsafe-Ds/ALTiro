@@ -3,13 +3,16 @@
 Única vía para crear administradores: no hay API para esto (propuesta del S1, §4).
 La contraseña se pide con entrada oculta y nunca se recibe como argumento ni
 se muestra (CLAUDE.md §8). No se registra en la bitácora administrativa ni se
-atribuye al actor Sistema (ADR-010).
+atribuye al actor Sistema (ADR-010). Cada asignación queda con fecha en
+``usuario_rol.asignado_en`` y emite un evento de aplicación con el id del
+usuario y el rol, sin datos personales (ADR-010, «Decisión», punto 7).
 
 Uso dentro del contenedor:
     python manage.py crear_usuario_administrativo --nombre "Ana Admin" --correo ana@example.com --rol curatoria
     python manage.py crear_usuario_administrativo --agregar-a ana@example.com --rol comercial
 """
 import getpass
+import logging
 
 from django.core.management.base import BaseCommand, CommandError
 
@@ -19,6 +22,18 @@ from identidad.errores import ErrorValidacion
 from identidad.models import ROLES_ADMINISTRATIVOS, PerfilMaestro, Usuario
 
 _ROLES = sorted(ROLES_ADMINISTRATIVOS)
+
+logger = logging.getLogger(__name__)
+
+
+def _registrar_asignacion(usuario, roles):
+    """Evento de aplicación por rol asignado: id de usuario y rol, sin datos personales.
+
+    Lo ejecuta una persona desde la consola, que la aplicación no puede
+    identificar: no se inventa un autor ni se usa el actor Sistema (ADR-010).
+    """
+    for rol in sorted(set(roles)):
+        logger.info("Rol administrativo asignado por comando de consola: usuario %s, rol %s.", usuario.pk, rol)
 
 
 class Command(BaseCommand):
@@ -57,6 +72,7 @@ class Command(BaseCommand):
             contrasena=contrasena,
             telefono=telefono,
         )
+        _registrar_asignacion(usuario, opciones["rol"])
         self.stdout.write(f"Cuenta administrativa creada (usuario {usuario.pk}, roles: {', '.join(sorted(opciones['rol']))}).")
 
     def _agregar_roles(self, opciones):
@@ -72,6 +88,7 @@ class Command(BaseCommand):
             raise CommandError("No existe una cuenta con ese correo o RUT.")
         for rol in sorted(set(opciones["rol"])):
             servicios.asignar_rol_administrativo(usuario, rol)
+            _registrar_asignacion(usuario, [rol])
         self.stdout.write(f"Roles agregados al usuario {usuario.pk}: {', '.join(sorted(set(opciones['rol'])))}.")
 
     def _pedir_contrasena(self):
