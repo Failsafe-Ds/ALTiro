@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ingresar — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/ingresar.js" defer></script>
+</head>
+<body>
+  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
+  <main>
+    <h1>Ingresar</h1>
+    <form id="ingresar" novalidate>
+      <div class="aviso" role="alert" tabindex="-1"></div>
+
+      <div class="campo">
+        <label for="identificador">Correo o RUT</label>
+        <span class="ayuda" id="ayuda-identificador">Si eres maestro, puedes usar tu RUT. Ejemplo: 12.345.678-5</span>
+        <input id="identificador" name="identificador" autocomplete="username" required
+               aria-describedby="ayuda-identificador error-identificador">
+        <span class="error-campo" id="error-identificador"></span>
+      </div>
+
+      <div class="campo">
+        <label for="contrasena">Contraseña</label>
+        <input id="contrasena" name="contrasena" type="password" autocomplete="current-password" required
+               aria-describedby="error-contrasena">
+        <label class="casilla"><input type="checkbox" data-mostrar="contrasena"> Mostrar contraseña</label>
+        <span class="error-campo" id="error-contrasena"></span>
+      </div>
+
+      <div class="acciones">
+        <button type="submit">Ingresar</button>
+      </div>
+    </form>
+
+    <h2>¿No tienes cuenta?</h2>
+    <div class="acciones">
+      <a class="boton boton-secundario" href="registro-cliente.html">Crear mi cuenta para pedir trabajos</a>
+      <a class="boton boton-secundario" href="postulacion-maestro.html">Soy maestro: quiero postular</a>
+    </div>
+  </main>
+</body>
+</html>

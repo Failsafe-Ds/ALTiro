@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi cuenta — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/territorio.js" defer></script>
+  <script src="js/cuenta.js" defer></script>
+</head>
+<body>
+  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
+  <main>
+    <h1>Mi cuenta</h1>
+    <div id="aviso-cuenta" class="aviso" role="status" tabindex="-1"></div>
+
+    <section class="tarjeta" aria-labelledby="titulo-datos">
+      <h2 id="titulo-datos">Mis datos</h2>
+      <dl class="datos">
+        <dt>Nombre</dt><dd id="dato-nombre">…</dd>
+        <dt>Teléfono</dt><dd id="dato-telefono">…</dd>
+        <dt>Correo</dt><dd id="dato-correo">…</dd>
+        <dt>Uso AlTiro como</dt><dd id="dato-roles">…</dd>
+        <dt class="oculto" id="titulo-comuna">Comuna</dt><dd class="oculto" id="dato-comuna"></dd>
+        <dt class="oculto" id="titulo-rut">RUT</dt><dd class="oculto" id="dato-rut"></dd>
+      </dl>
+    </section>
+
+    <section id="seccion-cliente" class="tarjeta oculto" aria-labelledby="titulo-cliente">
+      <h2 id="titulo-cliente">Quiero pedir trabajos</h2>
+      <p>Agrega tu comuna para pedir trabajos con esta misma cuenta.</p>
+      <form id="agregar-cliente" novalidate>
+        <div class="aviso" role="alert" tabindex="-1"></div>
+        <div class="campo">
+          <label for="region">Región</label>
+          <select id="region" name="region" data-no-enviar aria-describedby="error-region"></select>
+          <span class="error-campo" id="error-region"></span>
+        </div>
+        <div class="campo">
+          <label for="comuna">Comuna</label>
+          <select id="comuna" name="comuna" disabled aria-describedby="error-comuna"></select>
+          <span class="error-campo" id="error-comuna"></span>
+        </div>
+        <div class="campo oculto" id="campo-correo-cliente">
+          <label for="correo-cliente">Correo</label>
+          <span class="ayuda" id="ayuda-correo-cliente">Para pedir trabajos necesitas un correo.</span>
+          <input id="correo-cliente" name="correo" type="email" inputmode="email" autocomplete="email"
+                 aria-describedby="ayuda-correo-cliente error-correo">
+          <span class="error-campo" id="error-correo"></span>
+        </div>
+        <div class="campo oculto" id="campo-telefono-cliente">
+          <label for="telefono-cliente">Teléfono</label>
+          <input id="telefono-cliente" name="telefono" type="tel" inputmode="tel" autocomplete="tel"
+                 aria-describedby="error-telefono">
+          <span class="error-campo" id="error-telefono"></span>
+        </div>
+        <span class="error-campo" id="error-perfil"></span>
+        <button type="submit">Agregar</button>
+      </form>
+    </section>
+
+    <section id="seccion-maestro" class="tarjeta oculto" aria-labelledby="titulo-maestro">
+      <h2 id="titulo-maestro">Quiero trabajar como maestro</h2>
+      <p>Postula con esta misma cuenta usando tu RUT.</p>
+      <form id="agregar-maestro" novalidate>
+        <div class="aviso" role="alert" tabindex="-1"></div>
+        <div class="campo">
+          <label for="rut">RUT</label>
+          <span class="ayuda" id="ayuda-rut">Ejemplo: 12.345.678-5</span>
+          <input id="rut" name="rut" autocomplete="off" aria-describedby="ayuda-rut error-rut">
+          <span class="error-campo" id="error-rut"></span>
+        </div>
+        <div class="campo oculto" id="campo-telefono-maestro">
+          <label for="telefono-maestro">Teléfono</label>
+          <input id="telefono-maestro" name="telefono" type="tel" inputmode="tel" autocomplete="tel"
+                 aria-describedby="error-telefono-maestro">
+          <span class="error-campo" id="error-telefono-maestro"></span>
+        </div>
+        <span class="error-campo" id="error-perfil-maestro"></span>
+        <button type="submit">Postular</button>
+      </form>
+    </section>
+
+    <div class="acciones">
+      <button type="button" id="cerrar-sesion" class="boton-secundario">Cerrar sesión</button>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Plan de pruebas — Modelo de identidad del Sprint 1
 
-- Estado: **Plan — ejecución parcial** (2026-09-28). Implementadas y aprobadas, en la capa de modelo y servicios (sin API): PI-044 (solo el mínimo definido), PI-045, PI-046, PI-050, PI-052, PI-053, PI-061, PI-130, PI-131, PI-132, PI-133, PI-280, PI-281 y PI-284 (estas tres últimas sobre los servicios, no por HTTP). El resto sigue pendiente.
+- Estado: **En ejecución** (2026-09-28). Las pruebas automatizadas (`backend/tests/`, 400+ casos, todas aprobadas) citan el identificador PI-xxx que cubren; `grep -ri "pi-?[0-9]" backend/tests` lista la cobertura. Con ADR-004, ADR-005, ADR-007 y ADR-012 aceptadas (2026-09-28) quedan desbloqueadas las pruebas B-004, B-005, B-007 y B-012. Cambios: PI-009 no aplica (el registro recibe solo `comuna`; ADR-012, «Decisión»); PI-237 quedó definido en ADR-007. Pendientes sin prueba automatizada: PI-044 y PI-055 (HQ-11, HQ-12), PI-204 (informativa), PI-272 (revisión manual de formularios), PI-282, PI-283, PI-291 y PI-292.
 - Fecha: 2026-09-27
 - Referencia: [ADR-013](../decisions/ADR-013-acceso-politica-contrasena.md) (Aceptada, 2026-09-27)
 - Requisitos: RF-01, RF-02, RF-03, RNF-05, RNF-09, RNF-10, RNF-15

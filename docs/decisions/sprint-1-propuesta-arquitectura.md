@@ -7,7 +7,7 @@
 
 > Las decisiones técnicas se detallan en ADR-001 a ADR-014. No incluye diseño de sprints posteriores, salvo puntos de extensión.
 >
-> **Estado de implementación (2026-09-28):** solo el modelo de datos de identidad de ADR-013 (Aceptada): tablas `usuario`, `usuario_rol`, `perfil_cliente` (sin comuna, ADR-012) y `perfil_maestro`, sus restricciones y los servicios de dominio (`backend/identidad/`, migración `0001_inicial`). No hay endpoints, sesiones, hash definitivo ni limitador: el resto de este documento sigue sin implementar.
+> **Estado de implementación (2026-09-28):** implementados RF-01, RF-02 y RF-03 (API y pantallas), el catálogo territorial (ADR-012), Argon2id (ADR-004), sesiones (ADR-005), el limitador (ADR-007), las rutas privadas por defecto (§5, punto 1), el formato de error común y el comando `crear_usuario_administrativo`. **Pendiente:** bitácora y `acceso_denegado` (ADR-010, Borrador), respuesta 403/404 y `obtener_autorizado` (ADR-011, Borrador), `@requiere_rol`, enlaces firmados (RNF-06 base), `assert_campos_ausentes` (RNF-08 base), la prueba de control de RNF-07 y la reautenticación (§2.1). Diferencias con este documento: `POST /api/clientes` recibe solo `comuna` (ADR-012, «Decisión»); `intento_autenticacion` guarda `(origen, clave, fecha)` solo de fallos (ADR-007); no se agregaron `activo`, `creado_en` ni `asignado_en` (decisión del equipo).
 
 ---
 

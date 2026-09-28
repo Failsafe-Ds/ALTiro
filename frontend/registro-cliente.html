@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crear cuenta — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/territorio.js" defer></script>
+  <script src="js/registro-cliente.js" defer></script>
+</head>
+<body>
+  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
+  <main>
+    <h1>Crear mi cuenta</h1>
+    <form id="registro-cliente" novalidate>
+      <p class="progreso" aria-live="polite"></p>
+      <div class="aviso" role="alert" tabindex="-1"></div>
+
+      <fieldset class="paso">
+        <legend>Tus datos</legend>
+        <div class="campo">
+          <label for="nombre">Nombre</label>
+          <input id="nombre" name="nombre" autocomplete="name" required aria-describedby="error-nombre">
+          <span class="error-campo" id="error-nombre"></span>
+        </div>
+        <div class="campo">
+          <label for="telefono">Teléfono</label>
+          <span class="ayuda" id="ayuda-telefono">9 dígitos. Ejemplo: 9 1234 5678</span>
+          <input id="telefono" name="telefono" type="tel" inputmode="tel" autocomplete="tel" required
+                 aria-describedby="ayuda-telefono error-telefono">
+          <span class="error-campo" id="error-telefono"></span>
+        </div>
+        <div class="campo">
+          <label for="correo">Correo</label>
+          <span class="ayuda" id="ayuda-correo">Lo usarás para ingresar.</span>
+          <input id="correo" name="correo" type="email" inputmode="email" autocomplete="email" required
+                 aria-describedby="ayuda-correo error-correo">
+          <span class="error-campo" id="error-correo"></span>
+        </div>
+        <div class="acciones">
+          <button type="button" data-paso="siguiente">Continuar</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="paso" hidden>
+        <legend>Dónde vives</legend>
+        <div class="campo">
+          <label for="region">Región</label>
+          <select id="region" name="region" data-no-enviar required aria-describedby="error-region">
+            <option value="">Cargando regiones…</option>
+          </select>
+          <span class="error-campo" id="error-region"></span>
+        </div>
+        <div class="campo">
+          <label for="comuna">Comuna</label>
+          <select id="comuna" name="comuna" required disabled aria-describedby="error-comuna">
+            <option value="">Primero elige tu región</option>
+          </select>
+          <span class="error-campo" id="error-comuna"></span>
+        </div>
+        <div class="acciones">
+          <button type="button" data-paso="siguiente">Continuar</button>
+          <button type="button" class="boton-secundario" data-paso="anterior">Volver</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="paso" hidden>
+        <legend>Tu contraseña</legend>
+        <div class="campo">
+          <label for="contrasena">Contraseña</label>
+          <span class="ayuda" id="ayuda-contrasena">Al menos 12 caracteres. Puede ser una frase, por ejemplo: mi casa tiene patio verde</span>
+          <input id="contrasena" name="contrasena" type="password" autocomplete="new-password" required
+                 aria-describedby="ayuda-contrasena error-contrasena">
+          <label class="casilla"><input type="checkbox" data-mostrar="contrasena"> Mostrar contraseña</label>
+          <span class="error-campo" id="error-contrasena"></span>
+        </div>
+        <div class="acciones">
+          <button type="submit">Crear mi cuenta</button>
+          <button type="button" class="boton-secundario" data-paso="anterior">Volver</button>
+        </div>
+      </fieldset>
+    </form>
+    <p>¿Ya tienes cuenta? <a href="ingresar.html">Ingresa aquí</a>.</p>
+  </main>
+</body>
+</html>

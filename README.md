@@ -4,9 +4,11 @@ Plataforma web que conecta hogares con maestros independientes verificados.
 La documentación funcional está en `docs/` (`docs/informe-altiro.md`) y las
 decisiones técnicas en `docs/decisions/`.
 
-Estado actual: **esqueleto técnico** (infraestructura base) y el **modelo de
-datos de identidad** (ADR-013) con sus servicios. Aún no hay endpoints ni
-pantallas de negocio.
+Estado actual: **Sprint 1 (identidad y acceso)**. Registro de cliente (RF-01),
+inicio y cierre de sesión (RF-02), postulación de maestro (RF-03), catálogo
+territorial, sesiones que expiran a los 30 minutos y bloqueo tras 5 intentos
+fallidos. Pendiente del sprint: bitácora, respuesta ante acceso denegado y
+reautenticación (ver `docs/decisions/sprint-1-propuesta-arquitectura.md`).
 
 ## Requisitos
 
@@ -23,6 +25,29 @@ Luego abra <https://127.0.0.1/> (o <https://localhost/>).
 
 No hace falta crear `.env`: `docker-compose.yml` trae valores por defecto.
 Para cambiarlos, cree un `.env` a partir de `.env.example` (el `.env` no se versiona).
+
+## Pantallas
+
+| Página | Uso |
+|---|---|
+| `/` | Inicio |
+| `/registro-cliente.html` | Crear cuenta de cliente, en 3 pasos (RF-01) |
+| `/postulacion-maestro.html` | Postular como maestro, en 2 pasos (RF-03) |
+| `/ingresar.html` | Ingresar con correo o RUT (RF-02) |
+| `/cuenta.html` | Datos propios, agregar el otro perfil y cerrar sesión |
+
+## Crear una cuenta administrativa
+
+No hay pantalla para esto (ADR-013, punto 8). La contraseña se pide oculta:
+
+```sh
+docker compose exec app python manage.py crear_usuario_administrativo \
+    --nombre "Nombre Apellido" --correo admin@example.com --rol curatoria
+# Agregar un rol a una cuenta existente (correo o RUT):
+docker compose exec app python manage.py crear_usuario_administrativo --agregar-a admin@example.com --rol comercial
+```
+
+Roles: `curatoria`, `comercial`, `moderacion`, `control_gestion`.
 
 ## Certificado propio de demostración
 

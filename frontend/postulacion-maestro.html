@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postular como maestro — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/postulacion-maestro.js" defer></script>
+</head>
+<body>
+  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
+  <main>
+    <h1>Postular como maestro</h1>
+    <form id="postulacion" novalidate>
+      <p class="progreso" aria-live="polite"></p>
+      <div class="aviso" role="alert" tabindex="-1"></div>
+
+      <fieldset class="paso">
+        <legend>Tus datos</legend>
+        <div class="campo">
+          <label for="rut">RUT</label>
+          <span class="ayuda" id="ayuda-rut">Con puntos y guion o sin ellos. Ejemplo: 12.345.678-5</span>
+          <input id="rut" name="rut" autocomplete="off" required aria-describedby="ayuda-rut error-rut">
+          <span class="error-campo" id="error-rut"></span>
+        </div>
+        <div class="campo">
+          <label for="nombre">Nombres y apellidos</label>
+          <input id="nombre" name="nombre" autocomplete="name" required aria-describedby="error-nombre">
+          <span class="error-campo" id="error-nombre"></span>
+        </div>
+        <div class="campo">
+          <label for="telefono">Teléfono</label>
+          <span class="ayuda" id="ayuda-telefono">9 dígitos. Ejemplo: 9 1234 5678</span>
+          <input id="telefono" name="telefono" type="tel" inputmode="tel" autocomplete="tel" required
+                 aria-describedby="ayuda-telefono error-telefono">
+          <span class="error-campo" id="error-telefono"></span>
+        </div>
+        <div class="acciones">
+          <button type="button" data-paso="siguiente">Continuar</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="paso" hidden>
+        <legend>Tu acceso</legend>
+        <div class="campo">
+          <label for="correo">Correo (si tienes)</label>
+          <span class="ayuda" id="ayuda-correo">No es obligatorio: también puedes ingresar con tu RUT.</span>
+          <input id="correo" name="correo" type="email" inputmode="email" autocomplete="email"
+                 aria-describedby="ayuda-correo error-correo">
+          <span class="error-campo" id="error-correo"></span>
+        </div>
+        <div class="campo">
+          <label for="contrasena">Contraseña</label>
+          <span class="ayuda" id="ayuda-contrasena">Al menos 12 caracteres. Puede ser una frase, por ejemplo: mi taller queda en el cerro</span>
+          <input id="contrasena" name="contrasena" type="password" autocomplete="new-password" required
+                 aria-describedby="ayuda-contrasena error-contrasena">
+          <label class="casilla"><input type="checkbox" data-mostrar="contrasena"> Mostrar contraseña</label>
+          <span class="error-campo" id="error-contrasena"></span>
+        </div>
+        <div class="acciones">
+          <button type="submit">Enviar postulación</button>
+          <button type="button" class="boton-secundario" data-paso="anterior">Volver</button>
+        </div>
+      </fieldset>
+    </form>
+    <p>¿Ya postulaste? <a href="ingresar.html">Ingresa con tu RUT</a>.</p>
+  </main>
+</body>
+</html>
