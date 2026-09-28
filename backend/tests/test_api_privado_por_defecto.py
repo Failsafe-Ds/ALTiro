@@ -12,6 +12,7 @@ RUTAS_PUBLICAS = {
     "api/sesion",
     "api/clientes",
     "api/maestros/postulaciones",
+    "api/oficios",  # Catálogo mínimo de oficios (ADR-017, punto 1; propuesta del S2, §4)
 }
 
 

@@ -1,0 +1,9 @@
+codigo,nombre,regulado,orden
+gas,Gas,si,1
+electricidad,Electricidad,si,2
+ejemplo_1,Oficio de ejemplo 1 (por confirmar),no,3
+ejemplo_2,Oficio de ejemplo 2 (por confirmar),no,4
+ejemplo_3,Oficio de ejemplo 3 (por confirmar),no,5
+ejemplo_4,Oficio de ejemplo 4 (por confirmar),no,6
+ejemplo_5,Oficio de ejemplo 5 (por confirmar),no,7
+ejemplo_6,Oficio de ejemplo 6 (por confirmar),no,8

@@ -19,6 +19,8 @@ Contraseña: toda cuenta nueva la recibe, se valida con la política de ADR-013
 """
 from django.db import IntegrityError, transaction
 
+from expediente import servicios as expedientes
+from expediente.models import Expediente
 from identidad.errores import ErrorValidacion, InvarianteVioladaError
 from identidad.models import (
     ROLES_ADMINISTRATIVOS,
@@ -79,6 +81,10 @@ def verificar_invariantes(usuario):
         violaciones.append("cuenta administrativa sin perfil_maestro exige correo")
     if usuario.telefono is None and not (roles and roles <= ROLES_ADMINISTRATIVOS):
         violaciones.append("teléfono NULL solo en cuentas exclusivamente administrativas")
+    # ADR-017, punto 2: el expediente nace junto con perfil_maestro. La FK
+    # impide un expediente sin perfil, así que basta revisar este sentido.
+    if tiene_maestro and not Expediente.objects.filter(perfil_maestro_id=usuario.pk).exists():
+        violaciones.append("perfil_maestro sin expediente")
     return violaciones
 
 
@@ -170,9 +176,16 @@ def _completar_usuario(usuario, **datos):
 
 
 def _crear_perfil_maestro(usuario, rut):
+    """Perfil, rol y expediente ``en_revision`` en la misma transacción (ADR-013, punto 2; ADR-017, punto 2).
+
+    Única vía de creación de ``perfil_maestro``: la usan ``crear_cuenta_maestro``
+    y ``agregar_perfil_maestro``.
+    """
     _rut_libre(rut)
-    _guardar(PerfilMaestro(usuario=usuario, rut=rut), force_insert=True)
+    perfil = PerfilMaestro(usuario=usuario, rut=rut)
+    _guardar(perfil, force_insert=True)
     _asignar_rol(usuario, Rol.MAESTRO)
+    expedientes.crear_para(perfil)
 
 
 # --- Vías de creación sin sesión (cuenta nueva) ---

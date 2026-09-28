@@ -23,7 +23,7 @@ MENSAJE_TEXTO_INVALIDO = "Este dato tiene caracteres que no se pueden usar. Escr
 
 # Todos los campos que aparecen en alguna lista de campos permitidos (E-2).
 CAMPOS_CONOCIDOS = frozenset(
-    {"nombre", "telefono", "correo", "contrasena", "comuna", "rut", "identificador"}
+    {"nombre", "telefono", "correo", "contrasena", "comuna", "rut", "identificador", "oficios"}
 )
 
 

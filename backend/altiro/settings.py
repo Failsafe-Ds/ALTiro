@@ -33,6 +33,8 @@ INSTALLED_APPS = [
     "identidad",
     "autorizacion",  # RNF-07, CA-25.3 (ADR-010, ADR-011)
     "bitacora",  # RNF-11 (ADR-010)
+    "catalogo",  # Catálogo mínimo de oficios (ADR-017, punto 1)
+    "expediente",  # Expediente del maestro (ADR-017)
 ]
 
 # ADR-001: fijado desde la primera migración.
