@@ -24,7 +24,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | — | [Propuesta de arquitectura del Sprint 2](sprint-2-propuesta-arquitectura.md) | Borrador |
 | [ADR-001](ADR-001-framework-web.md) | Framework web | Aceptada (2026-09-27) |
 | [ADR-002](ADR-002-estilo-interfaz.md) | Estilo de interfaz (API JSON + frontend estático) | Aceptada (2026-09-27); Enmienda E-1 (2026-09-28) |
-| [ADR-003](ADR-003-motor-base-datos.md) | Motor de base de datos relacional (PostgreSQL 16) | Aceptada (2026-09-27); Enmiendas E-1 y E-2 (2026-09-28) |
+| [ADR-003](ADR-003-motor-base-datos.md) | Motor de base de datos relacional (PostgreSQL 16) | Aceptada (2026-09-27); Enmiendas E-1 a E-3 (2026-09-28) |
 | [ADR-004](ADR-004-hash-contrasenas.md) | Hash de contraseñas (Argon2id, 64 MiB, t=3) | Aceptada (2026-09-28) |
 | [ADR-005](ADR-005-sesiones.md) | Manejo de sesiones | Aceptada (2026-09-28) |
 | [ADR-006](ADR-006-csrf.md) | Protección CSRF | Aceptada (2026-09-27); Enmienda E-1 (2026-09-28) |
@@ -32,13 +32,13 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | [ADR-008](ADR-008-tls-local.md) | TLS en la demostración local | Aceptada (2026-09-27) |
 | [ADR-009](ADR-009-configuracion-secretos.md) | Configuración y secretos | Aceptada (2026-09-27) |
 | [ADR-010](ADR-010-bitacora-solo-escritura.md) | Bitácora administrativa y registro de accesos denegados | Aceptada (2026-09-28); CA-25.3 a validar con el representante; Enmienda E-1 (2026-09-28) |
-| [ADR-011](ADR-011-identificadores-publicos.md) | Identificadores públicos y respuesta ante acceso denegado | Aceptada (2026-09-28); Enmiendas E-1 y E-2 (2026-09-28) |
+| [ADR-011](ADR-011-identificadores-publicos.md) | Identificadores públicos y respuesta ante acceso denegado | Aceptada (2026-09-28); Enmiendas E-1 a E-3 (2026-09-28) |
 | [ADR-012](ADR-012-catalogo-territorial.md) | Catálogo territorial (nacional, CUT 2018) | Aceptada (2026-09-28); alcance nacional a validar con la contraparte |
 | [ADR-013](ADR-013-acceso-politica-contrasena.md) | Identificador de acceso, unicidad de datos de contacto, roles múltiples y política de contraseña | Aceptada (2026-09-27); Enmiendas E-1 a E-8 (2026-09-27) |
 | [ADR-014](ADR-014-herramienta-pruebas.md) | Herramienta de pruebas | Aceptada (2026-09-27) |
 | [ADR-015](ADR-015-documentos-almacenamiento-cifrado.md) | Documentos: almacenamiento, cifrado y validación | Aceptada (2026-09-28) |
 | [ADR-016](ADR-016-planificador-avisos.md) | Planificador de tareas y avisos | Aceptada (2026-09-28) |
-| [ADR-017](ADR-017-expediente-oficios.md) | Expediente, revisión de documentos y catálogo mínimo de oficios | Aceptada (2026-09-28); oficios y obligatorios a validar con el representante; Enmiendas E-1 y E-2 (2026-09-28) |
+| [ADR-017](ADR-017-expediente-oficios.md) | Expediente, revisión de documentos y catálogo mínimo de oficios | Aceptada (2026-09-28); oficios y obligatorios a validar con el representante; Enmiendas E-1 a E-3 (2026-09-28) |
 
 ## Plantilla
 

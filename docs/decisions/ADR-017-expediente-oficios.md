@@ -64,3 +64,13 @@
   - En la vista del maestro, un documento `en_revision` u `observado` cuenta como **entregado**, y su estado se muestra aparte, por documento (RF-08, CA-17.2).
   - La regla para aprobar no cambia: exige documentos `validado` y licencias vigentes (punto 3).
 - **Aprobación:** equipo de desarrollo, 2026-09-28.
+
+### E-3 — Acceso a documentos reemplazados
+- **Fecha:** 2026-09-28.
+- **Motivo:** no estaba definido si un documento `reemplazado` (conservado según el punto 5) se puede abrir. Surgió al implementar la descarga (incremento 3), donde se entrega solo el documento actual.
+- **Cambio:**
+  - Curatoría puede abrir los documentos reemplazados desde el historial del expediente, con el mismo enlace de 600 s (ADR-015) y el conflicto de interés de ADR-011 E-2. Nunca puede abrirlos quien sea dueño del expediente.
+  - El dueño ve y abre solo sus documentos actuales.
+  - Los demás usuarios reciben el 404 neutro con registro (CA-25.2).
+- **Motivo del acceso:** comparar una licencia renovada con la anterior (E-1).
+- **Aprobación:** equipo de desarrollo, 2026-09-28.
