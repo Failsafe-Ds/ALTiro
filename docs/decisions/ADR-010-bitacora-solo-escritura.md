@@ -1,6 +1,6 @@
 # ADR-010 — Bitácora administrativa y registro de accesos denegados
 
-- Estado: **Borrador** (pendiente de revisión final del equipo)
+- Estado: **Aceptada** — 2026-09-28, aprobada por el equipo de desarrollo (ver «Decisión»).
 - Fecha: 2026-09-27
 - Relacionado con: RNF-11, CA-25.3, HU-19, CA-19.3, NTI-12, RF-37, RNF-22, R-10, M-03, M-08
 
@@ -48,3 +48,15 @@ Hay tensión entre la inmutabilidad (RNF-11, HU-19), la retención acotada (M-08
 - Validar con el representante del producto que "queda en la bitácora" de CA-25.3 se cumple con el registro de seguridad separado `acceso_denegado`.
 - Plazo de retención de `acceso_denegado`: no está en el informe; decisión del equipo a validar. No se vincula con V-04, que trata de documentos de identidad.
 - Registro de la asignación de roles administrativos: no lo exige RF-37; pregunta abierta para el equipo. Si se decide registrarla, sería un registro de seguridad separado de la bitácora administrativa (como `acceso_denegado`), no la bitácora de RF-37, y nunca con autor `sistema`. Autor según el caso: (1) primer administrador: no existe cuenta administrativa previa, así que el autor solo puede ser un dato declarado por quien ejecuta el comando (por ejemplo, un argumento obligatorio); (2) asignaciones posteriores: el comando podría exigir además la referencia a un usuario administrativo existente como autor declarado. En ambos casos el dato no es verificable por la aplicación porque el comando no tiene sesión; el control efectivo es el acceso al equipo y al contenedor. Asignar roles desde la aplicación no tiene respaldo en HU ni RF; sería ampliación de alcance según §5.3.6. Mientras no se decida, no se registra.
+
+## Decisión (2026-09-28)
+Aprobada por el equipo de desarrollo a partir del análisis del agente `architect`. Donde este apartado precisa el texto anterior, prevalece.
+
+1. **CA-25.3:** se cumple con la tabla separada `acceso_denegado` (usuario, recurso y fecha). "Bitácora" se entiende en sentido amplio. **Pendiente de validación con el representante del producto**: hasta entonces, CA-25.3 queda "Terminado sin validar" (§5.3).
+2. **Retención de `acceso_denegado`: 90 días.** Es una política, no un ajuste del servidor: va como constante en el código y como literal en el trigger, y una prueba verifica que coincidan.
+3. **Purga en S1:** una única función `purgar_vencidos()`. Se llama al insertar una denegación y desde el comando `purgar_accesos_denegados`; en S4 la llamará el planificador. La condición usa `now()` de SQL, igual que el trigger. Se registra como "purga automática por retención", sin atribuirla al usuario de la petición. Cada purga que elimina filas deja un evento de aplicación con el conteo y sin datos personales (RNF-22, en parte hasta S5).
+4. **Sin FK hacia `usuario`** en `bitacora.autor_id` ni en `acceso_denegado.usuario_id`. Esto corrige "usar PROTECT o no declarar FK". Ambas tablas se crean con SQL explícito y modelos `managed=False`, porque con una FK o un trigger `BEFORE TRUNCATE` las pruebas `transaction=True` no pueden vaciar la base.
+5. **`acceso_denegado` también rechaza `TRUNCATE`.** El DELETE solo se permite para filas con más de 90 días.
+6. **Lectura de `acceso_denegado`:** no hay ruta ni pantalla (ninguna HU la pide). El equipo la revisa con psql.
+7. **Asignación de roles administrativos:** se agrega `usuario_rol.asignado_en` (fecha, con valor por defecto) y el comando `crear_usuario_administrativo` emite un evento de aplicación con usuario y rol, nunca con autor `sistema`. No va a la bitácora administrativa (RF-37, M-03). Esto revierte la decisión previa de no agregar `asignado_en`, que se citaba como rastro pero no existía.
+8. **Barrera 3 (rol de BD con solo INSERT y SELECT): no en S1. Riesgo aceptado:** `altiro_app` es dueño de las tablas y podría desactivar los triggers. RNF-11 se cumple con la barrera 1; el trigger es defensa en profundidad. Se puede evaluar en S5 si sobra capacidad.
