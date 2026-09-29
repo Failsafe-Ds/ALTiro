@@ -80,6 +80,8 @@ services:
       # y directorio del volumen "documentos".
       ALTIRO_DOCUMENTOS_CLAVE_FILE: /secretos/documentos_clave
       ALTIRO_DOCUMENTOS_DIR: /documentos
+      # Foto del maestro (ADR-021): volumen "fotos", solo en app.
+      ALTIRO_FOTOS_DIR: /fotos
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
     volumes:
       - secretos:/secretos:ro
@@ -87,6 +89,9 @@ services:
       # proxy (ADR-015, D-3). El dueño 10001 y el modo 0700 los toma de
       # /documentos de la imagen al crearse el volumen (backend/Dockerfile).
       - documentos:/documentos
+      # Foto del maestro (ADR-021, punto 3): solo en app; nunca en el proxy ni
+      # en el planificador. Dueño 10001 y modo 0700 desde /fotos de la imagen.
+      - fotos:/fotos
     networks:
       - interna
     depends_on:
@@ -126,6 +131,10 @@ services:
       # Settings exige la clave al cargar (ADR-015); el planificador no descifra archivos.
       ALTIRO_DOCUMENTOS_CLAVE_FILE: /secretos/documentos_clave
       ALTIRO_DOCUMENTOS_DIR: /documentos
+      # Settings exige la variable; el planificador no usa las fotos y el
+      # volumen "fotos" no se monta aquí (ADR-021, punto 3): /fotos es el
+      # directorio vacío de la imagen.
+      ALTIRO_FOTOS_DIR: /fotos
       ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS: ${ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS:-3600}
     volumes:
       - secretos:/secretos:ro
@@ -195,3 +204,6 @@ volumes:
   # Documentos del maestro, cifrados (ADR-015). Se respaldan por separado de
   # la clave secretos/documentos_clave (RNF-19).
   documentos: {}
+  # Foto del maestro, sin cifrar (ADR-021). Se entrega solo si el maestro está
+  # publicado. Nombres UUID; sin datos en el nombre.
+  fotos: {}

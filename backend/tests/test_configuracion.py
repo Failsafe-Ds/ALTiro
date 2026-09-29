@@ -226,3 +226,15 @@ def test_las_subidas_quedan_en_memoria_y_nunca_en_tmp():
     assert settings.ALTIRO_DOCUMENTO_MAXIMO_BYTES == 8 * 1024 * 1024
     assert settings.FILE_UPLOAD_HANDLERS == ["django.core.files.uploadhandler.MemoryFileUploadHandler"]
     assert settings.DATA_UPLOAD_MAX_NUMBER_FILES == 2
+
+
+def test_la_aplicacion_no_arranca_sin_el_directorio_de_fotos():
+    # ADR-021, punto 3: el volumen "fotos" se configura por entorno.
+    entorno = os.environ.copy()
+    entorno["DJANGO_SETTINGS_MODULE"] = "altiro.settings"
+    entorno.pop("ALTIRO_FOTOS_DIR", None)
+
+    resultado = _manage_check(entorno)
+
+    assert resultado.returncode != 0
+    assert "ALTIRO_FOTOS_DIR" in resultado.stdout + resultado.stderr

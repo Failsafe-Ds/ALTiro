@@ -62,9 +62,9 @@ MENSAJE_OFICIO_INMUTABLE = (
 MENSAJE_MOTIVO_FALTA = "Escribe el motivo del cambio. Es obligatorio y queda registrado."
 MENSAJE_MOTIVO_LARGO = f"El motivo puede tener hasta {MOTIVO_LARGO_MAXIMO} caracteres. Acórtalo e inténtalo de nuevo."
 MENSAJE_MOTIVO_INVALIDO = "El motivo tiene caracteres que no se pueden usar. Escríbelo de nuevo."
-MENSAJE_RECARGA = "Recarga la página e inténtalo de nuevo."
+MENSAJE_RECARGA = "Vuelve a cargar la página e inténtalo de nuevo."
 MENSAJE_VERSION = (
-    "Otra persona cambió este dato mientras lo editabas. Recarga la página, revisa los cambios e inténtalo de nuevo."
+    "Otra persona cambió este dato mientras lo editabas. Vuelve a cargar la página, revisa los cambios e inténtalo de nuevo."
 )
 MENSAJE_SIN_CAMBIOS = "No cambiaste ningún dato. Modifica algo o cancela."
 

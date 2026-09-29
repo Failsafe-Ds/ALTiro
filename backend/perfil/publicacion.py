@@ -4,7 +4,7 @@ Se calcula **en cada lectura**; no hay marca guardada ni tarea programada
 (ADR-019, punto 2): una licencia deja de habilitar el mismo día de su
 vencimiento, en hora de Santiago (``hoy_negocio``), sin esperar a ningún
 proceso. La reactivación ocurre sola cuando curatoría valida una licencia nueva.
-La usan el maestro (sus servicios), el perfil público (incremento 5) y la
+La usan el maestro (sus servicios y su perfil), el perfil público y la
 búsqueda de S4: nadie más decide la visibilidad.
 
 - ``motivos_no_visible(servicio_maestro, hoy)``: códigos, en este orden:
@@ -15,18 +15,17 @@ búsqueda de S4: nadie más decide la visibilidad.
 - ``pendientes_del_maestro`` y ``maestro_elegible``: expediente ``aprobado`` +
   comuna base + foto (ADR-019, punto 3; ADR-021).
 - ``maestro_publicado``: elegible + al menos un servicio visible.
+- ``servicios_visibles``: los que ven los clientes (perfil público; S4).
 
-Estado actual (S3, incremento 2): la cobertura llega en el incremento 3 y la
-foto en el 5. ``tiene_comuna_base`` ya es la condición, pero todavía no hay de
-dónde leerla y responde falso; ``tiene_foto`` lee ``perfil_publico.foto``, que
-aún nadie puede subir. Por eso hoy **ningún maestro es elegible** y ningún
-servicio es visible: es lo conservador (RNF-25). Las pruebas lo marcan y
-simulan esas dos condiciones para verificar el resto de la regla.
+Comuna base: tabla ``cobertura`` (incremento 3). Foto: ``perfil_publico.foto``
+(incremento 5). ``pendientes_para_publicarse`` agrega a los pendientes del
+maestro "al menos un servicio visible": es la lista que ve el maestro en
+``GET /api/maestros/perfil``.
 """
 from expediente import vigencia
 from expediente.models import EstadoExpediente, Expediente, OficioMaestro
 from catalogo.models import ServicioModalidad
-from perfil.models import PerfilPublico, ServicioMaestro
+from perfil.models import Cobertura, PerfilPublico, ServicioMaestro
 
 RETIRADO = "retirado"
 CATALOGO_INACTIVO = "catalogo_inactivo"
@@ -43,19 +42,17 @@ MOTIVOS = (
 POSTULACION_NO_APROBADA = "postulacion_no_aprobada"
 SIN_COMUNA_BASE = "sin_comuna_base"
 SIN_FOTO = "sin_foto"
+# Además, para estar publicado.
+SIN_SERVICIO_VISIBLE = "sin_servicio_visible"
 
 
 def tiene_comuna_base(maestro_id):
-    """Condición de RF-06 ("un maestro sin comuna base no aparece").
-
-    La tabla ``cobertura`` llega en el incremento 3 del S3: hasta entonces no
-    hay comuna base que leer y la respuesta es falsa (conservador).
-    """
-    return False
+    """Condición de RF-06 ("un maestro sin comuna base no aparece"; CA-13.1)."""
+    return Cobertura.objects.filter(maestro_id=maestro_id, es_base=True).exists()
 
 
 def tiene_foto(maestro_id):
-    """Foto de perfil cargada (ADR-021, punto 1). La subida llega en el incremento 5."""
+    """Foto cargada (ADR-021, punto 1)."""
     return PerfilPublico.objects.filter(perfil_maestro_id=maestro_id, foto__isnull=False).exists()
 
 
@@ -128,3 +125,24 @@ def maestro_publicado(maestro_id, hoy=None):
         return False
     hoy = hoy or vigencia.hoy_negocio()
     return any(not motivos_no_visible(s, hoy, elegible=True) for s in servicios_activos(maestro_id))
+
+
+def servicios_visibles(maestro_id, hoy=None):
+    """Servicios que los clientes ven, si el maestro es elegible; si no, ninguno."""
+    if not maestro_elegible(maestro_id):
+        return []
+    hoy = hoy or vigencia.hoy_negocio()
+    return [s for s in servicios_activos(maestro_id) if not motivos_no_visible(s, hoy, elegible=True)]
+
+
+def pendientes_para_publicarse(maestro_id, hoy=None):
+    """Lo que le falta al maestro para estar publicado, en orden fijo (lista vacía = publicado).
+
+    Los pendientes de elegibilidad más ``SIN_SERVICIO_VISIBLE`` si ninguno de
+    sus servicios sería visible aunque fuera elegible.
+    """
+    pendientes = pendientes_del_maestro(maestro_id)
+    hoy = hoy or vigencia.hoy_negocio()
+    if not any(not motivos_no_visible(s, hoy, elegible=True) for s in servicios_activos(maestro_id)):
+        pendientes.append(SIN_SERVICIO_VISIBLE)
+    return pendientes

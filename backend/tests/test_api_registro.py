@@ -125,7 +125,7 @@ def test_pi011_sin_token_csrf_responde_403_y_no_crea_nada():
     respuesta = post_json(cliente_http, URL_CLIENTES, datos_cliente())
 
     assert respuesta.status_code == 403
-    assert "Recarga la página" in respuesta.json()["mensaje"]
+    assert "Vuelve a cargar la página" in respuesta.json()["mensaje"]
     assert Usuario.objects.count() == 0
 
 

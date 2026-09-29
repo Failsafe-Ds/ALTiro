@@ -9,10 +9,9 @@ CA-24.3, RNF-07; ADR-017 (punto 4 y E-1), ADR-019.
 - Visibilidad calculada en cada lectura: licencia en revisión, observada o
   vencida oculta el servicio regulado; validada y vigente no. El día del
   vencimiento, en hora de Santiago, ya no es visible (borde de la medianoche UTC).
-- **Estado actual:** la comuna base (incremento 3) y la foto (incremento 5)
-  todavía no se pueden cargar, así que hoy ningún maestro es elegible y ningún
-  servicio es visible. Las pruebas lo verifican y, para probar el resto de la
-  regla, simulan esas dos condiciones con el fixture ``elegible``.
+- Sin comuna base ni foto ningún servicio es visible. El fixture ``elegible``
+  crea la comuna base y simula la foto (la subida real se prueba en
+  ``test_perfil_publico.py``).
 
 Datos ficticios (@example.com, RUT sintéticos). Los documentos se crean sin
 archivo: la regla solo lee sus datos.
@@ -43,7 +42,7 @@ from identidad.models import PerfilMaestro, Rol
 from perfil import publicacion
 from perfil import servicios as servicios_perfil
 from perfil import vistas as vistas_perfil
-from perfil.models import PerfilPublico, ServicioMaestro
+from perfil.models import Cobertura, PerfilPublico, ServicioMaestro
 from tests.ayudas import (
     CONTRASENA,
     TEL_A,
@@ -141,8 +140,8 @@ def pintura():
 
 @pytest.fixture
 def elegible(monkeypatch, maestro):
-    """Simula lo que llega en los incrementos 3 (comuna base) y 5 (foto), con el expediente aprobado."""
-    monkeypatch.setattr(publicacion, "tiene_comuna_base", lambda maestro_id: True)
+    """Expediente aprobado, comuna base (incremento 3) y foto (se simula el nombre; la subida real se prueba aparte)."""
+    Cobertura.objects.create(maestro_id=maestro.pk, comuna_id=8101, es_base=True)
     PerfilPublico.objects.filter(perfil_maestro_id=maestro.pk).update(
         foto=uuid.uuid4(), foto_actualizada_en=timezone.now()
     )
@@ -467,10 +466,10 @@ def test_quitar_es_baja_logica_y_desaparece_de_la_lista(sesion, maestro, gas):
     assert otra_vez.json()["mensaje"] == servicios_perfil.MENSAJE_RETIRADO
 
 
-# --- Estado actual de la elegibilidad (incrementos 3 y 5 pendientes) ---
+# --- Elegibilidad: sin comuna base ni foto no hay servicios visibles ---
 
 
-def test_hoy_ningun_maestro_es_elegible_porque_faltan_comuna_base_y_foto(sesion, maestro, pintura):
+def test_sin_comuna_base_ni_foto_ningun_servicio_es_visible(sesion, maestro, pintura):
     _con_estado(maestro, EstadoExpediente.APROBADO)
     ofrecido = _ofrecido(maestro, pintura, monto=80000)
 

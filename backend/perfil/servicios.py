@@ -97,12 +97,22 @@ def _exigir_modalidad_admitida(servicio, modalidad, errores):
         errores["modalidad"] = MENSAJE_MODALIDAD_NO_ADMITIDA.format(opciones=opciones)
 
 
-def _expediente_editable(maestro_id):
-    """Bloquea el expediente y exige que no esté ``rechazado`` (D-7). Serializa con curatoría."""
+def expediente_editable(maestro_id, mensaje_rechazado):
+    """Bloquea el expediente del maestro y exige que no esté ``rechazado`` (D-7).
+
+    Es el bloqueo por maestro de servicios, cobertura, agenda y foto: hay un
+    expediente por maestro, así que ``select_for_update`` sobre esa fila
+    serializa las escrituras del mismo maestro entre sí y con curatoría
+    (ADR-020, punto 3).
+    """
     expediente = Expediente.objects.select_for_update().get(perfil_maestro_id=maestro_id)
     if expediente.estado == EstadoExpediente.RECHAZADO:
-        raise ErrorEstado(MENSAJE_RECHAZADO)
+        raise ErrorEstado(mensaje_rechazado)
     return expediente
+
+
+def _expediente_editable(maestro_id):
+    return expediente_editable(maestro_id, MENSAJE_RECHAZADO)
 
 
 # --- Casos de uso ---

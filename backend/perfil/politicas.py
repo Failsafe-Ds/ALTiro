@@ -14,3 +14,12 @@ class PoliticaServicioMaestro(Politica):
     def permite(self, usuario, servicio_maestro):
         # ``perfil_maestro`` usa como clave primaria el id del usuario.
         return servicio_maestro.maestro_id == usuario.pk
+
+
+class PoliticaDisponibilidad(Politica):
+    """Solo el maestro dueño del bloque (ADR-020; mismo criterio que ``PoliticaServicioMaestro``)."""
+
+    entidad = "disponibilidad"
+
+    def permite(self, usuario, bloque):
+        return bloque.maestro_id == usuario.pk

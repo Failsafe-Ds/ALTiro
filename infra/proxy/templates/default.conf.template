@@ -143,6 +143,54 @@ server {
         error_page 500 502 503 504 @api_no_disponible;
     }
 
+    # Subida de la foto del maestro (ADR-021, punto 4; patrón de ADR-015, D-5):
+    # una foto de hasta 8 MB más el resto del formulario, 9 MB, igual que
+    # MAXIMO_CUERPO_FOTO en Django. client_body_buffer_size igual al máximo:
+    # el cuerpo queda en memoria y nunca se escribe en un temporal del disco.
+    # La ruta no lleva consulta ni token; el registro de acceso ya omite la
+    # consulta.
+    location = /api/maestros/perfil/foto {
+        client_max_body_size 9m;
+        client_body_buffer_size 9m;
+
+        proxy_pass http://app:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_hide_header X-Content-Type-Options;
+        proxy_hide_header Referrer-Policy;
+        proxy_hide_header Strict-Transport-Security;
+
+        error_page 413 @api_413_foto;
+        error_page 500 502 503 504 @api_no_disponible;
+    }
+
+    # Foto pública de un maestro publicado (ADR-021, punto 3). Variantes de
+    # 160 y 480 px (decenas de KB): buffers en memoria y sin temporal en disco.
+    location ~ ^/api/maestros/publicos/[^/]+/foto$ {
+        proxy_max_temp_file_size 0;
+        proxy_buffer_size 16k;
+        proxy_buffers 16 64k;
+        proxy_busy_buffers_size 128k;
+
+        proxy_pass http://app:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_hide_header X-Content-Type-Options;
+        proxy_hide_header Referrer-Policy;
+        proxy_hide_header Strict-Transport-Security;
+
+        error_page 500 502 503 504 @api_no_disponible;
+    }
+
+    location @api_413_foto {
+        default_type application/json;
+        return 413 '{"mensaje": "La foto es muy pesada. Tómala de nuevo o elige otra.", "errores": {}}';
+    }
+
     location @api_413_documentos {
         default_type application/json;
         return 413 '{"mensaje": "Las fotos son demasiado pesadas: cada una puede pesar hasta 8 MB. Tómalas de nuevo con menos resolución.", "errores": {}}';

@@ -8,6 +8,8 @@ from expediente import vistas_curatoria as curatoria
 from expediente import vistas_documentos as documentos
 from identidad import vistas as identidad
 from perfil import vistas as perfil
+from perfil import vistas_maestro as perfil_maestro
+from perfil import vistas_publicas as perfil_publico
 from territorio import vistas as territorio
 
 # Toda ruta /api/ es privada salvo las marcadas con comun.api.publica.
@@ -36,6 +38,15 @@ urlpatterns = [
     # Servicios del maestro, patrón "me" y política de dueño (RF-05, HU-12; ADR-019).
     path("api/maestros/servicios", perfil.mis_servicios, name="mis_servicios"),
     path("api/maestros/servicios/<uuid:ref>", perfil.mi_servicio, name="mi_servicio"),
+    # Cobertura, agenda, foto y perfil del maestro (RF-06, RF-07; ADR-019 a ADR-021).
+    path("api/maestros/cobertura", perfil_maestro.mi_cobertura, name="mi_cobertura"),
+    path("api/maestros/disponibilidad", perfil_maestro.mi_disponibilidad, name="mi_disponibilidad"),
+    path("api/maestros/disponibilidad/<uuid:ref>", perfil_maestro.mi_bloque, name="mi_bloque"),
+    path("api/maestros/perfil", perfil_maestro.mi_perfil, name="mi_perfil"),
+    path("api/maestros/perfil/foto", perfil_maestro.mi_foto, name="mi_foto"),
+    # Perfil público: solo si el maestro está publicado; si no, 404 neutro sin registro (ADR-019, punto 5).
+    path("api/maestros/publicos/<uuid:ref>", perfil_publico.perfil_publico, name="perfil_publico"),
+    path("api/maestros/publicos/<uuid:ref>/foto", perfil_publico.foto_publica, name="foto_publica"),
     # Expediente propio del maestro, patrón "me" (ADR-011; propuesta del S2, §4).
     path("api/maestros/expediente", expediente.mi_expediente, name="mi_expediente"),
     path("api/maestros/expediente/oficios", expediente.mis_oficios, name="mis_oficios"),

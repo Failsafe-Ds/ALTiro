@@ -337,7 +337,7 @@ def test_estado_actual_desactualizado_responde_409_sin_cambios(maestro, cura):
     respuesta = _cambiar(cura, expediente, EN_REVISION, estado_actual=OBSERVADO)
 
     assert respuesta.status_code == 409
-    assert respuesta.json()["mensaje"] == "El expediente cambió mientras lo revisabas. Recarga la página."
+    assert respuesta.json()["mensaje"] == "El expediente cambió mientras lo revisabas. Vuelve a cargar la página."
     assert _estado(maestro) == EN_REVISION
     assert not Bitacora.objects.exists()
 
@@ -976,7 +976,7 @@ def test_filtro_invalido_responde_400_accionable(cura, consulta):
     respuesta = cura.get(URL_COLA + consulta)
 
     assert respuesta.status_code == 400
-    assert respuesta.json() == {"mensaje": "Uno de los filtros no es válido. Recarga la página e inténtalo de nuevo.",
+    assert respuesta.json() == {"mensaje": "Uno de los filtros no es válido. Vuelve a cargar la página e inténtalo de nuevo.",
                                 "errores": {}}
 
 

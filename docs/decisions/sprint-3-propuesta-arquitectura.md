@@ -143,3 +143,13 @@ Preguntas para el representante (P-12 a P-17): ver `docs/alcance/preguntas-repre
 5. **El comando `cargar_datos_demo` no escribe en la bitácora**, igual que la carga del CSV: la consola no identifica a quien lo ejecuta (ADR-010). Deja un evento de aplicación con el conteo.
 6. **Migración 0003:** como `cargar` ahora solo inserta, 0003 ya no corrige nombres en una base que siga con los códigos `ejemplo_N`. Eso solo afecta a bases no actualizadas desde antes del S2.
 7. **Mientras no existan la cobertura (incremento 3) y la foto (incremento 5), ningún servicio es visible.** La regla ya las exige.
+
+## 9. Aclaraciones de implementación (incrementos 3 a 5, 2026-09-29, provisionales)
+1. **Caché de la foto pública:** `no-cache` + ETag (SHA-256, sin nombre de archivo). Antes de responder 304, el servidor vuelve a exigir que el maestro esté publicado: si deja de estarlo, la foto deja de entregarse de inmediato.
+2. **Variantes de la foto:** el lado mayor queda en 160 o 480 px, sin recortar ni ampliar.
+3. **Bloqueo por maestro:** `select_for_update` sobre la fila del expediente, que es una por maestro. Es la misma que ya protege servicios y estados, y serializa al maestro con curatoría. No se agregó `EXCLUDE USING gist`, porque `altiro_app` no es superusuario; la concurrencia la cubre el bloqueo, y tiene su prueba.
+4. **Foto con el expediente rechazado:** responde 409, con el mismo criterio que servicios, cobertura y agenda (D-7).
+5. **El maestro no ve su propia foto antes de publicarse.** Solo recibe `tiene_foto`.
+6. **Perfil público:** las comunas van por nombre y sin `es_base`, de modo que el orden tampoco revela cuál es la base (D-14).
+7. **Claves de error:** la cobertura usa `comunas`; en la agenda, el solapamiento va en `inicio` y el término no posterior en `fin`.
+8. **"Recarga la página" → "Vuelve a cargar la página"** en todos los mensajes del servidor (RNF-17), en coherencia con el botón «Volver a cargar» del frontend.

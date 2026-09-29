@@ -25,6 +25,10 @@ RUN pip install -r requirements.txt -r requirements-pruebas.txt && pip check
 # planificador). Un volumen creado antes con otro dueño no se corrige solo.
 RUN mkdir /documentos && chown altiro:altiro /documentos && chmod 0700 /documentos
 
+# Punto de montaje del volumen "fotos" (ADR-021, punto 3), mismo patrón: solo
+# lo monta app.
+RUN mkdir /fotos && chown altiro:altiro /fotos && chmod 0700 /fotos
+
 COPY . .
 # Defensa ante fines de línea CRLF si el archivo se editó en Windows (ADR-009).
 RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod 0755 /app/entrypoint.sh

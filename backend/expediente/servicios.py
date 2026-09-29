@@ -41,6 +41,9 @@ _MAXIMO_RECIBIDOS = 50
 
 _MENSAJE_ELIGE = "Elige al menos un oficio de la lista."
 _MENSAJE_NO_EXISTE = "Uno de los oficios elegidos no está en la lista. Elige tus oficios de la lista."
+MENSAJE_OFICIO_DADO_DE_BAJA = (
+    "Uno de los oficios elegidos ya no se ofrece en AlTiro. Quítalo y elige tus oficios de la lista."
+)
 # Lo ve el maestro (RNF-17): sin "expediente".
 MENSAJES_OFICIOS_NO_EDITABLES = {
     EstadoExpediente.APROBADO: "Tu postulación ya fue aprobada, así que no puedes cambiar tus oficios aquí.",
@@ -75,6 +78,9 @@ def declarar_oficios(expediente, codigos):
 
     - ``codigos``: lista de códigos del catálogo, al menos uno (400 si no).
     - Solo en ``en_revision`` u ``observado``; en otro estado, ``ErrorEstado`` (409).
+    - Un oficio dado de baja por comercial (``activo=false``) no se agrega en
+      una declaración nueva (400 en ``oficios``); si ya estaba declarado, se
+      conserva (propuesta del S3, §8.4).
     El estado se lee con la fila bloqueada para no competir con un cambio de
     estado de curatoría.
     """
@@ -84,8 +90,11 @@ def declarar_oficios(expediente, codigos):
         raise ErrorEstado(MENSAJES_OFICIOS_NO_EDITABLES[expediente.estado])
     maestro_id = expediente.perfil_maestro_id
     nuevos = {oficio.pk for oficio in oficios}
-    OficioMaestro.objects.filter(maestro_id=maestro_id).exclude(oficio_id__in=nuevos).delete()
     actuales = set(OficioMaestro.objects.filter(maestro_id=maestro_id).values_list("oficio_id", flat=True))
+    if any(not oficio.activo and oficio.pk not in actuales for oficio in oficios):
+        raise ErrorValidacion("oficios", MENSAJE_OFICIO_DADO_DE_BAJA)
+    OficioMaestro.objects.filter(maestro_id=maestro_id).exclude(oficio_id__in=nuevos).delete()
+    actuales &= nuevos
     OficioMaestro.objects.bulk_create(
         [OficioMaestro(maestro_id=maestro_id, oficio_id=pk) for pk in sorted(nuevos - actuales)]
     )
@@ -318,9 +327,9 @@ MENSAJE_MOTIVO_LARGO = (
 MENSAJE_MOTIVO_INVALIDO = "El motivo tiene caracteres que no se pueden usar. Escríbelo de nuevo."
 MENSAJE_ESTADO_NUEVO = "Elige el nuevo estado del expediente."
 MENSAJE_RESULTADO = "Elige si validas u observas el documento."
-MENSAJE_RECARGA = "Recarga la página e inténtalo de nuevo."
-MENSAJE_EXPEDIENTE_CAMBIO = "El expediente cambió mientras lo revisabas. Recarga la página."
-MENSAJE_DOCUMENTO_CAMBIO = "El documento cambió mientras lo revisabas. Recarga la página."
+MENSAJE_RECARGA = "Vuelve a cargar la página e inténtalo de nuevo."
+MENSAJE_EXPEDIENTE_CAMBIO = "El expediente cambió mientras lo revisabas. Vuelve a cargar la página."
+MENSAJE_DOCUMENTO_CAMBIO = "El documento cambió mientras lo revisabas. Vuelve a cargar la página."
 MENSAJE_DOCUMENTO_REVISADO = (
     "Este documento ya fue revisado. Si hay que corregir algo, cambia el estado del expediente con un motivo."
 )

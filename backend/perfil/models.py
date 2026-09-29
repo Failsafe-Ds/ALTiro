@@ -4,25 +4,31 @@
   ``identidad.servicios.verificar_invariantes``), creado en la misma
   transacción que el perfil (``perfil.servicios.crear_perfil_publico_para``).
   ``ref`` es la referencia pública propia, distinta de la del expediente
-  (ADR-019, punto 5). ``foto`` es el nombre UUID de la foto (ADR-021), que se
-  sube en el incremento 5; mientras tanto queda nula.
+  (ADR-019, punto 5). ``foto`` es el nombre UUID de la foto (ADR-021): sus
+  variantes están en ``settings.ALTIRO_FOTOS_DIR`` (``perfil.fotos``).
 - ``ServicioMaestro``: servicio del catálogo que el maestro ofrece, con su
   modalidad y monto (ADR-019, punto 1). Uno activo por (maestro, servicio);
   baja lógica con ``retirado_en``. Sin FK hacia ``oficio_maestro``: si el
   maestro deja de declarar el oficio, el servicio deja de ser visible por
   cálculo (``perfil.publicacion``). No se guarda ninguna marca de visibilidad
   (ADR-019, punto 2).
+- ``Cobertura``: comunas que atiende el maestro, con una comuna base
+  (RF-06, CA-13.1; ADR-019, punto 4).
+- ``Disponibilidad``: bloques semanales de 24 h (RF-07; ADR-020).
 
 Sin borrado en cascada (PROTECT).
 """
 import uuid
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
+from django.db.models.functions import Mod
+from django.db.models.lookups import Exact
 from django.utils import timezone
 
 from catalogo.models import MONTO_MAXIMO, Modalidad, Servicio
 from identidad.models import PerfilMaestro
+from territorio.models import Comuna
 
 
 class PerfilPublico(models.Model):
@@ -85,3 +91,97 @@ class ServicioMaestro(models.Model):
 
     def __str__(self):
         return f"Servicio del maestro {self.ref}"
+
+
+# --- Cobertura (RF-06, HU-13, CA-13.1; ADR-019, punto 4) ---
+
+
+class Cobertura(models.Model):
+    """Comuna que atiende el maestro; exactamente una es su comuna base (CA-13.1).
+
+    Se reemplaza completa en cada guardado (``perfil.cobertura``). La comuna
+    viene del catálogo territorial (ADR-012). "Exactamente una base" lo
+    garantizan el servicio (que exige una) y el único parcial (que impide dos).
+    """
+
+    # Sin índice propio: lo cubre el UNIQUE (perfil_maestro_id, comuna_codigo).
+    maestro = models.ForeignKey(
+        PerfilMaestro,
+        on_delete=models.PROTECT,
+        related_name="coberturas",
+        db_column="perfil_maestro_id",
+        db_index=False,
+    )
+    comuna = models.ForeignKey(Comuna, on_delete=models.PROTECT, related_name="+", db_column="comuna_codigo")
+    es_base = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "cobertura"
+        constraints = [
+            models.UniqueConstraint(fields=["maestro", "comuna"], name="cobertura_comuna_unica"),
+            models.UniqueConstraint(
+                fields=["maestro"], condition=Q(es_base=True), name="cobertura_una_comuna_base"
+            ),
+        ]
+
+    def __str__(self):
+        return f"Cobertura {self.pk}"
+
+
+# --- Disponibilidad semanal (RF-07, HU-14, CA-14.1, CA-14.2; ADR-020) ---
+
+MINUTOS_DIA = 24 * 60
+GRANULARIDAD_MINUTOS = 30
+
+
+class Disponibilidad(models.Model):
+    """Bloque semanal declarado por el maestro (ADR-020, puntos 1, 2 y 4).
+
+    ``dia_semana`` ISO (1 = lunes ... 7 = domingo); minutos desde la
+    medianoche, en múltiplos de 30, con ``0 <= inicio < fin <= 1440``: un
+    bloque no cruza la medianoche (CA-14.2). Las filas no se modifican: se dan
+    de baja con ``retirado_en`` y se crea otra. El solapamiento con otros
+    bloques activos lo impide el servicio (``perfil.agenda``).
+    """
+
+    ref = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    maestro = models.ForeignKey(
+        PerfilMaestro,
+        on_delete=models.PROTECT,
+        related_name="disponibilidades",
+        db_column="perfil_maestro_id",
+        db_index=False,
+    )
+    dia_semana = models.PositiveSmallIntegerField()
+    inicio_min = models.PositiveSmallIntegerField()
+    fin_min = models.PositiveSmallIntegerField()
+    creado_en = models.DateTimeField(default=timezone.now)
+    retirado_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "disponibilidad"
+        indexes = [
+            models.Index(
+                fields=["maestro", "dia_semana"],
+                condition=Q(retirado_en__isnull=True),
+                name="disponibilidad_activa_idx",
+            ),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(dia_semana__gte=1) & Q(dia_semana__lte=7), name="disponibilidad_dia_semana_iso"
+            ),
+            models.CheckConstraint(
+                condition=Q(inicio_min__gte=0) & Q(inicio_min__lt=F("fin_min")) & Q(fin_min__lte=MINUTOS_DIA),
+                name="disponibilidad_rango_valido",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Exact(Mod("inicio_min", GRANULARIDAD_MINUTOS), 0) & Exact(Mod("fin_min", GRANULARIDAD_MINUTOS), 0)
+                ),
+                name="disponibilidad_multiplo_de_30",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Disponibilidad {self.ref}"

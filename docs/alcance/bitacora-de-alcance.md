@@ -23,11 +23,16 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | DA-09 | Reautenticación de RNF-09 | Según decisión de alcance | Pendiente de decisión |
 | DA-10 | Uso de la bitácora desde S2 | S2 | Adelanto (definitivo) |
 | DA-11 | RNF-23 sin medir en equipo limpio | Medido el 2026-09-28 (47 s); confirmar en el laboratorio | Temporal (cerrado) |
-| DA-12 | RF-34, CA-24.1 y CA-24.3 (servicios) pasan a S3 | S3 | Temporal |
+| DA-12 | RF-34, CA-24.1 y CA-24.3 (servicios) pasan a S3 | S3 (cerrado el 2026-09-29) | Temporal (cerrado) |
 | DA-13 | CA-24.4 pasa a S4 | S4 | Temporal |
-| DA-14 | Evidencia de RNF-25 pasa a S3 y S4 | S3 y S4 | Temporal |
-| DA-15 | Adelanto: catálogo mínimo de oficios (S3 → S2) | S2 | Adelanto |
+| DA-14 | Evidencia de RNF-25 pasa a S3 y S4 | S3 (parte S3 cerrada el 2026-09-29) y S4 | Temporal |
+| DA-15 | Adelanto: catálogo mínimo de oficios (S3 → S2) | S2; RF-36 cerrado en S3 el 2026-09-29 | Adelanto (cerrado) |
 | DA-16 | Adelanto: planificador (S4 → S2) | S2 (implementado el 2026-09-28) | Adelanto |
+| DA-17 | Ejecución de RNF-13 al inicio del S3 | S3, semana 1 | Temporal |
+| DA-18 | Adelanto: perfil público parcial (RF-14) de S4 a S3 | S3 | Adelanto |
+| DA-19 | Adelanto: foto del maestro (dato de RF-13) de S4 a S3 | S3 | Adelanto |
+| DA-20 | Evidencia de RF-06 en "resultados", CA-13.2 y CA-14.3 pasan a S4 | S4 | Temporal |
+| DA-21 | RNF-18 se aplica retroactivamente a las pantallas de S1 y S2 | S3 | Ampliación de verificación |
 
 ## Registros
 
@@ -146,6 +151,7 @@ Origen: `docs/decisions/sprint-2-propuesta-arquitectura.md`, §8, y las decision
 - **Motivo:** los servicios del maestro no existen hasta S3.
 - **Impacto:** RF-34, CA-24.1 y CA-24.3 (en la parte de servicios) no se cierran en S2.
 - **Autorización:** equipo de desarrollo.
+- **Estado (2026-09-29): cerrado en S3 (incrementos 2 y 5).** Los servicios del maestro existen (RF-05) y su visibilidad se calcula en cada lectura con la regla única `perfil.publicacion` (ADR-019, punto 2), sin marca guardada ni tarea: una licencia deja de habilitar el día de su vencimiento (hora de Santiago) y la reactivación ocurre sola al validar una nueva. Evidencia: pruebas de CA-24.1 (borde de la medianoche UTC), CA-24.3 (licencia sin vencimiento nunca desactiva) y RF-34 (gas oculto y pintura visible en el mismo maestro), y en vivo sobre el perfil público: maestro ficticio con gas y pintura; al dejar su licencia de gas vencida, gas desaparece del perfil público en la siguiente lectura y pintura sigue; al restaurar la vigencia, gas vuelve. La parte de búsqueda sigue en DA-13 (S4).
 - **Relacionado:** RF-34, RF-05, HU-12, HU-24, CA-24.1, CA-24.3; ADR-017.
 
 ### DA-13 — CA-24.4 pasa a S4
@@ -164,6 +170,7 @@ Origen: `docs/decisions/sprint-2-propuesta-arquitectura.md`, §8, y las decision
 - **Motivo:** sin servicios ni búsqueda no hay nada "visible" que verificar.
 - **Impacto:** RNF-25 queda como "infraestructura preparada / evidencia final pendiente". Es un desplazamiento temporal, no un recorte.
 - **Autorización:** equipo de desarrollo.
+- **Estado (2026-09-29): parte S3 cerrada.** Evidencia en las rutas públicas que existen en S3 (`/api/catalogo`, `/api/oficios`, perfil público y su foto): la prueba `test_rnf25_ningun_servicio_regulado_visible_sin_licencia_habilitante` recorre **todas** las rutas públicas declaradas (se obtienen del enrutador, así que una ruta pública nueva entra sola) con 20 combinaciones generadas (gas y electricidad × 10 escenarios de licencia: sin licencia, en revisión, observada, vencida ayer, vence hoy, de otro oficio, validada vigente, sin vencimiento y las dos variantes de renovación de ADR-017 E-1), con y sin sesión; el servicio regulado aparece solo cuando hay licencia habilitante. Más la evidencia en vivo descrita en DA-12. La parte de búsqueda queda para S4.
 - **Relacionado:** RNF-25, RF-33, NTI-01; ADR-017.
 
 ### DA-15 — Adelanto: catálogo mínimo de oficios de S3 a S2
@@ -173,6 +180,7 @@ Origen: `docs/decisions/sprint-2-propuesta-arquitectura.md`, §8, y las decision
 - **Motivo:** RF-33 (S2) necesita saber qué oficios son regulados.
 - **Impacto:** adelanta datos, no funcionalidad. Los seis oficios no regulados son un supuesto a validar.
 - **Autorización:** equipo de desarrollo; los nombres de los oficios están pendientes del representante del producto.
+- **Estado (2026-09-29): cerrado.** RF-36 se implementó en S3, incremento 1 (catálogo administrable por comercial, ADR-018, commit `98cadce`): el CSV quedó solo como carga inicial. Desde el incremento 3, un oficio dado de baja por comercial no se puede declarar en una declaración nueva y las declaraciones que ya existían se conservan (propuesta del S3, §8.4).
 - **Relacionado:** RF-33, RF-36, RNF-25; ADR-017.
 
 ### DA-16 — Adelanto: planificador de S4 a S2
@@ -193,3 +201,43 @@ Origen: `docs/decisions/sprint-2-propuesta-arquitectura.md`, §8, y las decision
 - **Impacto:** RNF-13 queda sin evidencia al cierre del S2. El informe lo señala como el requisito que más discute la viabilidad. No se declara cumplido sin la prueba.
 - **Autorización:** equipo de desarrollo, informando al representante del producto.
 - **Relacionado:** RNF-13, NTI-11, HU-11; ADR-008, ADR-013 E-8.
+
+## Sprint 3
+
+Origen: `docs/decisions/sprint-3-propuesta-arquitectura.md`, §7, y las decisiones provisionales del 2026-09-29 (ADR-018 a ADR-021). Alcance comprometido del Sprint 3 (informe §5.3.5): "Catálogo, cobertura y agenda, con RF-05 a RF-07, RF-36 y RNF-18"; incremento esperado: "Perfil de maestro completo y publicable".
+
+### DA-18 — Adelanto: perfil público parcial (RF-14) de S4 a S3
+- **Fecha:** 2026-09-29 (propuesta del S3, D-12; ADR-019, punto 5).
+- **Alcance original:** RF-14 ("ficha del maestro con calificación por dimensión, comentarios, precios, bloques libres y bloques ocupados") está en S4, con la búsqueda.
+- **Cambio:** en S3 se entrega `GET /api/maestros/publicos/<uuid:ref>` con nombre, foto, servicios visibles (oficio, servicio, modalidad y monto), comunas atendidas sin indicar la base (D-14) y agenda semanal en "HH:MM". Sin calificaciones (S5) ni bloques ocupados (S4). Un maestro no publicado responde el mismo 404 que una ref inexistente, sin registro.
+- **Motivo:** el incremento del S3 es "perfil de maestro completo y publicable", y RF-06 ("no aparece en resultados") y RNF-25 necesitan una superficie pública donde verificarse antes de la búsqueda.
+- **Impacto:** adelanta una parte de RF-14; RF-14 no se declara cumplido hasta S4 y S5. La ruta es pública y entra en la lista cerrada de `test_api_privado_por_defecto.py`.
+- **Autorización:** equipo de desarrollo (decisión provisional).
+- **Relacionado:** RF-14, RF-06, RNF-25, HU-05; ADR-019.
+
+### DA-19 — Adelanto: foto del maestro (dato de RF-13) de S4 a S3
+- **Fecha:** 2026-09-29 (propuesta del S3, D-13; ADR-021).
+- **Alcance original:** RF-13 (tarjeta de resultado con "fotografía, nombre, calificación promedio y oficio") está en S4.
+- **Cambio:** en S3 se captura la foto (`POST /api/maestros/perfil/foto`), recodificada sin EXIF ni GPS en variantes de 160 y 480 px, en el volumen `fotos` montado solo en `app`, y es requisito para que el maestro sea elegible. Se entrega solo si el maestro está publicado.
+- **Motivo:** RF-13 exige la foto en cada tarjeta y S4 ya es el sprint más cargado.
+- **Impacto:** un volumen más (respaldo en RNF-19); la tarjeta de RF-13 sigue en S4. Riesgo abierto: no hay moderación de fotos definida (pregunta al representante, ADR-021, punto 5); que la foto sea obligatoria es P-14.
+- **Autorización:** equipo de desarrollo (decisión provisional).
+- **Relacionado:** RF-13, RNF-02, RNF-24; ADR-021, ADR-015.
+
+### DA-20 — La evidencia de RF-06 en "resultados", CA-13.2 y CA-14.3 pasan a S4
+- **Fecha:** 2026-09-29 (propuesta del S3, §1.2).
+- **Alcance original:** RF-06 (criterio: "Un maestro sin comuna base no aparece en resultados") y HU-13, HU-14 están en S3.
+- **Cambio:** en S3 se entregan la declaración de cobertura con exactamente una comuna base (CA-13.1) y la agenda (CA-14.1, CA-14.2, CA-14.4). "No aparece" se verifica en S3 sobre el perfil público (sin comuna base responde 404). La verificación en los resultados de búsqueda, CA-13.2 ("dejo de aparecer en sus resultados" al quitar una comuna) y CA-14.3 (bloque ocupado tras aceptar una oferta) se cierran en S4.
+- **Motivo:** la búsqueda (RF-09 a RF-11) y los tickets (RF-15 a RF-24) son de S4.
+- **Impacto:** RF-06, HU-13 y HU-14 no se cierran completos en S3. La base ya está: la cobertura se reemplaza completa y la comuna quitada deja de estar registrada.
+- **Autorización:** equipo de desarrollo (decisión provisional).
+- **Relacionado:** RF-06, RF-07, HU-13, HU-14, CA-13.2, CA-14.3; ADR-019, ADR-020.
+
+### DA-21 — RNF-18 se aplica retroactivamente a las pantallas de S1 y S2
+- **Fecha:** 2026-09-29 (propuesta del S3, §1.3 y D-15).
+- **Alcance original:** RNF-18 está planificado en S3.
+- **Cambio:** se verifica en todas las pantallas del sistema, incluidas las de S1 y S2, y no solo en las nuevas ("celular angosto" = 320 px CSS; Chromium y Firefox en dos versiones más un pase manual).
+- **Motivo:** el umbral ("sin que haya que desplazar la pantalla de lado en celulares angostos") se refiere al sistema, y las pantallas anteriores no se verificaron con ese criterio.
+- **Impacto:** más trabajo de verificación en S3; si una pantalla de S1 o S2 no cumple, su corrección entra al S3.
+- **Autorización:** equipo de desarrollo (decisión provisional).
+- **Relacionado:** RNF-18, NTI-11.

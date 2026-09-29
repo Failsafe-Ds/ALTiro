@@ -15,6 +15,8 @@ textos (si se agrega un mensaje nuevo, entra solo):
    términos que RNF-17 excluye del lenguaje del maestro.
 3. Servicios del maestro (S3): errores de sus servicios y los motivos y
    pendientes que explican por qué los clientes no ven un servicio.
+4. Cobertura, agenda, foto y perfil del maestro (S3): errores de comunas,
+   horarios y foto, y la lista de lo que le falta para que los clientes lo vean.
 Datos ficticios; imágenes sintéticas; ``ALTIRO_DOCUMENTOS_DIR`` temporal.
 """
 import ast
@@ -325,3 +327,76 @@ def test_rnf15_rnf17_servicios_del_maestro_en_su_lenguaje(client):
     assert encontrados == []
     assert len(mensajes) >= 10
     assert Servicio.objects.count() == 3 and ServicioModalidad.objects.count() == 4
+
+
+# --- 4. Cobertura, agenda, foto y perfil (S3, incrementos 3 a 5; CA-13.1, CA-14.2; ADR-019 a ADR-021) ---
+
+
+def _put(client, url, datos):
+    return client.put(url, data=json.dumps(datos), content_type="application/json")
+
+
+@pytest.mark.django_db
+def test_rnf15_rnf17_cobertura_agenda_y_foto_en_su_lenguaje(client, settings, tmp_path):
+    from perfil import agenda
+    from perfil.vistas_maestro import MENSAJES_PENDIENTE as PENDIENTES_PERFIL
+
+    settings.ALTIRO_FOTOS_DIR = tmp_path
+    crear_maestro(rut=RUT_PROPIO)
+    Oficio.objects.filter(codigo="jardineria").update(activo=False)
+    assert iniciar_sesion(client, RUT_PROPIO).status_code == 200
+
+    respuestas = []
+
+    def registrar(descripcion, respuesta):
+        assert respuesta.status_code >= 400, descripcion
+        respuestas.append((descripcion, respuesta))
+
+    url_cobertura, url_agenda, url_foto = "/api/maestros/cobertura", "/api/maestros/disponibilidad", "/api/maestros/perfil/foto"
+    registrar("oficio dado de baja", post_json(client, URL_OFICIOS, {"oficios": ["jardineria"]}))
+    for descripcion, datos in [
+        ("sin comunas", {"comunas": []}),
+        ("sin comuna principal", {"comunas": [{"comuna": "8101", "es_base": False}]}),
+        ("dos comunas principales", {"comunas": [{"comuna": "8101", "es_base": True}, {"comuna": "8110", "es_base": True}]}),
+        ("comuna inexistente", {"comunas": [{"comuna": "999999", "es_base": True}]}),
+        ("comuna repetida", {"comunas": [{"comuna": "8101", "es_base": True}, {"comuna": "8101"}]}),
+        ("comunas ilegibles", {"comunas": ["8101"]}),
+    ]:
+        registrar(descripcion, _put(client, url_cobertura, datos))
+    assert post_json(client, url_agenda, {"dia_semana": 1, "inicio": "08:00", "fin": "12:00"}).status_code == 201
+    for descripcion, datos in [
+        ("término igual", {"dia_semana": 1, "inicio": "14:00", "fin": "14:00"}),
+        ("cruce de medianoche", {"dia_semana": 1, "inicio": "22:00", "fin": "02:00"}),
+        ("granularidad", {"dia_semana": 1, "inicio": "14:15", "fin": "16:00"}),
+        ("hora inválida", {"dia_semana": 1, "inicio": "25:00", "fin": "26:00"}),
+        ("sin hora", {"dia_semana": 1}),
+        ("inicio 24:00", {"dia_semana": 1, "inicio": "24:00", "fin": "24:00"}),
+        ("sin día", {"inicio": "14:00", "fin": "16:00"}),
+        ("solapamiento", {"dia_semana": 1, "inicio": "10:00", "fin": "14:00"}),
+    ]:
+        registrar(descripcion, post_json(client, url_agenda, datos))
+    registrar("horario ajeno o inexistente", client.delete(f"{url_agenda}/{uuid.uuid4()}"))
+    registrar("foto sin archivo", client.post(url_foto, data={}))
+    registrar("archivo que no es foto", client.post(url_foto, data={"archivo": _archivo(b"<html>no</html>")}))
+    registrar("foto vacía", client.post(url_foto, data={"archivo": _archivo(b"")}))
+    _con_estado(EstadoExpediente.RECHAZADO)
+    registrar("comunas con postulación rechazada", _put(client, url_cobertura, {"comunas": [{"comuna": "8101", "es_base": True}]}))
+    registrar("horario con postulación rechazada", post_json(client, url_agenda, {"dia_semana": 2, "inicio": "08:00", "fin": "09:00"}))
+    registrar("foto con postulación rechazada", client.post(url_foto, data={"archivo": _archivo(_jpeg())}))
+
+    textos_lista = list(PENDIENTES_PERFIL.values()) + [agenda.MENSAJE_RETIRADO]
+    for estado in (EstadoExpediente.EN_REVISION, EstadoExpediente.SUSPENDIDO, EstadoExpediente.RECHAZADO):
+        _con_estado(estado)
+        textos_lista += _textos_json(client.get("/api/maestros/perfil").json())
+
+    encontrados = []
+    mensajes = set()
+    for descripcion, respuesta in respuestas:
+        assert respuesta["Content-Type"].startswith("application/json"), descripcion
+        for texto in _textos_json(respuesta.json()):
+            mensajes.add(texto)
+            encontrados += [(descripcion, texto, t) for t in PROHIBIDO_PARA_EL_MAESTRO if t in texto]
+    for texto in textos_lista:
+        encontrados += [("perfil", texto, t) for t in PROHIBIDO_PARA_EL_MAESTRO if t in texto]
+    assert encontrados == []
+    assert len(mensajes) >= 18

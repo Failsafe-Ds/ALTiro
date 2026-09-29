@@ -17,21 +17,23 @@ MENSAJE_REVISA_CAMPOS = "Revisa los campos marcados."
 MENSAJE_CLAVE_DESCONOCIDA = (
     "Lo que enviaste tiene datos que este formulario no usa. Vuelve a cargar la página e inténtalo de nuevo."
 )
-MENSAJE_CUERPO_INVALIDO = "No pudimos leer los datos enviados. Recarga la página e inténtalo de nuevo."
+MENSAJE_CUERPO_INVALIDO = "No pudimos leer los datos enviados. Vuelve a cargar la página e inténtalo de nuevo."
 MENSAJE_CAMPO_NO_PERMITIDO = "Este dato no corresponde aquí: quítalo e inténtalo de nuevo."
 MENSAJE_TEXTO_INVALIDO = "Este dato tiene caracteres que no se pueden usar. Escríbelo de nuevo."
-MENSAJE_VALOR_REPETIDO = "Este dato llegó repetido. Recarga la página e inténtalo de nuevo."
+MENSAJE_VALOR_REPETIDO = "Este dato llegó repetido. Vuelve a cargar la página e inténtalo de nuevo."
 MENSAJE_ARCHIVO_ESPERADO = "Aquí va una foto. Elige la foto de nuevo e inténtalo otra vez."
 
 # Todos los campos que aparecen en alguna lista de campos permitidos (E-2),
 # incluidos los del formulario de documentos (multipart), los de curatoría, los
-# del catálogo de comercial (ADR-018) y los de servicios del maestro (ADR-019).
+# del catálogo de comercial (ADR-018), los de servicios y cobertura del maestro
+# (ADR-019) y los de su agenda (ADR-020).
 CAMPOS_CONOCIDOS = frozenset(
     {"nombre", "telefono", "correo", "contrasena", "comuna", "rut", "identificador", "oficios",
      "tipo", "oficio", "fecha_emision", "fecha_vencimiento", "archivo", "archivo_reverso",
      "estado_nuevo", "estado_actual", "motivo", "resultado",
      "regulado", "orden", "activo", "version", "modalidades",
-     "servicio", "modalidad", "monto"}
+     "servicio", "modalidad", "monto",
+     "comunas", "dia_semana", "inicio", "fin"}
 )
 
 
@@ -195,7 +197,7 @@ def fallo_csrf(request, reason=""):
     respuesta no tuvo efectos ni dejó registro (ADR-006, E-1).
     """
     respuesta = respuesta_error(
-        403, "Tu formulario venció o se abrió desde otro sitio. Recarga la página e inténtalo de nuevo."
+        403, "Tu formulario venció o se abrió desde otro sitio. Vuelve a cargar la página e inténtalo de nuevo."
     )
     respuesta[CABECERA_RECHAZO] = RECHAZO_CSRF
     return respuesta

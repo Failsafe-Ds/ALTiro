@@ -40,7 +40,7 @@ VALOR_POR_VENCER = "1"
 CAMPOS_CAMBIAR_ESTADO = {"estado_nuevo", "estado_actual", "motivo"}
 CAMPOS_REVISION = {"resultado", "estado_actual", "motivo"}
 
-MENSAJE_FILTRO_INVALIDO = "Uno de los filtros no es válido. Recarga la página e inténtalo de nuevo."
+MENSAJE_FILTRO_INVALIDO = "Uno de los filtros no es válido. Vuelve a cargar la página e inténtalo de nuevo."
 AUTOR_SISTEMA = "Sistema"
 AUTOR_DESCONOCIDO = "Persona no disponible"
 

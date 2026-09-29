@@ -130,6 +130,13 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 # Solo dos archivos por petición (anverso y reverso).
 DATA_UPLOAD_MAX_NUMBER_FILES = 2
 
+# --- Foto del maestro (ADR-021) ---
+# Volumen "fotos", montado solo en app. Sin cifrar: su finalidad es ser
+# pública, pero se entrega solo por una vista que exige que el maestro esté
+# publicado (ADR-019). La subida usa el mismo máximo por archivo que los
+# documentos (ALTIRO_DOCUMENTO_MAXIMO_BYTES) y la misma recodificación.
+ALTIRO_FOTOS_DIR = Path(leer_variable("ALTIRO_FOTOS_DIR"))
+
 # --- Planificador del actor Sistema (ADR-016) ---
 # Cada cuántos segundos corre las tareas idempotentes (por defecto, cada hora).
 ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS = leer_entero("ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS", por_defecto=3600)
