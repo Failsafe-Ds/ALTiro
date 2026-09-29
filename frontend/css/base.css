@@ -99,6 +99,7 @@ label {
 }
 
 input,
+textarea,
 select {
   display: block;
   width: 100%;
@@ -113,6 +114,7 @@ select {
 
 input:focus,
 select:focus,
+textarea:focus,
 button:focus,
 a:focus {
   outline: 3px solid var(--foco);
@@ -526,4 +528,221 @@ h2:focus {
   max-width: 100%;
   max-height: 65vh;
   margin: 0 auto;
+}
+
+/* --- Curatoría (HU-19; propuesta del S2, §5) ---
+   Pensada para notebook, pero construida desde el teléfono hacia arriba:
+   una columna por defecto y dos desde 60rem. */
+
+textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.pagina-amplia main,
+.pagina-amplia .encabezado {
+  max-width: 32rem;
+}
+
+@media (min-width: 60rem) {
+  .pagina-amplia main,
+  .pagina-amplia .encabezado {
+    max-width: 72rem;
+  }
+
+  .columnas {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .acciones-dobles {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .paginacion {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.columna {
+  min-width: 0;
+}
+
+.titulo-filtros {
+  margin-top: 0;
+}
+
+/* Filtros de la cola: el activo va relleno y con ✓ (no solo color, RNF-16). */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filtros .filtro {
+  width: auto;
+  min-width: 44px;
+  color: var(--primario);
+  background: var(--fondo);
+}
+
+.filtros .filtro:hover {
+  background: var(--fondo-suave);
+}
+
+.filtros .filtro[aria-pressed="true"] {
+  color: #ffffff;
+  background: var(--primario);
+}
+
+.filtros .filtro[aria-pressed="true"]::before {
+  content: "✓ ";
+  white-space: pre;
+}
+
+.resultado {
+  font-weight: 600;
+  margin: 1rem 0;
+}
+
+.resultado:focus {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.paginacion {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.cuenta-pendiente {
+  font-weight: 700;
+}
+
+.cuenta-pendiente::before {
+  content: "📄 ";
+}
+
+.lista-simple {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tarjeta .lista-simple {
+  padding-left: 0;
+}
+
+.linea-oficio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  padding: 0.35rem 0;
+}
+
+.documento h3 {
+  margin-top: 0;
+}
+
+.revision {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--borde);
+}
+
+.revision h4 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.revision .acciones {
+  margin-top: 0;
+}
+
+.legend-campo {
+  font-size: 1.0625rem;
+  margin-bottom: 0.35rem;
+}
+
+#form-estado fieldset {
+  margin-bottom: 1.25rem;
+}
+
+/* Botón de una acción definitiva (rechazar): rojo con 6,6:1 sobre blanco y,
+   además del color, el texto dice qué hace. */
+.boton-peligro,
+button.boton-peligro {
+  color: #ffffff;
+  background: var(--error);
+  border-color: var(--error);
+}
+
+button.boton-peligro:hover,
+button.boton-peligro[disabled]:hover {
+  background: #8c0019;
+}
+
+.confirmacion {
+  padding: 1rem;
+  border: 3px solid var(--error);
+  border-radius: var(--radio);
+  background: var(--error-fondo);
+}
+
+.confirmacion h3 {
+  margin-top: 0;
+}
+
+.confirmacion h3::before {
+  content: "⚠ ";
+}
+
+.confirmacion h3:focus {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.cita {
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid var(--borde);
+  background: var(--fondo);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.historial {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tarjeta .historial {
+  padding-left: 0;
+}
+
+.entrada-historial {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.entrada-historial:last-child {
+  border-bottom: 0;
+}
+
+.entrada-historial .datos dd {
+  margin-bottom: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.entrada-historial .acciones {
+  margin-top: 0.5rem;
+}
+
+.motivo,
+.datos dd {
+  overflow-wrap: anywhere;
 }

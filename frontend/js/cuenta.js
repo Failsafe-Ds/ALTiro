@@ -97,6 +97,8 @@
     // Accesos al expediente (HU-11, HU-17). Solo navegación: la API vuelve a
     // exigir el rol de maestro en cada consulta.
     mostrar(document.getElementById("accesos-maestro"), Boolean(maestro));
+    // Acceso a curatoría (HU-19). Solo navegación: cada ruta de la API exige el rol.
+    mostrar(document.getElementById("accesos-curatoria"), cuenta.roles.includes("curatoria"));
 
     // Agregar perfil: correo y teléfono solo se piden si la cuenta no los tiene (ADR-013, E-1 y E-2).
     mostrar(document.getElementById("seccion-cliente"), !cliente);

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revisar expediente — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/expediente.js" defer></script>
+  <script src="js/visor.js" defer></script>
+  <script src="js/curatoria-comun.js" defer></script>
+  <script src="js/curatoria-expediente.js" defer></script>
+</head>
+<body class="pagina-amplia">
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" id="volver-cola" href="curatoria.html">Volver a la cola</a>
+  </header>
+  <main>
+    <h1 id="titulo-pagina" tabindex="-1">Revisar expediente</h1>
+    <p id="cargando" role="status">Cargando el expediente…</p>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+    <!-- Resultado de cada acción (éxito): se anuncia sin mover la lectura. -->
+    <div id="aviso-resultado" class="aviso" role="status" aria-live="polite" tabindex="-1"></div>
+
+    <div id="contenido" class="columnas" hidden>
+      <div class="columna">
+        <section class="tarjeta" aria-labelledby="titulo-datos">
+          <h2 id="titulo-datos">Datos del maestro</h2>
+          <dl class="datos">
+            <dt>Nombre</dt><dd id="dato-nombre"></dd>
+            <dt>RUT</dt><dd id="dato-rut"></dd>
+            <dt>Estado del expediente</dt><dd id="dato-estado"></dd>
+            <dt class="oculto" id="titulo-motivo">Motivo del último cambio</dt><dd class="oculto" id="dato-motivo"></dd>
+            <dt>Postuló el</dt><dd id="dato-creado"></dd>
+          </dl>
+        </section>
+
+        <section class="tarjeta" aria-labelledby="titulo-oficios">
+          <h2 id="titulo-oficios">Oficios</h2>
+          <p id="sin-oficios" class="oculto">No declaró oficios.</p>
+          <ul id="lista-oficios" class="lista-simple"></ul>
+        </section>
+
+        <section class="tarjeta" aria-labelledby="titulo-faltantes">
+          <h2 id="titulo-faltantes">Requisitos para aprobar</h2>
+          <p id="sin-faltantes" class="oculto"><span aria-hidden="true">✓ </span>Tiene todos los requisitos para aprobar.</p>
+          <div id="bloque-faltantes" class="oculto">
+            <p>Falta, según el servidor:</p>
+            <ul id="lista-faltantes"></ul>
+          </div>
+        </section>
+
+        <section aria-labelledby="titulo-documentos">
+          <h2 id="titulo-documentos">Documentos</h2>
+          <p id="sin-documentos" class="oculto">El maestro todavía no ha enviado documentos.</p>
+          <ul id="lista-documentos" class="lista-documentos"></ul>
+        </section>
+      </div>
+
+      <div class="columna">
+        <section id="seccion-estado" class="tarjeta" aria-labelledby="titulo-estado">
+          <h2 id="titulo-estado">Cambiar el estado del expediente</h2>
+          <p id="sin-transiciones" class="oculto"></p>
+          <form id="form-estado" novalidate>
+            <div class="aviso" role="alert" tabindex="-1"></div>
+            <fieldset aria-describedby="error-estado_nuevo">
+              <legend class="legend-campo">Nuevo estado</legend>
+              <div id="opciones-estado" class="lista-oficios"></div>
+              <span class="error-campo" id="error-estado_nuevo"></span>
+            </fieldset>
+            <div class="campo">
+              <label for="motivo-estado">Motivo (obligatorio)</label>
+              <span class="ayuda" id="ayuda-motivo-estado">Queda registrado en el historial y el maestro puede verlo en su postulación.</span>
+              <textarea id="motivo-estado" name="motivo" rows="4" maxlength="1000" required
+                        aria-describedby="ayuda-motivo-estado error-motivo"></textarea>
+              <span class="error-campo" id="error-motivo"></span>
+            </div>
+            <button type="submit" id="guardar-estado">Guardar el cambio de estado</button>
+          </form>
+
+          <!-- Paso de confirmación para rechazar (decisión definitiva, D-2). -->
+          <div id="confirmar-rechazo" class="confirmacion" hidden>
+            <h3 id="titulo-confirmar" tabindex="-1">¿Rechazar este expediente?</h3>
+            <p>Rechazar es definitivo: el expediente no podrá volver a revisión ni aprobarse, y el maestro ya no podrá subir documentos.</p>
+            <p class="ayuda">Motivo que quedará registrado:</p>
+            <p id="confirmar-motivo" class="cita"></p>
+            <div class="acciones">
+              <button type="button" id="confirmar-si" class="boton-peligro">Sí, rechazar el expediente</button>
+              <button type="button" id="confirmar-no" class="boton-secundario">No, volver</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="tarjeta" aria-labelledby="titulo-historial">
+          <h2 id="titulo-historial">Historial</h2>
+          <p id="estado-historial" role="status">Cargando el historial…</p>
+          <ol id="lista-historial" class="historial"></ol>
+        </section>
+      </div>
+    </div>
+
+    <!-- Visor de la foto: enlace temporal de 10 minutos (RNF-06). -->
+    <dialog id="visor" class="visor" aria-labelledby="titulo-visor">
+      <h2 id="titulo-visor"></h2>
+      <p id="estado-visor" role="status"></p>
+      <img id="imagen-visor" alt="" hidden>
+      <div class="acciones">
+        <button type="button" class="boton-secundario oculto" id="visor-otra-cara"></button>
+        <button type="button" id="visor-cerrar">Cerrar</button>
+      </div>
+    </dialog>
+  </main>
+</body>
+</html>

@@ -60,6 +60,32 @@ const expediente = (() => {
     return `${Number(partes[3])} de ${MESES[Number(partes[2]) - 1]} de ${partes[1]}`;
   }
 
+  // Fecha y hora de un instante ISO ("2026-09-28T17:05:00+00:00"), en la hora
+  // de Chile (D-6): "28 de septiembre de 2026, 14:05".
+  const FORMATO_FECHA_HORA = new Intl.DateTimeFormat("es-CL", {
+    timeZone: "America/Santiago",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+
+  function formatearFechaHora(iso) {
+    const instante = Date.parse(iso || "");
+    return Number.isNaN(instante) ? "" : FORMATO_FECHA_HORA.format(instante);
+  }
+
+  // "12345678K" => "12.345.678-K".
+  function formatearRut(rut) {
+    if (!rut || rut.length < 2) {
+      return rut || "";
+    }
+    const cuerpo = rut.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return cuerpo + "-" + rut.slice(-1);
+  }
+
   // <span class="estado …"><span aria-hidden="true">⏳</span> En revisión</span>
   function etiquetaEstado(estado, tabla) {
     const datos = tabla[estado] || DESCONOCIDO;
@@ -150,6 +176,8 @@ const expediente = (() => {
     TEXTO_SEC,
     nombreDocumento,
     formatearFecha,
+    formatearFechaHora,
+    formatearRut,
     etiquetaEstado,
     clave,
     requisitos,
