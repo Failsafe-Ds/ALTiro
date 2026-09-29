@@ -32,7 +32,7 @@ _HORA = re.compile(r"([0-9]{2}):([0-9]{2})")
 
 MENSAJE_DIA = "Elige el día de la semana."
 MENSAJE_HORA_FALTA = "Elige la hora, en formato de 24 horas (por ejemplo, 08:00 o 17:30)."
-MENSAJE_HORA_INVALIDA = "Escribe la hora en formato de 24 horas, entre 00:00 y 24:00 (por ejemplo, 08:00 o 17:30)."
+MENSAJE_HORA_INVALIDA = "Elige una hora en formato de 24 horas, entre 00:00 y 24:00 (por ejemplo, 08:00 o 17:30)."
 MENSAJE_GRANULARIDAD = "Elige una hora en punto o y media (por ejemplo, 08:00 o 08:30)."
 MENSAJE_INICIO_FIN_DE_DIA = "La hora de inicio debe ser entre 00:00 y 23:30."
 MENSAJE_FIN_NO_POSTERIOR = (
@@ -40,12 +40,12 @@ MENSAJE_FIN_NO_POSTERIOR = (
     "Por ejemplo, de 08:00 a 12:00."
 )
 MENSAJE_CRUCE_MEDIANOCHE = (
-    " Si trabajas pasada la medianoche, guarda dos bloques: uno hasta las 24:00 y otro desde las 00:00 "
+    " Si trabajas pasada la medianoche, guarda dos horarios: uno hasta las 24:00 y otro desde las 00:00 "
     "del día siguiente."
 )
 MENSAJE_SOLAPAMIENTO = (
-    "Este horario se cruza con tu bloque del {dia} de {inicio} a {fin}. "
-    "Elige otro horario o quita ese bloque primero."
+    "Este horario se cruza con tu horario del {dia} de {inicio} a {fin}. "
+    "Elige otro horario o quita ese horario primero."
 )
 MENSAJE_RECHAZADO = "Tu postulación no fue aprobada, así que ya no puedes cambiar tus horarios."
 MENSAJE_RETIRADO = "Ya quitaste este horario."

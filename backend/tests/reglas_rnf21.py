@@ -6,9 +6,10 @@ y **por grupo**: una regla está cubierta si al menos una prueba de
 ``tests/test_*.py`` la cita con ``@pytest.mark.regla("ID")``
 (``tests/test_rnf21_cobertura_de_reglas.py``).
 
-``GRUPOS_ACTIVOS``: grupos que la prueba de control ya exige. Los de cierre
-(incremento 6) y acceso de tickets (incrementos 4 y 5) se agregan a medida que
-llegan las funciones; la meta del sprint es el 100 %.
+``GRUPOS_ACTIVOS``: grupos que la prueba de control ya exige. ``acceso`` entra
+en el incremento 4 (A-01, A-03, A-04 y A-05; A-02 llega con las acciones del
+incremento 5). ``cierre`` entra en el incremento 6; C-08 (fórmula de
+``vence_en``) ya se cubre en el 4. La meta del sprint es el 100 %.
 """
 
 REGLAS = {
@@ -49,6 +50,7 @@ REGLAS = {
         "C-05": "RF-20: rechazo del maestro deja el bloque libre",
         "C-06": "RF-19: aceptar cierra los pendientes que se cruzan (bloque_tomado)",
         "C-07": "RF-24: los cinco motivos de cierre se registran de forma distinguible",
+        "C-08": "ADR-023, punto 1: vence_en = LEAST(enviado + 24 h, inicio - 4 h), también a las 28 horas exactas",
     },
     "acceso": {
         "A-01": "CA-25.1: un tercero recibe el 404 idéntico con registro al abrir un ticket",
@@ -59,7 +61,7 @@ REGLAS = {
     },
 }
 
-GRUPOS_ACTIVOS = frozenset({"filtros", "puntaje"})
+GRUPOS_ACTIVOS = frozenset({"filtros", "puntaje", "acceso"})
 UMBRAL = 0.60
 
 

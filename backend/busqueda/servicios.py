@@ -206,7 +206,7 @@ def cargar_candidatos(oficio, comunas, ahora, hoy):
     """``[Candidato]`` de los maestros que podrían cumplir con ``oficio`` en alguna de ``comunas``.
 
     Consultas constantes: servicios (1), contexto en lote (6), cobertura (1),
-    agenda (1), perfiles (1) y rangos ocupados (hoy 0; 1 desde el incremento 4).
+    agenda (1), perfiles (1) y rangos ocupados (1, sobre ``ticket``).
     """
     servicios = list(
         ServicioMaestro.objects.filter(

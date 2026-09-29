@@ -2,21 +2,34 @@
 
 Un bloque está **ocupado** si se cruza con un ticket ``aceptado`` o
 ``finalizado`` del mismo maestro (ADR-023, punto 4; D-12: "mismo bloque"
-significa que los rangos se cruzan).
+significa que los rangos se cruzan). Un ticket ``pendiente`` o ``cerrado`` no
+ocupa: el bloque sigue libre para otros pedidos (RF-20).
 
-La app ``tickets`` llega en el incremento 4 del S4. Hasta entonces no existe
-ningún ticket y esta función devuelve un diccionario vacío: todas las
-ocurrencias están libres. El incremento 4 la completa con **una** consulta en
-lote sobre ``ticket`` (estado en ``aceptado``/``finalizado``, maestro en
-``maestro_ids`` e ``inicio_en < hasta`` y ``fin_en > desde``), sin cambiar su
-firma, para que la búsqueda y la ficha sigan con un número de consultas
-constante (RNF-01).
+Una sola consulta en lote sobre ``ticket`` (índice único parcial
+``ticket_bloque_ocupado_unico``), para que la búsqueda, la ficha y la creación
+del ticket mantengan un número de consultas constante (RNF-01).
 """
+from collections import defaultdict
 
 
 def rangos_ocupados(maestro_ids, desde, hasta):
     """``{maestro_id: [(inicio_en, fin_en), ...]}`` de los tickets que ocupan agenda entre ``desde`` y ``hasta``.
 
-    Hoy (antes de la app ``tickets``) siempre vacío. Ver el docstring del módulo.
+    Incluye los que se cruzan con ``[desde, hasta)`` aunque empiecen antes o terminen después.
     """
-    return {}
+    # Import local: ``tickets.models`` importa ``perfil.models``.
+    from tickets.models import ESTADOS_QUE_OCUPAN, Ticket
+
+    ids = set(maestro_ids)
+    if not ids:
+        return {}
+    rangos = defaultdict(list)
+    for maestro_id, inicio, fin in (
+        Ticket.objects.filter(
+            perfil_maestro_id__in=ids, estado__in=ESTADOS_QUE_OCUPAN, inicio_en__lt=hasta, fin_en__gt=desde
+        )
+        .order_by("perfil_maestro_id", "inicio_en")
+        .values_list("perfil_maestro_id", "inicio_en", "fin_en")
+    ):
+        rangos[maestro_id].append((inicio, fin))
+    return dict(rangos)

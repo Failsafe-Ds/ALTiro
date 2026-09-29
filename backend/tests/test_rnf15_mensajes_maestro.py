@@ -400,3 +400,16 @@ def test_rnf15_rnf17_cobertura_agenda_y_foto_en_su_lenguaje(client, settings, tm
         encontrados += [("perfil", texto, t) for t in PROHIBIDO_PARA_EL_MAESTRO if t in texto]
     assert encontrados == []
     assert len(mensajes) >= 18
+
+
+# --- 5. Vocabulario de la agenda (RNF-17, OBS-S3-06; S4, incremento 4) ---
+
+
+def test_rnf17_los_mensajes_de_la_agenda_dicen_horario_y_no_bloque():
+    from perfil import agenda
+
+    mensajes = [valor for nombre, valor in vars(agenda).items() if nombre.startswith("MENSAJE") and isinstance(valor, str)]
+
+    assert len(mensajes) >= 8
+    assert not [m for m in mensajes if "bloque" in m.lower() or "Escribe la hora" in m]
+    assert "horario" in agenda.MENSAJE_SOLAPAMIENTO and "horarios" in agenda.MENSAJE_CRUCE_MEDIANOCHE

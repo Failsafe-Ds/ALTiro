@@ -1,7 +1,7 @@
 """Planificador del actor Sistema (ADR-016, punto 1; cierra DA-06; DA-16).
 
 Corre las tareas idempotentes de ``expediente.tareas`` y ``autorizacion.tareas`` cada
-``ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS`` (por defecto 3600):
+``ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS`` (por defecto 300, ADR-016 E-1):
 
     python manage.py planificador            # bucle (servicio "planificador")
     python manage.py planificador --una-vez  # una corrida (pruebas y operación manual)

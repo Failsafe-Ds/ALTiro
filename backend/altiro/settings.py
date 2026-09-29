@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "expediente",  # Expediente del maestro (ADR-017)
     "perfil",  # Perfil público, servicios del maestro y regla de publicación (ADR-019)
     "busqueda",  # Búsqueda de maestros, sin modelos (ADR-022)
+    "tickets",  # Ticket y orden, historial y avisos (ADR-023, ADR-024)
 ]
 
 # ADR-001: fijado desde la primera migración.
@@ -139,8 +140,9 @@ DATA_UPLOAD_MAX_NUMBER_FILES = 2
 ALTIRO_FOTOS_DIR = Path(leer_variable("ALTIRO_FOTOS_DIR"))
 
 # --- Planificador del actor Sistema (ADR-016) ---
-# Cada cuántos segundos corre las tareas idempotentes (por defecto, cada hora).
-ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS = leer_entero("ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS", por_defecto=3600)
+# Cada cuántos segundos corre las tareas idempotentes (por defecto, cada 5 minutos:
+# ADR-016, E-1, para que los avisos de cierre de tickets lleguen en 5 minutos o menos).
+ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS = leer_entero("ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS", por_defecto=300)
 
 # --- Registros ---
 # Solo a la consola del contenedor. Nunca registrar contraseñas, tokens,

@@ -183,3 +183,28 @@
 6. **Volumen sintético:** solo usa oficios no regulados, porque fabricar licencias SEC exigiría archivos cifrados. Los RUT sintéticos van desde 50.000.000 y los teléfonos son +56 9 0000 0NNN.
 7. La ficha expone la ref del patrón de disponibilidad. Las rutas privadas sobre ese patrón ya están protegidas por la política de dueño.
 8. `rangos_ocupados()` y `calificaciones_en_lote()` responden vacío hasta el incremento 4 y el S5, respectivamente.
+
+### Aclaraciones del incremento 4 (crear el ticket, 2026-09-29, provisionales)
+9. **El pedido nombra un horario completo de la agenda:** `fecha`, `inicio` y `fin` deben coincidir exactamente con una ocurrencia ofrecible (CA-06.1, "un bloque de su agenda declarada"). Un rango dentro de un horario, como 09:00–11:00 dentro de 08:00–12:00, responde 409. `maestro` es la ref pública del perfil y `servicio` es la ref del catálogo, como las entrega la ficha.
+10. **Códigos de respuesta de `POST /api/tickets`:**
+    - datos que faltan o no sirven: 400 por campo;
+    - un maestro inexistente y uno no publicado reciben el mismo 400 en `maestro`, para no revelar si existe;
+    - servicio no visible: 400 en `servicio`; comuna fuera de la cobertura: 400 en `comuna`;
+    - horario que no está en la agenda, que empieza en 4 horas o menos, o que está ocupado: 409 con el mensaje de cada caso y con `bloques`, los horarios libres vigentes (CA-06.2). `bloques` es la única clave que se agrega al formato `{mensaje, errores}`.
+11. **Pendiente repetido (D-10):** si el cliente ya tiene un pendiente con ese maestro y ese inicio, se responde 200 con **ese** ticket, sin cambiarlo y sin nuevo aviso ni evento, aunque la descripción sea otra. Si ese pendiente ya venció y todavía no se cierra, se responde 409 ("inténtalo de nuevo en unos minutos") hasta que el incremento 6 agregue la tarea de cierre y la protección al actuar.
+12. **Límites de texto:** la dirección tiene 200 caracteres o menos, en una línea. La descripción tiene 1.000 caracteres o menos. `materiales` debe ser un booleano JSON (`true` o `false`); `"true"`, `1` o `null` responden 400.
+13. **Modelo:**
+    - `ticket` guarda la FK a `servicio_maestro`, la fila publicada que eligió el cliente. D-11 (incremento 5) evalúa la visibilidad de esa misma fila;
+    - `ticket_evento` no tiene FK hacia `ticket` ni hacia `usuario`, igual que `bitacora`, porque una FK impediría el vaciado de las pruebas `transaction=True`;
+    - los CHECK de plazos usan intervalos en horas (`'24 hours'`), no `'1 day'`, porque los plazos se miden en tiempo real (ADR-020 E-1);
+    - coherencia de fechas: `aceptado_en` debe estar entre `enviado_en` y antes de `vence_en`; `cerrado` implica que no hubo aceptación (solo se llega desde `pendiente`); `finalizado_en` debe ser igual o posterior a `aceptado_en`.
+14. **`aviso_ticket`:** agrega `ref` (UUID, ADR-011) y un único `(ticket, destinatario, tipo)`, así cada aviso se emite una sola vez. `POST /api/avisos/vistos` recibe `{"avisos": [refs]}` (de 1 a 100) y solo marca los del usuario de la sesión: las refs ajenas o inexistentes se ignoran sin decir cuáles.
+15. **Lectura:**
+    - `numero` (el `id`) sale en las respuestas como número visible, pero nunca se acepta como entrada;
+    - `GET /api/tickets/<ref>` no exige un rol: decide `PoliticaTicket`. Un administrador que además es cliente tampoco ve tickets ajenos;
+    - el bloque de contacto aparece si el ticket está aceptado **o finalizado**;
+    - las listas `GET /api/clientes/tickets` y `GET /api/maestros/tickets` no tienen filtro de estado (llega con las bandejas del incremento 7), van de la más nueva a la más antigua y en páginas de 20. Un parámetro desconocido responde 400 general.
+16. **Ocupación:** `rangos_ocupados()` ya consulta `ticket` (aceptados y finalizados), con una consulta por búsqueda. La búsqueda pasa de 13 a 14 consultas, sigue siendo constante, y deja sin efecto la parte de la aclaración 8 que la dejaba vacía.
+17. **Volumen sintético:** 10 tickets por maestro (1.000 con 100 maestros) y 2 clientes ficticios por maestro. Por maestro: uno aceptado y dos pendientes en los próximos 14 días, y siete pasados (finalizados o cerrados con motivos coherentes), cada uno con su `ticket_evento`. Sin avisos. En esos eventos sintéticos, el autor de la finalización es el maestro; la regla real es del S5 (RF-26, RF-27).
+18. **Compresión (RNF-02):** el proxy comprime con gzip HTML, CSS, JS, JSON y SVG. No comprime las respuestas de `/api/(curatoria/)?documentos/<ref>/enlace`, que llevan el token (BREACH), ni la descarga de documentos. Medido en la pila local: el JS de `buscar.html` baja de 49,6 KB a 17,0 KB transferidos.
+19. **Pendiente para el incremento 6:** el enlace a la búsqueda en el aviso `ticket_cerrado` por `bloque_tomado` (CA-23.5).

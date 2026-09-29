@@ -53,6 +53,20 @@ server {
     root  /usr/share/nginx/html;
     index index.html;
 
+    # Compresión (RNF-02: presupuesto de JS y JSON en red móvil; propuesta del S4, §6).
+    # Solo texto: HTML (siempre incluido), CSS, JS, JSON y SVG. Las imágenes y las
+    # descargas de documentos no se comprimen (son binarios y no están en la
+    # lista). gzip_proxied any: también las respuestas JSON de la app.
+    # No se comprime la respuesta que lleva el token de un enlace firmado
+    # (location de los enlaces, más abajo): un secreto dentro de una respuesta
+    # comprimida puede adivinarse midiendo su tamaño (BREACH).
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_vary on;
+    gzip_types text/css application/javascript text/javascript application/json image/svg+xml;
+
     # Páginas de error propias, en español y sin texto técnico (DEF-QA-006,
     # RNF-15, CLAUDE.md §9). Se conserva el código HTTP; un 403 (por ejemplo,
     # una carpeta sin index.html) se responde como 404 para no revelar qué existe.
@@ -110,6 +124,23 @@ server {
         error_page 500 502 503 504 @api_no_disponible;
     }
 
+    # Enlaces firmados de 600 s de un documento (RNF-06, ADR-015; ADR-017, E-3):
+    # la respuesta JSON lleva el token, así que va sin compresión (BREACH).
+    location ~ ^/api/(curatoria/)?documentos/[^/]+/enlace$ {
+        gzip off;
+
+        proxy_pass http://app:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_hide_header X-Content-Type-Options;
+        proxy_hide_header Referrer-Policy;
+        proxy_hide_header Strict-Transport-Security;
+
+        error_page 500 502 503 504 @api_no_disponible;
+    }
+
     # Descarga de la foto de un documento (RNF-06, ADR-015; DEF-QA-009). Es la
     # única ruta que entrega documentos o fotos privadas, y su URL lleva el
     # token del enlace de 600 s en "?t=…". El regex cubre cualquier <ref>.
@@ -125,6 +156,8 @@ server {
     #   errores de las demás rutas.
     location ~ ^/api/documentos/[^/]+/archivo$ {
         error_log /dev/null;
+        # Descarga binaria de un documento: nunca se comprime.
+        gzip off;
 
         proxy_max_temp_file_size 0;
         proxy_buffer_size 16k;

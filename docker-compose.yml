@@ -111,7 +111,7 @@ services:
       start_period: 20s
     restart: unless-stopped
 
-  # Actor Sistema (ADR-016): cada hora corre tareas idempotentes (avisos de
+  # Actor Sistema (ADR-016; E-1: cada 5 minutos por defecto) corre tareas idempotentes (avisos de
   # RF-35, purga de acceso_denegado y archivos huérfanos). Misma imagen que app,
   # sin puertos, solo en la red interna. No aplica migraciones: espera a que app
   # (que las aplica al arrancar) esté sana.
@@ -135,7 +135,7 @@ services:
       # volumen "fotos" no se monta aquí (ADR-021, punto 3): /fotos es el
       # directorio vacío de la imagen.
       ALTIRO_FOTOS_DIR: /fotos
-      ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS: ${ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS:-3600}
+      ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS: ${ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS:-300}
     volumes:
       - secretos:/secretos:ro
       # Para la limpieza de archivos huérfanos (ADR-015, D-3: app y planificador).

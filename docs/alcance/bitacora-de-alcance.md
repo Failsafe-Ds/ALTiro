@@ -13,10 +13,10 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | ID | Desplazamiento | Nuevo cierre | Tipo |
 |---|---|---|---|
 | DA-01 | Evidencia de RNF-06 | S2 (cerrado el 2026-09-28) | Temporal (cerrado) |
-| DA-02 | Evidencia de RNF-08 | S4 | Temporal |
+| DA-02 | Evidencia de RNF-08 | S4 (cerrado el 2026-09-29, incremento 4) | Temporal (cerrado) |
 | DA-03 | RNF-07 se cumple de forma acumulativa | S2 a S5 | Temporal |
 | DA-04 | CA-25.3 en "Terminado sin validar" | Revisión del S1 | Temporal |
-| DA-05 | CA-25.1 y CA-25.2 | S4 y S2 | Temporal |
+| DA-05 | CA-25.1 y CA-25.2 | S2 (CA-25.2) y S4 (CA-25.1, cerrado el 2026-09-29) | Temporal (cerrado) |
 | DA-06 | Purga automática de `acceso_denegado` | S2 (cerrado el 2026-09-28, con el planificador de DA-16) | Temporal (cerrado) |
 | DA-07 | RNF-22 parcial | S5 | Temporal |
 | DA-08 | Barrera 3 de la bitácora no implementada | Evaluar en S5 | Temporal, condicionado a capacidad |
@@ -53,6 +53,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 - **Cambio:** en S1 se entregan la serialización con lista explícita de campos y la utilidad de prueba `assert_campos_ausentes`. La evidencia del umbral se cierra en S4.
 - **Motivo:** los tickets pendientes, con la dirección y el teléfono que se ocultan, existen desde S4 (RF-17).
 - **Impacto:** RNF-08 queda "infraestructura preparada / evidencia final pendiente".
+- **Estado (2026-09-29): cerrado en S4, incremento 4.** La serialización del ticket depende de la relación con ese ticket (ADR-023, punto 5): mientras está pendiente, el maestro recibe servicio, descripción, comuna, bloque y materiales, **sin** dirección, teléfono ni nombre del cliente. El contacto solo existe si el ticket fue aceptado; un ticket cerrado desde pendiente nunca revela la dirección. Evidencia automática: `tests/test_tickets.py` revisa con `assert_campos_ausentes` el JSON crudo del detalle, de la lista del maestro y de sus avisos. En vivo, por el proxy HTTPS con datos ficticios: se creó un pedido y el JSON que recibe el maestro en `GET /api/tickets/<ref>`, `GET /api/maestros/tickets` y `GET /api/avisos` no contiene la dirección, el teléfono ni el nombre del cliente (0 apariciones de cada uno).
 - **Autorización:** equipo de desarrollo.
 - **Relacionado:** RNF-08, RF-17, R-02; ADR-002.
 
@@ -81,6 +82,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 - **Motivo:** las órdenes y los documentos no existen en S1.
 - **Impacto:** HU-25 no se cierra en S1; solo CA-25.3 (ver DA-04).
 - **Estado (2026-09-28):** CA-25.2 **cerrado en S2, incremento 3**. Un cliente, otro maestro y los roles comercial, moderación y control de gestión reciben el 404 neutro al pedir el documento de identidad de un maestro, y queda una fila en `acceso_denegado`. CA-25.1 sigue pendiente para S4.
+- **Estado (2026-09-29):** CA-25.1 **cerrado en S4, incremento 4**. `GET /api/tickets/<uuid:ref>` usa `PoliticaTicket` (solo el cliente o el maestro de ese ticket). Otro cliente, otro maestro y los cuatro roles administrativos, incluido un administrador que además es cliente, reciben el 404 idéntico al de una ref inexistente, y queda una fila en `acceso_denegado` (`GET api/tickets/<uuid:ref>`, entidad `ticket`, ref). Una ref inexistente no deja registro. Evidencia: `tests/test_tickets.py` (marca `terceros("ticket")`; la prueba de control de rutas sigue en verde sin exenciones nuevas). En vivo, por el proxy, un cliente ficticio ajeno recibió el mismo cuerpo 404 para el ticket ajeno y para una ref inexistente, y solo el primero quedó registrado.
 - **Autorización:** equipo de desarrollo.
 - **Relacionado:** HU-25, CA-25.1, CA-25.2, NTI-09; ADR-011.
 

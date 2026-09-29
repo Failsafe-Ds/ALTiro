@@ -326,7 +326,7 @@ def test_solapamiento_con_otro_bloque_del_mismo_dia_se_rechaza(sesion, maestro, 
 
     assert respuesta.status_code == 400
     mensaje = respuesta.json()["errores"]["inicio"]
-    assert "lunes de 08:00 a 12:00" in mensaje and "quita ese bloque" in mensaje
+    assert "lunes de 08:00 a 12:00" in mensaje and "quita ese horario" in mensaje
     assert Disponibilidad.objects.count() == 1
 
 

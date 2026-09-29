@@ -17,24 +17,33 @@ Qué crea (informe §3 del CLAUDE.md, "volumen de prueba"):
   los regulados exigirían licencias SEC con archivo cifrado, que este comando
   no fabrica (supuesto de este incremento);
 - los servicios del catálogo de demostración que falten
-  (``catalogo.management.commands.cargar_datos_demo``, también ficticios).
-
-Pendiente: los **1.000 tickets** se agregan cuando exista la app ``tickets``
-(S4, incremento 4) en ``generar_tickets``; los 5.000 mensajes, en el S5.
+  (``catalogo.management.commands.cargar_datos_demo``, también ficticios);
+- **1.000 tickets** (10 por maestro, S4 incremento 4) con 200 clientes
+  ficticios (2 por maestro): en cada maestro, un ticket aceptado y dos
+  pendientes en sus próximos 14 días, y siete pasados (finalizados o
+  cerrados con alguno de los cinco motivos) de los últimos 60 días, cada uno
+  con su historial en ``ticket_evento``. Los aceptados ocupan agenda, así la
+  búsqueda se mide con ocupación real. Sin avisos (nadie entra con estas
+  cuentas). Los 5.000 mensajes, en el S5.
 
 Rotulado y resguardos:
 
-- Nombres "Maestro Ficticio NNN (datos de prueba)", RUT sintéticos a partir
-  de 50.000.000, teléfonos "+56 9 0000 0NNN", sin correo.
+- Nombres "Maestro Ficticio NNN (datos de prueba)" y "Cliente Ficticio NNN
+  (datos de prueba)"; RUT sintéticos a partir
+  de 50.000.000 y teléfonos "+56 9 0000 0NNN" para los maestros (sin correo);
+  "cliente.ficticio.SEMILLA.NNN@example.com" y "+56 9 0001 NNNN" para los clientes.
 - Contraseñas **inutilizables** (``set_unusable_password``): nadie puede
   entrar con estas cuentas.
 - Se niega a correr sin ``--confirmo-datos-ficticios``.
-- Idempotente por semilla: cada maestro se identifica por su RUT, derivado de
+- Idempotente por semilla: cada maestro se identifica por su RUT y cada
+  cliente por su correo, derivados de
   la semilla y de su número; si ya existe, no se toca. Cada maestro se crea en
-  su propia transacción.
+  su propia transacción. Los tickets se crean en una sola transacción y solo
+  si los clientes de la semilla todavía no tienen ninguno.
 - No escribe la bitácora (igual que ``cargar_datos_demo``): no es una acción
   de una persona de la aplicación.
 """
+import datetime
 import io
 import logging
 import random
@@ -47,11 +56,22 @@ from PIL import Image
 
 from catalogo.management.commands.cargar_datos_demo import cargar_datos_demo
 from catalogo.models import Servicio, ServicioModalidad
+from expediente import vigencia
 from expediente.models import EstadoExpediente, Expediente, OficioMaestro
 from identidad import servicios as identidad
-from identidad.models import PerfilMaestro
-from perfil import fotos
+from identidad.models import PerfilMaestro, Usuario
+from perfil import fotos, ocurrencias
 from perfil.models import Cobertura, Disponibilidad, PerfilPublico, ServicioMaestro
+from tickets.models import (
+    ANTICIPACION_MINIMA,
+    PLAZO_RESPUESTA,
+    AutorTipo,
+    EstadoTicket,
+    MotivoCierre,
+    Ticket,
+    TicketEvento,
+)
+from tickets.servicios import calcular_vence_en
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +82,11 @@ RUT_BASE = 50_000_000
 COMUNAS_BASE = [8101, 8102, 8103, 8104, 8105, 8106, 8107, 8108, 8109, 8110, 8111, 8112]
 COMUNAS_EXTRA = COMUNAS_BASE + [8201, 8202, 8203, 8205]
 MOTIVO = "Datos ficticios del volumen de prueba (RNF-01, RNF-03)."
+# 10 tickets y 2 clientes por maestro: 1.000 tickets y 200 clientes con 100 maestros.
+TICKETS_POR_MAESTRO = 10
+FUTUROS_POR_MAESTRO = 3  # uno aceptado y dos pendientes
+CLIENTES_POR_MAESTRO = 2
+DIAS_HISTORIA = 60
 
 
 def rut_ficticio(semilla, numero):
@@ -167,13 +192,168 @@ def crear_maestro(semilla, numero, por_oficio):
     return True
 
 
-def generar_tickets(semilla):
-    """Pendiente (S4, incremento 4): 1.000 tickets ficticios cuando exista la app ``tickets``."""
-    return 0
+# --- Tickets ficticios (S4, incremento 4; RNF-01 con 1.000 tickets, RNF-03) ---
+
+
+def correo_cliente(semilla, numero):
+    return f"cliente.ficticio.{semilla}.{numero:03d}@example.com"
+
+
+def crear_cliente(semilla, numero):
+    """Cliente ficticio ``numero`` (idempotente por correo), con contraseña inutilizable."""
+    correo = correo_cliente(semilla, numero)
+    existente = Usuario.objects.filter(correo=correo).first()
+    if existente is not None:
+        return existente
+    azar = random.Random(f"{semilla}-cliente-{numero}")
+    with transaction.atomic():
+        usuario = identidad.crear_cuenta_cliente(
+            nombre=f"Cliente Ficticio {numero + 1:03d} (datos de prueba)",
+            telefono=f"+56 9 0001 {numero:04d}",
+            correo=correo,
+            contrasena=secrets.token_urlsafe(24),
+            comuna=str(azar.choice(COMUNAS_BASE)),
+        )
+        usuario.set_unusable_password()
+        usuario.save(update_fields=["password"])
+    return usuario
+
+
+def _evento(ticket, fecha, anterior, nuevo, autor_id=None, motivo=None):
+    return TicketEvento(
+        ticket_id=ticket.pk,
+        fecha=fecha,
+        estado_anterior=anterior,
+        estado_nuevo=nuevo,
+        motivo=motivo,
+        autor_tipo=AutorTipo.SISTEMA if autor_id is None else AutorTipo.USUARIO,
+        autor_id=autor_id,
+    )
+
+
+def _entre(azar, desde, hasta):
+    """Instante al azar en ``[desde, hasta)``, con segundos enteros."""
+    segundos = max(1, int((hasta - desde).total_seconds()))
+    return desde + datetime.timedelta(seconds=azar.randrange(segundos))
+
+
+def _ticket(azar, perfil, cliente, servicios, comunas, una, estado, enviado_en):
+    servicio = azar.choice(servicios)
+    return Ticket(
+        cliente_id=cliente.pk,
+        perfil_maestro_id=perfil.pk,
+        servicio_maestro=servicio,
+        modalidad=servicio.modalidad,
+        monto_publicado=servicio.monto,
+        fecha=una.fecha,
+        inicio_min=una.inicio_min,
+        fin_min=una.fin_min,
+        inicio_en=una.inicio_en,
+        fin_en=una.fin_en,
+        comuna_id=azar.choice(comunas),
+        direccion=f"Calle Ficticia {azar.randint(1, 999)} (datos de prueba)",
+        descripcion="Trabajo ficticio del volumen de prueba.",
+        materiales=azar.random() < 0.5,
+        estado=estado,
+        enviado_en=enviado_en,
+        vence_en=calcular_vence_en(enviado_en, una.inicio_en),
+    )
+
+
+def _cerrar(azar, ticket):
+    """Cierre coherente con ADR-023, punto 3 (el autor y la fecha según el motivo)."""
+    motivo = azar.choice(["vencido", MotivoCierre.CANCELADO_CLIENTE, MotivoCierre.RECHAZADO_MAESTRO,
+                          MotivoCierre.BLOQUE_TOMADO])
+    if motivo == "vencido":
+        proximidad = ticket.inicio_en - ANTICIPACION_MINIMA <= ticket.enviado_en + PLAZO_RESPUESTA
+        motivo = MotivoCierre.VENCIDO_PROXIMIDAD if proximidad else MotivoCierre.VENCIDO_PLAZO
+        ticket.cerrado_en, autor = ticket.vence_en, None
+    else:
+        ticket.cerrado_en = _entre(azar, ticket.enviado_en, ticket.vence_en)
+        autor = ticket.cliente_id if motivo == MotivoCierre.CANCELADO_CLIENTE else ticket.perfil_maestro_id
+    ticket.estado, ticket.motivo_cierre = EstadoTicket.CERRADO, motivo
+    return autor
+
+
+def _tickets_de(azar, perfil, clientes, ahora, hoy):
+    """``TICKETS_POR_MAESTRO`` tickets del maestro: pasados (finalizados o cerrados) y futuros
+    (uno aceptado y pendientes). Cada ocurrencia se usa una sola vez, así nunca se cruzan dos aceptados."""
+    servicios = list(ServicioMaestro.objects.filter(maestro=perfil, retirado_en__isnull=True))
+    comunas = list(Cobertura.objects.filter(maestro=perfil).values_list("comuna_id", flat=True))
+    patrones = list(Disponibilidad.objects.filter(maestro=perfil, retirado_en__isnull=True))
+    pasadas = [
+        o for o in ocurrencias.ocurrencias(patrones, hoy - datetime.timedelta(days=DIAS_HISTORIA), DIAS_HISTORIA)
+        if o.fin_en < ahora
+    ]
+    futuras = [
+        o for o in ocurrencias.ocurrencias(patrones, hoy, ocurrencias.HORIZONTE_DIAS)
+        if ocurrencias.empieza_con_anticipacion(o, ahora)
+    ]
+    futuras = azar.sample(futuras, min(len(futuras), FUTUROS_POR_MAESTRO))
+    pasadas = azar.sample(pasadas, min(len(pasadas), TICKETS_POR_MAESTRO - len(futuras)))
+    resultado = []  # (ticket, [(fecha, anterior, nuevo, autor, motivo)])
+    for indice, una in enumerate(futuras):
+        cliente = azar.choice(clientes)
+        enviado = ahora - datetime.timedelta(minutes=azar.randint(1, 600))
+        if indice == 0:
+            ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.ACEPTADO, enviado)
+            ticket.aceptado_en = _entre(azar, enviado, ahora)
+            pasos = [(ticket.aceptado_en, EstadoTicket.PENDIENTE, EstadoTicket.ACEPTADO, perfil.pk, None)]
+        else:
+            ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.PENDIENTE, enviado)
+            pasos = []
+        resultado.append((ticket, pasos))
+    for una in pasadas:
+        cliente = azar.choice(clientes)
+        enviado = una.inicio_en - datetime.timedelta(hours=azar.randint(5, 72))
+        if azar.random() < 0.6:
+            ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.FINALIZADO, enviado)
+            ticket.aceptado_en = _entre(azar, enviado, ticket.vence_en)
+            ticket.finalizado_en = una.fin_en + datetime.timedelta(hours=1)
+            pasos = [
+                (ticket.aceptado_en, EstadoTicket.PENDIENTE, EstadoTicket.ACEPTADO, perfil.pk, None),
+                (ticket.finalizado_en, EstadoTicket.ACEPTADO, EstadoTicket.FINALIZADO, perfil.pk, None),
+            ]
+        else:
+            ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.PENDIENTE, enviado)
+            autor = _cerrar(azar, ticket)
+            pasos = [(ticket.cerrado_en, EstadoTicket.PENDIENTE, EstadoTicket.CERRADO, autor, ticket.motivo_cierre)]
+        resultado.append((ticket, pasos))
+    return resultado
+
+
+def generar_tickets(semilla, maestros, ahora=None):
+    """Tickets ficticios de los maestros de la semilla: ``TICKETS_POR_MAESTRO`` por maestro (1.000 para 100).
+
+    Crea antes ``CLIENTES_POR_MAESTRO`` clientes ficticios por maestro. Idempotente:
+    si los clientes de la semilla ya tienen tickets, no crea nada. Cada ticket
+    lleva su historial coherente en ``ticket_evento``. Sin avisos: nadie entra
+    con estas cuentas. Devuelve cuántos tickets creó.
+    """
+    ahora = ahora or timezone.now()
+    hoy = vigencia.hoy_negocio(ahora)
+    ruts = [rut_ficticio(semilla, numero).replace("-", "") for numero in range(maestros)]
+    perfiles = list(PerfilMaestro.objects.filter(rut__in=ruts).order_by("rut"))
+    if not perfiles:
+        return 0
+    clientes = [crear_cliente(semilla, numero) for numero in range(CLIENTES_POR_MAESTRO * len(perfiles))]
+    if Ticket.objects.filter(cliente_id__in=[c.pk for c in clientes]).exists():
+        return 0
+    azar = random.Random(f"{semilla}-tickets")
+    planes = [plan for perfil in perfiles for plan in _tickets_de(azar, perfil, clientes, ahora, hoy)]
+    with transaction.atomic():
+        creados = Ticket.objects.bulk_create([ticket for ticket, _ in planes])
+        eventos = []
+        for ticket, pasos in planes:
+            eventos.append(_evento(ticket, ticket.enviado_en, None, EstadoTicket.PENDIENTE, ticket.cliente_id))
+            eventos += [_evento(ticket, fecha, anterior, nuevo, autor, motivo)
+                        for fecha, anterior, nuevo, autor, motivo in pasos]
+        TicketEvento.objects.bulk_create(eventos)
+    return len(creados)
 
 
 class Command(BaseCommand):
-    help = "Genera el volumen de prueba FICTICIO (100 maestros, 300 servicios). Solo para una pila aparte."
+    help = "Genera el volumen de prueba FICTICIO (100 maestros, 300 servicios, 1.000 tickets). Solo para una pila aparte."
 
     def add_arguments(self, parser):
         parser.add_argument("--semilla", type=int, required=True)
@@ -194,9 +374,9 @@ class Command(BaseCommand):
         if len(por_oficio) < 2:
             raise CommandError("El catálogo no tiene servicios suficientes de oficios no regulados.")
         creados = sum(crear_maestro(semilla, numero, por_oficio) for numero in range(maestros))
-        tickets = generar_tickets(semilla)
+        tickets = generar_tickets(semilla, maestros)
         logger.info("Volumen de prueba ficticio generado: %s maestros nuevos, %s tickets.", creados, tickets)
         self.stdout.write(
             f"Maestros ficticios nuevos: {creados} de {maestros} (semilla {semilla}). "
-            f"Tickets: {tickets} (pendiente hasta la app tickets, S4 incremento 4)."
+            f"Tickets ficticios nuevos: {tickets}."
         )

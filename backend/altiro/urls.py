@@ -12,6 +12,7 @@ from perfil import vistas_maestro as perfil_maestro
 from perfil import vistas_publicas as perfil_publico
 from busqueda import vistas as busqueda
 from territorio import vistas as territorio
+from tickets import vistas as tickets
 
 # Toda ruta /api/ es privada salvo las marcadas con comun.api.publica.
 urlpatterns = [
@@ -50,6 +51,14 @@ urlpatterns = [
     path("api/maestros/publicos/<uuid:ref>/foto", perfil_publico.foto_publica, name="foto_publica"),
     # Búsqueda pública: filtros excluyentes, puntaje oculto y sugerencias aparte (RF-09 a RF-13; ADR-022).
     path("api/busqueda", busqueda.busqueda, name="busqueda"),
+    # Ticket: crear (rol cliente), ver (solo sus partes; tercero -> 404 idéntico con registro) y listas propias
+    # (RF-15 a RF-18, CA-25.1; ADR-023). Avisos de tickets dentro de la aplicación (ADR-024).
+    path("api/tickets", tickets.crear, name="tickets"),
+    path("api/tickets/<uuid:ref>", tickets.detalle, name="ticket"),
+    path("api/clientes/tickets", tickets.del_cliente, name="tickets_del_cliente"),
+    path("api/maestros/tickets", tickets.del_maestro, name="tickets_del_maestro"),
+    path("api/avisos", tickets.avisos, name="avisos"),
+    path("api/avisos/vistos", tickets.avisos_vistos, name="avisos_vistos"),
     # Expediente propio del maestro, patrón "me" (ADR-011; propuesta del S2, §4).
     path("api/maestros/expediente", expediente.mi_expediente, name="mi_expediente"),
     path("api/maestros/expediente/oficios", expediente.mis_oficios, name="mis_oficios"),
