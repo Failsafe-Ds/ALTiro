@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>¿Cómo se ordenan los resultados? — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" href="buscar.html">Buscar</a>
+  </header>
+  <!-- Página de ayuda estática (HU-03, RF-10, RF-11, CA-03.1 a CA-03.4; ADR-022, punto 2).
+       Explica la regla del informe (§3.3.2) sin datos de ningún maestro. El puntaje no se muestra en los resultados. -->
+  <main>
+    <h1>¿Cómo se ordenan los resultados?</h1>
+
+    <section aria-labelledby="titulo-quienes">
+      <h2 id="titulo-quienes">Quiénes aparecen</h2>
+      <p>Solo aparecen maestros con su postulación aprobada que cumplen <strong>todo</strong> lo que pediste:</p>
+      <ul>
+        <li>trabajan en el oficio que elegiste;</li>
+        <li>trabajan en la comuna que elegiste;</li>
+        <li>si elegiste día y horario, lo tienen libre.</li>
+      </ul>
+      <p>Si nadie cumple todo, te lo decimos y, cuando se puede, te mostramos aparte algunas sugerencias. Cada sugerencia dice qué es lo que no cumple.</p>
+    </section>
+
+    <section aria-labelledby="titulo-orden">
+      <h2 id="titulo-orden">En qué orden aparecen</h2>
+      <p>A cada maestro le damos puntos por dos cosas:</p>
+      <ul>
+        <li><strong>Cuándo tiene horario libre.</strong> Es lo que más pesa: 6 de cada 10 puntos.</li>
+        <li><strong>Si trabaja cerca.</strong> Pesa 4 de cada 10 puntos.</li>
+      </ul>
+      <p class="nota-ayuda">Puntos = 0,6 × horario libre + 0,4 × cercanía. Aparecen primero los que tienen más puntos.</p>
+
+      <h3>Horario libre</h3>
+      <ul>
+        <li>100 puntos: tiene libre justo el día y horario que pediste.</li>
+        <li>60 puntos: tiene algún horario libre hoy.</li>
+        <li>30 puntos: tiene algún horario libre en los tres días siguientes.</li>
+        <li>0 puntos: no tiene horario libre en esos días.</li>
+      </ul>
+      <p>Si elegiste día y horario, todos los que aparecen lo tienen libre. Entonces el orden lo decide la cercanía.</p>
+
+      <h3>Cercanía</h3>
+      <ul>
+        <li>100 puntos: la comuna que elegiste es la comuna principal donde trabaja.</li>
+        <li>60 puntos: la comuna que elegiste es otra de las comunas donde trabaja.</li>
+      </ul>
+
+      <h3>Un ejemplo</h3>
+      <p>Buscas sin elegir horario. Un maestro tiene horario libre hoy, pero tu comuna no es su comuna principal: suma 0,6 × 60 + 0,4 × 60 = <strong>60 puntos</strong>. Otro tiene tu comuna como principal, pero solo tiene horario libre en los tres días siguientes: suma 0,6 × 30 + 0,4 × 100 = <strong>58 puntos</strong>. Aparece primero el que puede ir hoy.</p>
+    </section>
+
+    <section aria-labelledby="titulo-empate">
+      <h2 id="titulo-empate">Si dos maestros empatan</h2>
+      <ol>
+        <li>Va primero el que tiene mejor calificación promedio.</li>
+        <li>Si siguen empatados, va primero el que tiene más evaluaciones.</li>
+        <li>Si aun así siguen empatados (por ejemplo, porque todavía no tienen evaluaciones), el orden se sortea. El sorteo cambia cada día y es el mismo para todas las personas que buscan ese día.</li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="titulo-no-mostramos">
+      <h2 id="titulo-no-mostramos">Lo que no mostramos</h2>
+      <p>En los resultados no mostramos los puntos de cada maestro ni cuál es su comuna principal.</p>
+    </section>
+
+    <div class="acciones">
+      <a class="boton" href="buscar.html">Buscar un maestro</a>
+    </div>
+  </main>
+</body>
+</html>

@@ -264,3 +264,60 @@ El pase manual del §5 debe incluir estas cuatro pantallas. En Chrome de Android
 - «Tomar foto» en «Mi perfil»: debe abrir la cámara **frontal** (`capture="user"`);
 - los selectores de hora y minutos: lista nativa, sin AM/PM;
 - el perfil público con letra "grande".
+
+## 9. Sprint 4, incremento 3: búsqueda, ayuda del orden y ficha con bloques (2026-09-29)
+
+- **Base:** `main`, commit `3c5d357`, más los cambios del frontend de esta tarea (sin commit):
+  - páginas nuevas: `buscar.html` + `js/buscar.js` y `ayuda-orden.html` (estática, sin JS);
+  - módulo nuevo `js/hora24.js`: el selector propio de 24 horas que antes vivía dentro de `agenda.js`, ahora compartido por «Mi agenda» y la búsqueda (sin duplicar código);
+  - `js/formato.js`: fechas de calendario en español (`fechaLarga`, `fechaConReferencia`, `hoyEnChile`, `sumarDias`);
+  - `perfil-maestro.html` + `js/perfil-publico.js`: "Todavía no tiene evaluaciones", bloques de los próximos 14 días y «Pedir este horario»;
+  - `index.html`: botón principal «Buscar un maestro»;
+  - estilos al final de `base.css`.
+- **Script:** `s4_busqueda.py <motor> <versión>` (scratchpad de la sesión, con la misma medición `s3_medir.js` y axe-core 4.10.3 descargado en el contenedor). Crea un cliente ficticio (`@example.com`, comuna Talcahuano) para la precarga de la comuna. Usa los maestros demo publicados que ya existen en la pila principal.
+- **Anchos:** 390 y 320 px (móvil) y 1280 px (escritorio). axe-core (WCAG 2.0, 2.1 y 2.2 A y AA) a 390 y 1280 px.
+- **Simulado con `page.route`** (misma forma del contrato real, respuesta real modificada): paginación (ninguna búsqueda real tiene más de 20 resultados), bloques "ocupado" (no existen hasta los tickets del incremento 4), maestro con un solo servicio y el corte de red. Todo lo demás, contra la API real.
+
+### 9.1 Estados medidos (20 por ancho, 60 por motor)
+
+| Página | Estados |
+|---|---|
+| `index.html` | Inicio con «Buscar un maestro» |
+| `buscar.html` | Formulario vacío; 400 por campo (oficio y comuna); resultados sin horario; paso «¿Para cuándo?»; 400 horario incompleto; 400 término antes del inicio; resultados con horario; sin resultados con sugerencias por horario; sin resultados con sugerencias de otra comuna; sin resultados ni sugerencias; página 1 de 2 y 2 de 2 (simuladas); página fuera de rango; sin conexión; cliente con comuna precargada |
+| `ayuda-orden.html` | Página completa |
+| `perfil-maestro.html` | Pedir sin elegir servicio; bloques libres; libres y ocupados (simulado) |
+
+### 9.2 Resultados (Playwright 1.63.0)
+
+| Motor y versión | Estados | axe-core | Verificaciones funcionales | Errores de JS | Consola inesperada |
+|---|---|---|---|---|---|
+| Chromium 153.0.8010.12 | 60/60 **PASS** | 18/18 sin violaciones | 0 fallidas | 0 | 0 (18 avisos esperados: 400 de validación, 401 de `/api/cuenta` sin sesión y el corte provocado) |
+| Firefox 155.0 | 60/60 **PASS** | 18/18 sin violaciones | 0 fallidas | 0 | 0 |
+
+Ningún objetivo táctil bajo 44 × 44 px, ni siquiera enlaces en línea: «¿Cómo se ordenan?» va en su propia línea con 44 px de alto.
+
+Verificaciones funcionales incluidas:
+
+- **Navegación:** «Buscar un maestro» en el inicio es el único botón principal y lleva a `buscar.html`; «Ver perfil» lleva a `perfil-maestro.html?m=<ref>`; «¿Cómo se ordenan?» lleva a la ayuda y «Atrás» vuelve a la misma búsqueda.
+- **Filtros (RF-09):** los resultados de la pantalla son los mismos y en el mismo orden que `GET /api/busqueda`, con y sin horario; la búsqueda con horario incluye al maestro cuyo bloque libre se pidió.
+- **Dirección compartible:** tras buscar, la dirección es `buscar.html?oficio=pintura&region=8&comuna=8101[&fecha=…&inicio=…&fin=…][&pagina=N]`; al recargar se repite la búsqueda; «Atrás» y «Adelante» recorren las páginas.
+- **400 por campo (RNF-15):** los mensajes del servidor quedan junto a cada campo, con `aria-invalid` y el foco en el primero; se muestra el paso donde está el error y lo elegido se conserva. La dirección no cambia con un 400.
+- **RNF-14:** paso 1 con 3 campos (oficio, región, comuna) y paso 2 con 5 (día, hora y minutos de inicio y de término).
+- **24 horas (CA-14.1):** sin `input type="time"`; «Desde» de 00 a 23 y «Hasta» de 00 a 24; minutos 00 y 30; sin AM/PM. El día se elige de una lista de 14 días desde hoy ("Hoy, …", "Mañana, …").
+- **Tarjeta (RF-13):** foto con `loading="lazy"`, `width="160"`, `height="160"` y `tam=160`; nombre; oficio; "Todavía no tiene evaluaciones"; «Ver perfil de <nombre>» para lectores de pantalla. La tarjeta de la API trae solo `ref`, `nombre`, `foto`, `oficio`, `calificacion` y `calificacion_texto`: no hay puntaje y la pantalla no dice "puntaje" ni "puntos".
+- **Sin resultados (CA-04.1 a CA-04.3):** el mensaje del servidor aparece siempre; las sugerencias van en una `section` con `aria-labelledby`, fuera de la sección de resultados, con el título «Sugerencias: no cumplen todo lo que pediste», y cada tarjeta dice "⚠ No cumple: …" con el texto del servidor (horario u otra comuna). Sin sugerencias, la sección no aparece.
+- **Paginación:** «Página 1 de 2», enlace «Página siguiente» con `pagina=2` en la dirección, foco en el título al cambiar de página; una página fuera de rango ofrece «Ir a la primera página».
+- **Sin conexión:** aviso "No pudimos conectarnos…" con «Reintentar»; lo elegido se conserva y el reintento busca de nuevo.
+- **Precarga (ADR-022, punto 1):** con sesión de cliente, la región y la comuna de su perfil vienen elegidas; sin sesión, vacías.
+- **Ficha (RF-14, CA-05.1, CA-05.2):** "Todavía no tiene evaluaciones"; un grupo por fecha; cada libre con "✓ Libre" y «Pedir este horario»; cada ocupado con "✕ Ocupado", borde punteado y sin botón; con varios servicios, «Pedir este horario» sin elegir servicio no sale de la ficha y avisa junto a la lista; al elegir, el enlace es `pedir-trabajo.html?m=<maestro>&b=<bloque>&f=<fecha>&s=<servicio>`; con un solo servicio ya va elegido. La ficha no dice "principal" ni muestra contacto.
+
+**RNF-02:** medido aparte, ver `rnf-02-medicion.md`.
+
+**Regresión (Chromium 1.63.0):** sin fallas en `rnf18.py` (106/106 estados, 16/16 chequeos), `s3_perfil.py` (53/53; ejercita «Mi agenda» con el selector ya movido a `hora24.js`), `s3_ui.py` (48/48) y `s2_maestro.py`.
+
+- `s3_perfil.py` se ajustó en una línea: la lista esperada de campos de la API pública ahora incluye `bloques`, que agregó el backend en los incrementos 1 y 2 del S4 (ADR-022, punto 4).
+- La primera corrida de regresión falló solo al iniciar sesión con las cuentas administrativas ficticias de corridas anteriores (401). Se crearon cuentas nuevas con `perfil_prep.sh`, `cur_prep.sh` y `com_prep.sh` y la segunda corrida pasó completa. No se relaciona con el frontend.
+
+**Datos que dejan las corridas:** por motor, un cliente ficticio (`s4.busqueda.<motor>.<n>@example.com`); de la regresión, lo mismo que en §7 y §8, más tres cuentas administrativas ficticias nuevas.
+
+El pase manual del §5 debe incluir `buscar.html` (con el selector de día y horas en Chrome de Android), la ayuda y la ficha con bloques.

@@ -18,7 +18,6 @@
   const RUTA = "/api/maestros/disponibilidad";
   const CLAVE = "altiro.agenda.nuevo";
   const DIAS = { 1: "lunes", 2: "martes", 3: "miércoles", 4: "jueves", 5: "viernes", 6: "sábado", 7: "domingo" };
-  const MINUTOS = ["00", "30"];
 
   const cargando = document.getElementById("cargando");
   const avisoPagina = document.getElementById("aviso-pagina");
@@ -55,13 +54,6 @@
     return nodo;
   }
 
-  function opcion(valor, texto) {
-    const nodo = document.createElement("option");
-    nodo.value = valor;
-    nodo.textContent = texto;
-    return nodo;
-  }
-
   function mayuscula(texto) {
     return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : "";
   }
@@ -92,39 +84,19 @@
     avisoPagina.focus();
   }
 
-  // --- Selector de 24 horas (ADR-020) ---
-
-  function llenarHoras(select, hasta) {
-    const opciones = [opcion("", "Elige")];
-    for (let hora = 0; hora <= hasta; hora += 1) {
-      const texto = String(hora).padStart(2, "0");
-      opciones.push(opcion(texto, texto));
-    }
-    select.replaceChildren(...opciones);
-  }
-
-  function llenarMinutos(select) {
-    select.replaceChildren(...MINUTOS.map((m) => opcion(m, m)));
-  }
+  // --- Selector de 24 horas (ADR-020), compartido con la búsqueda (hora24.js) ---
 
   // La hora de inicio va de 00 a 23 (un horario no empieza a las 24:00); el
   // término, de 00 a 24. "24" solo admite ":00" (no existe 24:30).
-  llenarHoras(inicioHora, 23);
-  llenarHoras(finHora, 24);
-  llenarMinutos(inicioMinutos);
-  llenarMinutos(finMinutos);
+  hora24.preparar(inicioHora, inicioMinutos);
+  hora24.preparar(finHora, finMinutos, { esTermino: true });
 
   function ajustarFinDelDia() {
-    const esFinDelDia = finHora.value === "24";
-    const media = finMinutos.querySelector('option[value="30"]');
-    media.disabled = esFinDelDia;
-    if (esFinDelDia) {
-      finMinutos.value = "00";
-    }
+    hora24.ajustar(finHora, finMinutos);
   }
 
   function horaElegida(selectHora, selectMinutos) {
-    return selectHora.value ? `${selectHora.value}:${selectMinutos.value || "00"}` : "";
+    return hora24.leer(selectHora, selectMinutos);
   }
 
   // Resumen en palabras de lo que se va a guardar (CA-14.1: siempre en 24 horas).

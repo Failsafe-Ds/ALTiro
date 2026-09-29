@@ -4,8 +4,15 @@
 //   cuál es la principal) y horarios semanales en "HH:MM" de 24 horas.
 // - Un maestro no publicado o una referencia inexistente responden el mismo
 //   404: la página dice lo mismo en ambos casos, sin motivos.
-// - Sin datos de contacto: la API no los entrega. Sin calificaciones (S5) ni
-//   bloques ocupados (S4).
+// - Sin datos de contacto: la API no los entrega. Sin calificaciones (S5):
+//   "Todavía no tiene evaluaciones" (CA-05.2).
+// - Bloques de los próximos 14 días agrupados por fecha, libres u ocupados con
+//   ícono y texto además del color (RF-14, CA-05.1; ADR-022, punto 4). Cada
+//   bloque libre lleva «Pedir este horario» a
+//   pedir-trabajo.html?m=<maestro>&b=<bloque>&f=<fecha>&s=<servicio> (S4,
+//   incremento 4). El servicio se elige en la ficha con un radio; si el
+//   maestro tiene uno solo, ya va elegido. Qué bloque se puede pedir lo
+//   vuelve a decidir el servidor al crear el pedido.
 // El parámetro "m" se valida como UUID antes de consultar; si no lo es, se
 // muestra el mismo aviso que un 404 (no se arma ninguna ruta con él).
 "use strict";
@@ -15,6 +22,7 @@
   const NO_ENCONTRADO = "No encontramos este perfil. Puede que el maestro ya no esté disponible.";
   const DIAS = { 1: "lunes", 2: "martes", 3: "miércoles", 4: "jueves", 5: "viernes", 6: "sábado", 7: "domingo" };
   const MODALIDADES = { por_trabajo: "por trabajo", por_hora: "por hora" };
+  const SIN_EVALUACIONES = "Todavía no tiene evaluaciones";
 
   const cargando = document.getElementById("cargando");
   const aviso = document.getElementById("aviso-pagina");
@@ -133,9 +141,131 @@
       ...(maestro.comunas || []).map((c) => elemento("li", "", c.nombre))
     );
     pintarHorarios(maestro.agenda || []);
+    // CA-05.2: el texto del servidor si llega (S5); mientras no haya evaluaciones, este.
+    document.getElementById("calificacion-maestro").textContent =
+      (maestro.calificacion !== undefined && maestro.calificacion !== null && maestro.calificacion_texto) ||
+      SIN_EVALUACIONES;
+    pintarServiciosAPedir(maestro.servicios || []);
+    pintarBloques(maestro.ref, maestro.bloques || []);
     cargando.hidden = true;
     perfil.hidden = false;
   }
+
+  // --- Bloques de los próximos 14 días (RF-14, CA-05.1; ADR-022, punto 4) ---
+
+  // Servicio elegido para pedir: radio en la ficha (si hay uno solo, ya va elegido).
+  function servicioElegido() {
+    const marcado = document.querySelector('input[name="servicio-pedido"]:checked');
+    return marcado ? marcado.value : "";
+  }
+
+  function pintarServiciosAPedir(servicios) {
+    const opciones = servicios.map((s) => {
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "servicio-pedido";
+      radio.value = s.ref;
+      radio.checked = servicios.length === 1;
+      const modalidad = (s.modalidad_texto || "").toLowerCase() || MODALIDADES[s.modalidad] || "";
+      const etiqueta = elemento(
+        "label",
+        "casilla casilla-grande",
+        radio,
+        elemento(
+          "span",
+          "casilla-texto",
+          s.servicio,
+          elemento("span", "nota-precio", `${s.oficio.nombre} · ${formato.monto(s.monto)} ${modalidad}`.trim())
+        )
+      );
+      return etiqueta;
+    });
+    document.getElementById("opciones-servicio").replaceChildren(...opciones);
+    document.getElementById("elegir-servicio").hidden = servicios.length === 0;
+  }
+
+  function direccionPedido(refMaestro, bloque) {
+    const parametros = new URLSearchParams({ m: refMaestro, b: bloque.ref, f: bloque.fecha });
+    const servicio = servicioElegido();
+    if (servicio) {
+      parametros.set("s", servicio);
+    }
+    return `pedir-trabajo.html?${parametros.toString()}`;
+  }
+
+  function actualizarEnlacesPedido(refMaestro) {
+    for (const enlace of document.querySelectorAll("#lista-bloques a[data-bloque]")) {
+      enlace.href = direccionPedido(refMaestro, JSON.parse(enlace.dataset.bloque));
+    }
+  }
+
+  function lineaBloque(refMaestro, bloque, hayServicios) {
+    const libre = bloque.estado === "libre";
+    const item = elemento("li", `linea-bloque ${libre ? "bloque-libre" : "bloque-ocupado"}`);
+    const icono = elemento("span", "", libre ? "✓" : "✕");
+    icono.setAttribute("aria-hidden", "true");
+    item.append(
+      elemento("span", "rango-bloque", `${bloque.inicio} a ${bloque.fin}`),
+      elemento("span", `estado ${libre ? "estado-libre" : "estado-ocupado"}`, icono, libre ? "Libre" : "Ocupado")
+    );
+    if (libre && hayServicios) {
+      const cuando = `${formato.fechaLarga(bloque.fecha)} de ${bloque.inicio} a ${bloque.fin}`;
+      const enlace = elemento("a", "boton boton-pedir", "Pedir este horario", elemento("span", "solo-lector", `: ${cuando}`));
+      enlace.dataset.bloque = JSON.stringify({ ref: bloque.ref, fecha: bloque.fecha });
+      enlace.href = direccionPedido(refMaestro, bloque);
+      item.append(enlace);
+    }
+    return item;
+  }
+
+  function pintarBloques(refMaestro, bloques) {
+    const hoy = formato.hoyEnChile();
+    const porFecha = new Map();
+    const ordenados = bloques.slice().sort((a, b) => (a.fecha + a.inicio).localeCompare(b.fecha + b.inicio));
+    for (const bloque of ordenados) {
+      if (!porFecha.has(bloque.fecha)) {
+        porFecha.set(bloque.fecha, []);
+      }
+      porFecha.get(bloque.fecha).push(bloque);
+    }
+    const hayServicios = document.querySelectorAll('input[name="servicio-pedido"]').length > 0;
+    document.getElementById("lista-bloques").replaceChildren(
+      ...Array.from(porFecha.entries()).map(([fecha, lista]) =>
+        elemento(
+          "li",
+          "tarjeta dia-agenda",
+          elemento("h3", "", formato.fechaConReferencia(fecha, hoy) || fecha),
+          elemento("ul", "lista-simple", ...lista.map((b) => lineaBloque(refMaestro, b, hayServicios)))
+        )
+      )
+    );
+    document.getElementById("sin-bloques").hidden = bloques.length > 0;
+    document.getElementById("con-bloques").hidden = bloques.length === 0;
+  }
+
+  // Al elegir un servicio se actualizan los enlaces y se quita el aviso.
+  document.getElementById("opciones-servicio").addEventListener("change", () => {
+    const ref = new URLSearchParams(location.search).get("m") || "";
+    actualizarEnlacesPedido(ref);
+    document.getElementById("error-servicio").textContent = "";
+    document.getElementById("elegir-servicio").classList.remove("con-error");
+  });
+
+  // Sin servicio elegido no se sale de la ficha: el aviso queda junto a la lista (RNF-15).
+  document.getElementById("lista-bloques").addEventListener("click", (evento) => {
+    const enlace = evento.target.closest("a[data-bloque]");
+    if (!enlace || servicioElegido()) {
+      return;
+    }
+    evento.preventDefault();
+    const error = document.getElementById("error-servicio");
+    error.textContent = "Primero elige el servicio que necesitas, arriba de los horarios.";
+    document.getElementById("elegir-servicio").classList.add("con-error");
+    const primero = document.querySelector('input[name="servicio-pedido"]');
+    if (primero) {
+      primero.focus();
+    }
+  });
 
   async function cargar() {
     const ref = new URLSearchParams(location.search).get("m") || "";

@@ -23,6 +23,8 @@
         <img id="foto-maestro" class="foto-publica" alt="" width="160" height="160">
         <h1 id="nombre-maestro" tabindex="-1"></h1>
       </div>
+      <!-- CA-05.2: sin evaluaciones no se muestra un promedio en cero. -->
+      <p id="calificacion-maestro" class="calificacion-ficha"></p>
 
       <section aria-labelledby="titulo-servicios">
         <h2 id="titulo-servicios">Servicios y precios</h2>
@@ -32,6 +34,21 @@
       <section aria-labelledby="titulo-comunas">
         <h2 id="titulo-comunas">Comunas donde trabaja</h2>
         <ul id="lista-comunas" class="lista-etiquetas"></ul>
+      </section>
+
+      <!-- RF-14, CA-05.1: bloques de los próximos 14 días, libres u ocupados (con ícono y texto, no solo color). -->
+      <section id="seccion-bloques" aria-labelledby="titulo-bloques">
+        <h2 id="titulo-bloques">Horarios de los próximos 14 días</h2>
+        <p id="sin-bloques" hidden>No tiene horarios en los próximos 14 días.</p>
+        <div id="con-bloques">
+          <fieldset id="elegir-servicio" class="elegir-servicio" aria-describedby="error-servicio">
+            <legend class="legend-campo">¿Qué servicio necesitas?</legend>
+            <div id="opciones-servicio" class="lista-oficios"></div>
+            <span class="error-campo" id="error-servicio" aria-live="polite"></span>
+          </fieldset>
+          <p class="nota-ayuda leyenda-bloques">Elige un horario libre y toca «Pedir este horario». Los horarios ocupados ya los tomó otra persona.</p>
+          <ul id="lista-bloques" class="lista-simple lista-dias"></ul>
+        </div>
       </section>
 
       <section aria-labelledby="titulo-horarios">

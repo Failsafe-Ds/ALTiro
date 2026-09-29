@@ -1097,3 +1097,180 @@ button.boton-quitar {
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
+
+/* --- Sprint 4: búsqueda y ficha del maestro (HU-02 a HU-05; RF-09 a RF-14; ADR-022) --- */
+
+/* Texto solo para lectores de pantalla (por ejemplo, "Ver perfil de …"). */
+.solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.resumen-busqueda .texto-resumen {
+  margin-top: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.resumen-cuando {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.resumen-cuando:empty,
+.buscando:empty {
+  display: none;
+}
+
+.buscando {
+  font-weight: 600;
+}
+
+.sin-resultados {
+  padding: 0.75rem 1rem;
+  border-left: 6px solid var(--borde);
+  background: var(--fondo-suave);
+  border-radius: var(--radio);
+  font-weight: 600;
+}
+
+.nota-orden p {
+  margin: 0;
+  color: var(--texto-suave);
+}
+
+/* Enlace de ayuda en su propia línea, con alto táctil de 44 px (RNF-14). */
+.enlace-ayuda {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.lista-maestros {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+/* Tarjeta de RF-13: foto (160 px, mostrada a 5 rem para que valga en pantallas
+   densas), nombre, oficio y calificación; el botón debajo, a todo el ancho. */
+.tarjeta-maestro {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  align-items: start;
+  margin-bottom: 0;
+}
+
+.foto-tarjeta {
+  display: block;
+  width: 5rem;
+  height: 5rem;
+  object-fit: cover;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--fondo-suave);
+}
+
+.tarjeta-texto {
+  min-width: 0;
+}
+
+.nombre-tarjeta {
+  margin: 0 0 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.oficio-tarjeta,
+.calificacion-tarjeta {
+  margin: 0;
+}
+
+.calificacion-tarjeta,
+.calificacion-ficha {
+  color: var(--texto-suave);
+}
+
+.tarjeta-maestro .incumple,
+.tarjeta-maestro .ver-perfil {
+  grid-column: 1 / -1;
+}
+
+/* Sugerencias fuera del filtro (RF-12, CA-04.2): sección aparte, con un borde
+   superior grueso y su propio título; cada tarjeta dice qué no cumple con
+   ícono y texto (CA-04.3), con la paleta ya medida de los avisos (RNF-16). */
+.sugerencias {
+  margin-top: 2rem;
+  padding-top: 0.5rem;
+  border-top: 4px solid #8a4b00;
+}
+
+.incumple {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 6px solid #8a4b00;
+  background: #fff4e5;
+  border-radius: var(--radio);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.icono-incumple {
+  flex: none;
+  color: #8a4b00;
+}
+
+.paginacion-busqueda .texto-pagina {
+  margin: 1rem 0 0;
+  font-weight: 600;
+}
+
+.acciones-paginas {
+  margin-top: 0.5rem;
+}
+
+/* Ficha: bloques libres y ocupados. Además del color, cada estado lleva
+   ícono y texto (✓ Libre / ✕ Ocupado) y el ocupado, borde punteado (RNF-16). */
+.estado-libre {
+  color: var(--exito);
+  background: var(--exito-fondo);
+}
+
+.estado-ocupado {
+  color: var(--texto-suave);
+  background: var(--fondo-suave);
+  border-style: dashed;
+}
+
+.linea-bloque .boton-pedir {
+  flex-basis: 100%;
+}
+
+.elegir-servicio {
+  margin-bottom: 1rem;
+}
+
+.elegir-servicio.con-error .lista-oficios {
+  padding-left: 0.5rem;
+  border-left: 6px solid var(--error);
+}
+
+.leyenda-bloques {
+  margin-top: 0;
+}
+
+.calificacion-ficha {
+  font-weight: 600;
+  margin: 0 0 1rem;
+}

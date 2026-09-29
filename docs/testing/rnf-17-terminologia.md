@@ -121,3 +121,24 @@ Búsqueda en los textos visibles nuevos del maestro: **0 apariciones** de "base"
 Los errores del servidor sobre la agenda sí dicen "bloque" ("se cruza con tu bloque del lunes…", en `perfil/agenda.py`), mientras la pantalla dice "horario". Queda anotado para la tarea de backend.
 
 **Cambio respecto del §5:** en la vista del maestro ahora aparece "perfil" («Mi perfil», "Los clientes ya pueden ver tu perfil"). Es una palabra de uso cotidiano y el equipo pidió ese rótulo. Se somete a la pregunta "¿Hubo palabras que no entendió?" del protocolo de RNF-13. Lo mismo vale para «Mi cobertura», que es el nombre de la página en la propuesta del S3 (§5); si no se entiende, la alternativa es «Mis comunas».
+
+## 7. Sprint 4, incremento 3: búsqueda, ayuda del orden y ficha con bloques (2026-09-29)
+
+Vistas públicas y del cliente, no del maestro; se revisan con el mismo criterio porque las usan personas sin formación técnica. Los errores de la búsqueda (`busqueda/servicios.py`), el mensaje sin resultados (`busqueda/vistas.py`) y los textos de las sugerencias (`busqueda/sugerencias.py`) los arma el servidor; la página los muestra tal cual.
+
+| Término del informe o del sistema | En pantalla | Dónde |
+|---|---|---|
+| ticket (ADR-024, punto 4) | «Pedir este horario» (el pedido se arma en `pedir-trabajo.html`, incremento 4) | `perfil-maestro` |
+| filtros (RF-09) | "¿Qué necesitas y dónde?", "Oficio", "Comuna donde necesitas el trabajo", "¿Para cuándo? (opcional)"; resumen "Buscaste: Pintura en Concepción, cualquier día." | `buscar` |
+| bloque horario | "Día", "Desde", "Hasta", "horario" ("Elegir día y horario (opcional)", "Horarios de los próximos 14 días") | `buscar`, `perfil-maestro` |
+| libre / ocupado (RF-14) | "✓ Libre" / "✕ Ocupado"; "Los horarios ocupados ya los tomó otra persona." | `perfil-maestro` |
+| sugerencias fuera del filtro (RF-12) | "Sugerencias: no cumplen todo lo que pediste"; "Estos maestros no cumplen una de las cosas que pediste. En cada uno te decimos cuál."; "⚠ No cumple: …" | `buscar` |
+| puntaje, disponibilidad, cercanía (RF-10) | Solo en la ayuda: "puntos", "horario libre", "si trabaja cerca", "0,6 × horario libre + 0,4 × cercanía" | `ayuda-orden` |
+| comuna base | "comuna principal" (como en «Mi cobertura») | `ayuda-orden` |
+| desempate por sorteo diario (ADR-022, punto 3) | "el orden se sortea. El sorteo cambia cada día y es el mismo para todas las personas que buscan ese día." | `ayuda-orden` |
+| calificación nula (CA-05.2) | "Todavía no tiene evaluaciones" | `buscar`, `perfil-maestro` |
+| paginación | "Página 1 de 2", «Página anterior», «Página siguiente», «Ir a la primera página» | `buscar` |
+
+Búsqueda en los textos visibles nuevos: **0 apariciones** de "ticket", "filtro", "bloque", "puntaje", "cobertura", "base", "ref", "API", "servidor" y "AM/PM". "Filtro" y "bloque" quedan solo en comentarios, identificadores y nombres de clases.
+
+**Pendiente de terminología en el servidor:** los mensajes de hora dicen "Escribe la hora…" aunque en la búsqueda la hora se elige de una lista (`perfil/agenda.py`, compartido con la agenda). Queda anotado para `backend`.
