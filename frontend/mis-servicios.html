@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mis servicios — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/formato.js" defer></script>
+  <script src="js/expediente.js" defer></script>
+  <script src="js/mis-servicios.js" defer></script>
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" href="cuenta.html">Mi cuenta</a>
+  </header>
+  <main>
+    <h1 id="titulo-pagina" tabindex="-1">Mis servicios</h1>
+    <p id="cargando" role="status">Cargando tus servicios…</p>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+    <!-- Resultado de cada acción (éxito): se anuncia sin mover la lectura. -->
+    <div id="aviso-resultado" class="aviso" role="status" aria-live="polite" tabindex="-1"></div>
+
+    <div id="contenido" hidden>
+      <!-- Lo que le falta al maestro para que los clientes lo vean (texto del servidor). -->
+      <section id="pendientes" class="tarjeta avisos" aria-labelledby="titulo-pendientes" hidden>
+        <h2 id="titulo-pendientes" tabindex="-1">Todavía no te ven los clientes</h2>
+        <ul id="lista-pendientes" class="lista-avisos"></ul>
+      </section>
+
+      <section aria-labelledby="titulo-lista">
+        <h2 id="titulo-lista">Servicios que ofreces</h2>
+        <p id="sin-servicios" hidden>Todavía no ofreces servicios. Agrega el primero con el botón «Agregar un servicio».</p>
+        <ul id="lista-servicios" class="lista-documentos"></ul>
+      </section>
+
+      <div id="sin-oficios" class="tarjeta" hidden>
+        <p>Para agregar servicios, primero elige tus oficios en «Mi postulación».</p>
+        <a class="boton" href="mi-postulacion.html">Ir a mi postulación</a>
+      </div>
+
+      <div class="acciones" id="acciones-agregar">
+        <button type="button" id="abrir-agregar">Agregar un servicio</button>
+      </div>
+
+      <!-- Agregar servicio por pasos (RF-05, CA-12.1; RNF-14: un dato por paso). -->
+      <section id="seccion-agregar" class="tarjeta" aria-labelledby="titulo-agregar" hidden>
+        <h2 id="titulo-agregar">Agregar un servicio</h2>
+        <form id="form-agregar" novalidate>
+          <p class="progreso" id="progreso-agregar"></p>
+          <div class="aviso" role="alert" tabindex="-1"></div>
+
+          <fieldset class="paso" data-campo="oficio" aria-describedby="error-nuevo-oficio">
+            <legend tabindex="-1">¿De qué oficio es el servicio?</legend>
+            <div id="opciones-oficio" class="lista-oficios"></div>
+            <span class="error-campo" id="error-nuevo-oficio"></span>
+          </fieldset>
+
+          <fieldset class="paso" data-campo="servicio" aria-describedby="ayuda-nuevo-servicio error-nuevo-servicio" hidden>
+            <legend tabindex="-1">¿Qué servicio ofreces?</legend>
+            <span class="ayuda" id="ayuda-nuevo-servicio">El precio de referencia es lo que suele cobrarse en AlTiro. Tú decides tu precio en el último paso.</span>
+            <div id="opciones-servicio" class="lista-oficios"></div>
+            <span class="error-campo" id="error-nuevo-servicio"></span>
+          </fieldset>
+
+          <fieldset class="paso" data-campo="modalidad" aria-describedby="ayuda-nuevo-modalidad error-nuevo-modalidad" hidden>
+            <legend tabindex="-1">¿Cobras por trabajo o por hora?</legend>
+            <span class="ayuda" id="ayuda-nuevo-modalidad">Por trabajo: un precio por todo el trabajo. Por hora: un precio por cada hora de trabajo.</span>
+            <div id="opciones-modalidad" class="lista-oficios"></div>
+            <span class="error-campo" id="error-nuevo-modalidad"></span>
+          </fieldset>
+
+          <fieldset class="paso" data-campo="monto" hidden>
+            <legend tabindex="-1">¿Cuánto cobras?</legend>
+            <div class="campo">
+              <label for="nuevo-monto" id="etiqueta-nuevo-monto">Tu precio en pesos (obligatorio)</label>
+              <span class="ayuda" id="ayuda-nuevo-monto"></span>
+              <input id="nuevo-monto" name="monto" inputmode="numeric" autocomplete="off"
+                     aria-describedby="ayuda-nuevo-monto error-nuevo-monto">
+              <span class="error-campo" id="error-nuevo-monto"></span>
+            </div>
+          </fieldset>
+
+          <div class="acciones">
+            <button type="button" id="agregar-siguiente">Continuar</button>
+            <button type="submit" id="agregar-guardar" hidden>Agregar servicio</button>
+            <button type="button" class="boton-secundario" id="agregar-atras" hidden>Volver al paso anterior</button>
+            <button type="button" class="boton-secundario" id="agregar-cancelar">Cancelar</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- Formulario para cambiar el precio de un servicio: se mueve dentro de la tarjeta que se edita. -->
+    <form id="form-cambiar" class="edicion" novalidate hidden>
+      <div class="aviso" role="alert" tabindex="-1"></div>
+      <fieldset aria-describedby="error-cambiar-modalidad">
+        <legend class="legend-campo" id="titulo-cambiar" tabindex="-1">¿Cobras por trabajo o por hora?</legend>
+        <div id="cambiar-opciones-modalidad" class="lista-oficios"></div>
+        <span class="error-campo" id="error-cambiar-modalidad"></span>
+      </fieldset>
+      <div class="campo">
+        <label for="cambiar-monto">Tu precio en pesos (obligatorio)</label>
+        <span class="ayuda" id="ayuda-cambiar-monto">Solo números. Por ejemplo: 25000.</span>
+        <input id="cambiar-monto" name="monto" inputmode="numeric" autocomplete="off"
+               aria-describedby="ayuda-cambiar-monto error-cambiar-monto">
+        <span class="error-campo" id="error-cambiar-monto"></span>
+      </div>
+      <div class="acciones">
+        <button type="submit">Guardar el cambio</button>
+        <button type="button" class="boton-secundario" id="cambiar-cancelar">Cancelar</button>
+      </div>
+    </form>
+
+    <!-- Confirmación para quitar un servicio (sin ventanas del navegador): se mueve dentro de la tarjeta. -->
+    <div id="confirmar-quitar" class="confirmacion" hidden>
+      <h3 id="titulo-quitar" tabindex="-1"></h3>
+      <p>Los clientes dejarán de verlo. Si después quieres ofrecerlo otra vez, lo puedes agregar de nuevo.</p>
+      <div id="aviso-quitar" class="aviso" role="alert" tabindex="-1"></div>
+      <div class="acciones">
+        <button type="button" id="quitar-si" class="boton-peligro">Sí, quitar el servicio</button>
+        <button type="button" id="quitar-no" class="boton-secundario">No, volver</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

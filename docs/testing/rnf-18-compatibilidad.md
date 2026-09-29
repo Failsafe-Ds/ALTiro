@@ -163,3 +163,32 @@ Para cada navegador y versión, con datos ficticios, anotar **OK / Falla + captu
 - Firefox se probó sin emulación móvil (Playwright no la admite en Firefox). El umbral solo exige Firefox en escritorio.
 - La medición cuenta como "fuera de la pantalla" cualquier elemento visible que exceda el ancho. Hoy no hay contenedores con desplazamiento interno. Si se agregan (por ejemplo, una tabla con desplazamiento propio), el script los informará y habrá que revisarlos a mano.
 - Solo se simularon la página 50x (con su contenido real) y dos estados del expediente del maestro ("observado" con aviso de vencimiento), con la forma del contrato vigente de `GET /api/maestros/expediente`. Todo lo demás se recorrió contra la API real.
+
+## 7. Pantallas nuevas del Sprint 3: catálogo comercial y «Mis servicios» (2026-09-29)
+
+- **Base:** `main`, commit `98cadce`, más los cambios del frontend de esta tarea (sin commit): `comercial.html`, `mis-servicios.html`, `js/comercial.js`, `js/mis-servicios.js`, `js/formato.js`, el método `api.modificar` (PATCH) en `js/api.js`, accesos en `cuenta.html` y `cuenta.js`, destinos `servicios` y `comercial` en `ingresar.js`, y estilos al final de `base.css`.
+- **Script:** `s3_ui.py <motor> <versión>` (scratchpad de la sesión, igual que `rnf18.py`, con la misma función de medición copiada en `s3_medir.js`). La cuenta comercial ficticia la crea `com_prep.sh` con `crear_usuario_administrativo` y una contraseña aleatoria pasada por entrada estándar (archivo `0600`). El maestro ficticio se crea en cada corrida con RUT aleatorio.
+- **Anchos:** comercial a **1280 px** (escritorio, sin emulación móvil) y **320 px** (móvil); maestro a **390 y 320 px** (móvil). Mismos criterios del §1.1: sin desplazamiento lateral, ningún elemento fuera de la pantalla, objetivos de 44 × 44 px o más y sin errores de JavaScript.
+
+### 7.1 Estados recorridos (24 por motor y por par de anchos; 48 mediciones por motor)
+
+| Página | Estados |
+|---|---|
+| `comercial.html` | Lista del catálogo; crear oficio con errores (nombre y «¿Necesita licencia de la SEC?» obligatorios); oficio creado; crear servicio sin formas de cobro; editar servicio sin motivo; conflicto 409 real (otra persona cambió el servicio por la API con la versión vigente); editar un oficio regulado (el dato se muestra sin control para cambiarlo); dar de baja sin motivo; sesión terminada; acceso denegado a un maestro |
+| `mis-servicios.html` | Sin oficios declarados; sin servicios, con lo que falta para que lo vean los clientes; agregar paso 1 sin elegir; paso 2 con precios de referencia; CA-12.1 sin monto (error del servidor junto al campo); CA-12.1 sin forma de cobro; lista con motivos (licencia de Gas y pendientes); cambiar precio sin monto; confirmación para quitar; progreso recuperado tras volver a cargar; sesión terminada; acceso denegado a la cuenta comercial |
+| `cuenta.html` | Cuenta comercial (acceso «Catálogo (comercial)»); maestro (acceso «Mis servicios») |
+
+### 7.2 Resultados (Playwright 1.63.0)
+
+| Motor y versión | Estados | Verificaciones funcionales | Errores de JS | Consola inesperada |
+|---|---|---|---|---|
+| Chromium 153.0.8010.12 | 48/48 **PASS** | 0 fallidas | 0 | 0 (30 avisos de red 4xx esperados) |
+| Firefox 155.0 | 48/48 **PASS** | 0 fallidas | 0 | 0 |
+
+Verificaciones funcionales incluidas en la corrida: CA-20.1 (el servicio creado aparece en `GET /api/catalogo` visto por un visitante), CA-20.2 (el visitante ve el precio nuevo tras el cambio y tras el 409 con nuevo guardado), 409 que conserva lo escrito y «Volver a cargar» que muestra el cambio de la otra persona, regulado sin control al editar, baja con motivo obligatorio (el oficio sale del catálogo público), CA-12.1 (monto y forma de cobro, en la interfaz y por la API), CA-12.2 (motivo "licencia de Gas" visible), quitar con confirmación en la página, montos con formato `es-CL` ("$85.000"), accesos por rol en «Mi cuenta» y enlaces `siguiente=comercial` y `siguiente=servicios` tras sesión terminada.
+
+**Regresión (Chromium 1.63.0):** `s2_maestro.py`, `flujo_s2.py`, `cur_ui.py`, `aviso_ui.py` (tras `aviso_prep.py` y una corrida de `planificador --una-vez`) y `rnf18.py` (106/106 estados, 16/16 chequeos): sin fallas.
+
+**Datos que dejan las corridas:** cada corrida comercial crea un oficio "Oficio Prueba S3 …" con un servicio y al final lo da de baja (queda inactivo y fuera del catálogo público, sin borrado físico por ADR-018). Cada corrida del maestro crea un maestro ficticio en revisión.
+
+El pase manual del §5 también debe incluir estas dos pantallas (comercial en notebook y a 320 px; «Mis servicios» en Chrome de Android).

@@ -137,6 +137,7 @@ const api = (() => {
   return {
     obtener: (ruta) => pedir("GET", ruta),
     enviar: (ruta, datos) => pedir("POST", ruta, datos),
+    modificar: (ruta, datos) => pedir("PATCH", ruta, datos),
     borrar: (ruta) => pedir("DELETE", ruta),
     enviarArchivo,
   };

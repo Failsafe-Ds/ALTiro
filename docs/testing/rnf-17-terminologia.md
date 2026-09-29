@@ -72,3 +72,27 @@ Verificación en navegador (Playwright en contenedor, 390 y 320 px): `aviso_ui.p
 - **Supuesto:** el aviso de éxito al agregar el perfil de maestro desde «Mi cuenta» también se cambió a "Primer paso listo…", con el mismo criterio de término falso. No venía en los hallazgos: se somete a la revisión `ux`.
 - Queda "(SEC)" en el nombre de la licencia ("Licencia de Gas (SEC)"). La sigla está explicada en la ayuda del mismo paso. Si la prueba de RNF-13 muestra que no se entiende, se reemplaza.
 - Los mensajes del servidor que aún digan "Recarga la página…" (por ejemplo, en `backend/comun/api.py`) son de la tarea de backend.
+
+## 5. Sprint 3: «Mis servicios» (maestro) y catálogo comercial (2026-09-29)
+
+Textos propios del frontend en `mis-servicios.html`/`js/mis-servicios.js` (vista del maestro) y `comercial.html`/`js/comercial.js` (vista administrativa, mismo criterio). Los motivos de no visibilidad y los pendientes los arma el servidor (`perfil/vistas.py`); la página los usa tal cual y solo tiene un texto de respaldo por código si faltara.
+
+| Término del informe o del sistema | En pantalla | Dónde |
+|---|---|---|
+| comuna base (RF-06) | "comuna principal" ("Falta que elijas tu comuna principal.", texto del servidor) | `mis-servicios` |
+| modalidad de precio | "forma de cobro"; la pregunta del paso es "¿Cobras por trabajo o por hora?" | `mis-servicios`, `comercial` |
+| `por_trabajo` / `por_hora` | "Por trabajo" / "Por hora"; en frases, "$85.000 por trabajo" | ambas |
+| monto | "Tu precio en pesos (obligatorio)" / "¿Cuánto cobras?" | `mis-servicios` |
+| visible / no visible, `visible: false` | "✓ Lo ven los clientes" / "✕ No lo ven los clientes" | `mis-servicios` |
+| `maestro_no_elegible` | Sección "Todavía no te ven los clientes" con la lista de lo que falta, y en cada servicio "Los clientes todavía no ven tus servicios. Revisa lo que te falta." + botón «Ver lo que te falta» | `mis-servicios` |
+| `licencia_no_vigente` | "Los clientes no lo ven: falta tu licencia de Gas vigente y revisada por AlTiro. Sube tu licencia vigente." + botón «Ir a mis documentos» | `mis-servicios` |
+| `postulacion_no_aprobada`, `sin_foto` | "Tu postulación todavía no está aprobada." (+ «Ver mi postulación»), "Falta que subas tu foto." | `mis-servicios` |
+| retirar (baja lógica, `retirado_en`) | "Quitar" / "Quitaste «…». Los clientes ya no lo ven." | `mis-servicios` |
+| precio de referencia | "Precio de referencia: $80.000 por trabajo" | ambas |
+| oficio regulado | "Necesita licencia de la SEC" (en comercial; la sigla está explicada en la ayuda del alta: "Superintendencia de Electricidad y Combustibles (SEC)"); al maestro: "Necesita tu licencia de la SEC vigente para que te vean." | ambas |
+| `activo=false` | "Inactivo (dado de baja)"; opción "No, darlo de baja" | `comercial` |
+| motivo (bitácora) | "Motivo del cambio (obligatorio)" al modificar; "Comentario (opcional)" al crear; ayuda "Queda registrado en la bitácora con tu nombre y la fecha." | `comercial` |
+| 409 por `version` | "Otra persona cambió este registro. Vuelve a cargar para ver el cambio." + botón «Volver a cargar» | `comercial` |
+| 403 sin rol | "Esta sección es para el área comercial. Tu cuenta no tiene acceso a ella." | `comercial` |
+
+Búsqueda en los textos visibles nuevos de la vista del maestro: "modalidad", "publicar", "visible", "elegible", "catálogo", "servidor", "versión", "código", "perfil" y "API": **0 apariciones**. "Bitácora" y "versión" solo aparecen en la vista comercial (personal administrativo). "SEC" en la vista del maestro va junto a "licencia", como en el S2 (§4).

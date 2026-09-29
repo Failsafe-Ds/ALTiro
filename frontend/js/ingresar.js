@@ -11,6 +11,8 @@
     postulacion: { pagina: "mi-postulacion.html", rol: "maestro" },
     documentos: { pagina: "mis-documentos.html", rol: "maestro" },
     curatoria: { pagina: "curatoria.html", rol: "curatoria" },
+    servicios: { pagina: "mis-servicios.html", rol: "maestro" },
+    comercial: { pagina: "comercial.html", rol: "comercial" },
   };
   const form = document.getElementById("ingresar");
   formulario.prepararBoton(form);

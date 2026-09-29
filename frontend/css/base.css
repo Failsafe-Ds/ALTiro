@@ -842,3 +842,71 @@ button.boton-peligro[disabled]:hover {
   outline: 3px solid var(--foco);
   outline-offset: 2px;
 }
+
+/* --- Sprint 3: servicios del maestro (HU-12) y catálogo comercial (HU-20) --- */
+
+/* Precio de referencia bajo cada opción (texto 8,6:1 sobre blanco). */
+.nota-precio {
+  font-weight: 400;
+  color: var(--texto-suave);
+  font-size: 0.95rem;
+}
+
+/* Motivos por los que los clientes no ven un servicio: ícono ⚠ y texto, con
+   la misma paleta ya medida de los avisos de vencimiento (RNF-16). */
+.motivos-servicio,
+.tarjeta .motivos-servicio {
+  margin: 0.5rem 0;
+  padding: 0.25rem 0.75rem;
+  border-left: 6px solid #8a4b00;
+  background: #fff4e5;
+  border-radius: var(--radio);
+}
+
+.edicion {
+  margin-top: 1rem;
+}
+
+.edicion h3 {
+  margin-top: 0;
+}
+
+.estados-oficio,
+.servicio-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.servicio-cabeza h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.oficio-catalogo h2 {
+  overflow-wrap: anywhere;
+}
+
+.servicios-catalogo > li {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--borde);
+}
+
+.precios li {
+  padding: 0.1rem 0;
+}
+
+@media (min-width: 60rem) {
+  .servicios-catalogo > li {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .servicios-catalogo > li > .edicion {
+    grid-column: 1 / -1;
+  }
+}
