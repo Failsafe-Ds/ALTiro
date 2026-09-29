@@ -14,8 +14,11 @@ S3 y S4 las reutilizan: no se duplican en otras capas.
   entregó ningún documento actual. Es lo que ve el maestro como "faltantes"
   (ADR-017, E-2).
 
-Pendiente (incremento 5 del S2): ``dias_restantes``.
+- ``dias_restantes``: días que faltan para el vencimiento (RF-08, CA-17.1).
+- ``en_seguimiento`` y ``requiere_aviso``: qué documentos se vigilan y cuándo
+  corresponde el aviso de RF-35 (ADR-016, punto 2).
 """
+import datetime
 from zoneinfo import ZoneInfo
 
 from django.utils import timezone
@@ -39,6 +42,24 @@ def hoy_negocio(ahora=None):
 def vigente(fecha_vencimiento, hoy):
     """Un documento sin vencimiento siempre está vigente (RF-04, CA-11.2)."""
     return fecha_vencimiento is None or hoy < fecha_vencimiento
+
+
+def dias_restantes(fecha_vencimiento, hoy):
+    """Días que faltan para ``fecha_vencimiento`` contados desde ``hoy`` (RF-08, CA-17.1).
+
+    - ``None`` si el documento no vence (RF-04, CA-11.2): no hay días que mostrar.
+    - Coherente con ``vigente`` (``hoy < fecha_vencimiento``): el documento está
+      vigente si y solo si el resultado es mayor que 0. **El día del vencimiento
+      el resultado es 0 y el documento ya no está vigente**; después es negativo.
+      Vence mañana: 1; vence hoy: 0 (vencido); venció ayer: -1.
+    """
+    if fecha_vencimiento is None:
+        return None
+    return (fecha_vencimiento - hoy).days
+
+
+# RF-35, CA-24.2: "30 días antes del vencimiento".
+DIAS_AVISO = 30
 
 
 def requisitos_para_aprobar(oficios_regulados):
@@ -146,3 +167,52 @@ def requisitos_sin_documento(expediente):
     """
     entregados = {(documento.tipo, documento.oficio) for documento in documentos_actuales(expediente)}
     return [requisito for requisito in _requisitos_del(expediente) if requisito not in entregados]
+
+
+def en_seguimiento(documento, hoy):
+    """Verdadero si se vigila el vencimiento de ``documento`` (avisos de RF-35 y su muestra).
+
+    - Tiene vencimiento y sigue vigente. Un documento sin vencimiento nunca se
+      vigila ni genera aviso (RF-04, CA-24.3).
+    - Es un documento actual, o es la licencia reemplazada que **sigue
+      contando** para habilitar su oficio (ADR-017, E-1): mientras la licencia
+      nueva no esté validada, el vencimiento de la anterior es el que
+      deshabilita el oficio, y es el que el maestro y curatoría deben conocer.
+    - Un documento reemplazado que ya no cuenta no se vigila.
+    """
+    if documento.fecha_vencimiento is None or not vigente(documento.fecha_vencimiento, hoy):
+        return False
+    if documento.estado != EstadoDocumento.REEMPLAZADO:
+        return True
+    if documento.tipo != LICENCIA_SEC:
+        return False
+    return licencia_habilitante(documento.expediente, documento.oficio, hoy) == documento
+
+
+def requiere_aviso(documento, hoy):
+    """RF-35, CA-24.2: faltan ``DIAS_AVISO`` días o menos, y el documento sigue vigente y en seguimiento."""
+    restantes = dias_restantes(documento.fecha_vencimiento, hoy)
+    return restantes is not None and restantes <= DIAS_AVISO and en_seguimiento(documento, hoy)
+
+
+def candidatos_a_aviso(hoy):
+    """Documentos que vencen en ``DIAS_AVISO`` días o menos y siguen vigentes (filtro previo en SQL).
+
+    La regla completa es ``requiere_aviso``; este filtro solo acota la consulta.
+    """
+    return (
+        Documento.objects.filter(
+            fecha_vencimiento__gt=hoy, fecha_vencimiento__lte=hoy + datetime.timedelta(days=DIAS_AVISO)
+        )
+        .select_related("expediente", "oficio")
+        .order_by("fecha_vencimiento", "pk")
+    )
+
+
+def expedientes_por_vencer(hoy):
+    """Ids de los expedientes con algún documento que requiere aviso hoy (filtro ``?por_vencer`` de curatoría).
+
+    Mismo criterio que el aviso de RF-35 (``requiere_aviso``): vence en
+    ``DIAS_AVISO`` días o menos, sigue vigente y está en seguimiento.
+    """
+    return {documento.expediente_id for documento in candidatos_a_aviso(hoy) if requiere_aviso(documento, hoy)}

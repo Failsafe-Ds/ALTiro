@@ -47,6 +47,8 @@ urlpatterns = [
         curatoria.revisar_documento,
         name="curatoria_revisar_documento",
     ),
+    # Avisos de documentos por vencer para curatoría (RF-35; ADR-016, punto 2).
+    path("api/curatoria/avisos", curatoria.avisos_curatoria, name="curatoria_avisos"),
     # Enlace de 600 s también para documentos reemplazados (ADR-017, E-3).
     path(
         "api/curatoria/documentos/<uuid:ref>/enlace",

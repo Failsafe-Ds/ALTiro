@@ -211,3 +211,69 @@ class Documento(models.Model):
     def __str__(self):
         # Sin datos personales ni nombres de archivo: este texto puede terminar en registros.
         return f"Documento {self.ref}"
+
+
+class TipoAviso(models.TextChoices):
+    """RF-35: único tipo en S2."""
+
+    DOCUMENTO_POR_VENCER = "documento_por_vencer", "Documento por vencer"
+
+
+class RolDestinatarioAviso(models.TextChoices):
+    """Rol destinatario de un aviso (RF-35: "al administrador"). Solo curatoría en S2."""
+
+    CURATORIA = "curatoria", "Curatoría"
+
+
+class Aviso(models.Model):
+    """Aviso dentro de la aplicación (RF-35, CA-24.2; ADR-016, punto 2).
+
+    - Destinatario: una cuenta (el maestro dueño del documento) **o** un rol
+      (``curatoria``), exactamente uno de los dos.
+    - UNIQUE (tipo, documento, destinatario, destinatario_rol), con los nulos
+      tratados como un valor: cada aviso se emite una sola vez ("el aviso se
+      emite una vez alcanzado el umbral"), aunque la tarea corra dos veces o en
+      paralelo.
+    - Sin datos personales: el texto se arma al mostrarlo
+      (``expediente.avisos.mensaje``). Lo escribe solo el actor Sistema
+      (``expediente.tareas.emitir_avisos_por_vencer``).
+    - PROTECT: un aviso no se pierde por borrar el documento o la cuenta.
+    """
+
+    tipo = models.CharField(max_length=30, choices=TipoAviso.choices)
+    documento = models.ForeignKey(Documento, on_delete=models.PROTECT, related_name="+", db_column="documento_id")
+    destinatario = models.ForeignKey(
+        Usuario, on_delete=models.PROTECT, null=True, blank=True, related_name="+", db_column="destinatario_id"
+    )
+    destinatario_rol = models.CharField(max_length=20, choices=RolDestinatarioAviso.choices, null=True, blank=True)
+    creado_en = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "aviso"
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(tipo__in=[valor for valor, _ in TipoAviso.choices]),
+                name="aviso_tipo_valido",
+            ),
+            models.CheckConstraint(
+                condition=Q(destinatario_rol__isnull=True)
+                | Q(destinatario_rol__in=[valor for valor, _ in RolDestinatarioAviso.choices]),
+                name="aviso_destinatario_rol_valido",
+            ),
+            # Exactamente un destinatario: una cuenta o un rol.
+            models.CheckConstraint(
+                condition=(Q(destinatario__isnull=False) & Q(destinatario_rol__isnull=True))
+                | (Q(destinatario__isnull=True) & Q(destinatario_rol__isnull=False)),
+                name="aviso_un_destinatario",
+            ),
+            # Una sola emisión por (tipo, documento, destinatario) (RF-35).
+            models.UniqueConstraint(
+                fields=["tipo", "documento", "destinatario", "destinatario_rol"],
+                nulls_distinct=False,
+                name="aviso_una_vez",
+            ),
+        ]
+
+    def __str__(self):
+        # Sin datos personales: este texto puede terminar en registros.
+        return f"Aviso {self.pk} ({self.tipo})"

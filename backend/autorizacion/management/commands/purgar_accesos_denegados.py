@@ -1,7 +1,7 @@
 """Purga por retención de ``acceso_denegado`` (M-08; ADR-010, «Decisión», punto 3).
 
-Borra las filas con más de 90 días. En S4 lo invocará el planificador del
-actor Sistema; mientras tanto se puede ejecutar a mano dentro del contenedor:
+Borra las filas con más de 90 días. El planificador del actor Sistema la corre
+cada hora (``autorizacion.tareas``; ADR-016); también se puede ejecutar a mano:
 
     python manage.py purgar_accesos_denegados
 """

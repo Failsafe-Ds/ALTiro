@@ -19,7 +19,7 @@ from comun.api import (
     metodos,
     respuesta_error,
 )
-from expediente import servicios, vigencia
+from expediente import avisos, servicios, vigencia
 from expediente.errores import ErrorEstado, ErroresValidacion
 from expediente.models import EstadoDocumento, Expediente, OficioMaestro
 from identidad.errores import ErrorValidacion
@@ -39,8 +39,12 @@ def _oficio_resumido(oficio):
     return {"codigo": oficio.codigo, "nombre": oficio.nombre} if oficio else None
 
 
-def datos_documento(documento):
+def datos_documento(documento, hoy):
     """Lista explícita (RF-08): sin archivos, rutas, revisor ni ids internos.
+
+    ``dias_restantes`` (CA-17.1): días que faltan para el vencimiento según
+    ``vigencia.dias_restantes``; ``null`` si no vence; 0 o negativo si ya venció
+    (el día del vencimiento ya no está vigente). ``vigente`` lo dice explícito.
 
     ``motivo_observacion``: lo que curatoría escribió al observar (CA-17.2);
     ``null`` si no está observado. Nunca quién revisó ni cuándo (ADR-010, E-1).
@@ -53,11 +57,14 @@ def datos_documento(documento):
         "estado": documento.estado,
         "fecha_emision": documento.fecha_emision.isoformat(),
         "fecha_vencimiento": documento.fecha_vencimiento.isoformat() if documento.fecha_vencimiento else None,
+        "dias_restantes": vigencia.dias_restantes(documento.fecha_vencimiento, hoy),
+        "vigente": vigencia.vigente(documento.fecha_vencimiento, hoy),
         "motivo_observacion": documento.motivo_observacion if observado else None,
     }
 
 
 def datos_expediente(expediente):
+    hoy = vigencia.hoy_negocio()
     oficios = (
         OficioMaestro.objects.filter(maestro_id=expediente.perfil_maestro_id)
         .select_related("oficio")
@@ -68,14 +75,14 @@ def datos_expediente(expediente):
         "motivo": expediente.estado_motivo,
         "oficios": [datos_oficio(om.oficio) for om in oficios],
         # Documentos actuales: los reemplazados no se muestran.
-        "documentos": [datos_documento(d) for d in vigencia.documentos_actuales(expediente)],
+        "documentos": [datos_documento(d, hoy) for d in vigencia.documentos_actuales(expediente)],
         # Requisitos sin ningún documento entregado (ver vigencia.requisitos_sin_documento).
         "faltantes": [
             {"tipo": tipo, "oficio": _oficio_resumido(oficio)}
             for tipo, oficio in vigencia.requisitos_sin_documento(expediente)
         ],
-        # Los avisos llegan en el incremento 5 (propuesta del S2, §7).
-        "avisos": [],
+        # Avisos de RF-35 dirigidos a esta cuenta (ver expediente.avisos).
+        "avisos": avisos.del_maestro(expediente.perfil_maestro_id, hoy),
     }
 
 

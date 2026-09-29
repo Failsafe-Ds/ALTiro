@@ -164,6 +164,9 @@ def test_la_respuesta_devuelve_el_expediente_con_lista_explicita(navegador, maes
             "estado": "en_revision",
             "fecha_emision": documento.fecha_emision.isoformat(),
             "fecha_vencimiento": documento.fecha_vencimiento.isoformat(),
+            # CA-17.1 (incremento 5): días restantes y vigencia calculados en el servidor.
+            "dias_restantes": 200,
+            "vigente": True,
             # CA-17.2 (incremento 4): el motivo de la observación, null si no está observado.
             "motivo_observacion": None,
         }

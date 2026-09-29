@@ -1014,6 +1014,7 @@ def test_el_detalle_entrega_lo_necesario_para_revisar(maestro, cura, directorio_
         "fecha_emision": "2020-01-10",
         "fecha_vencimiento": licencia.fecha_vencimiento.isoformat(),
         "vigente": True,
+        "dias_restantes": (licencia.fecha_vencimiento - _hoy()).days,
         "motivo_observacion": "",
         "tiene_reverso": False,
         "cargado_en": licencia.cargado_en.isoformat(),

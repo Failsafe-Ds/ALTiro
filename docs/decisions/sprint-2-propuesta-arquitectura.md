@@ -194,3 +194,17 @@ Decisiones técnicas tomadas al implementar la curatoría. Son compatibles con A
 5. **Motivo:** hasta 1000 caracteres, sin caracteres nulos (validación de entrada).
 6. **Minimización:** el detalle de curatoría entrega nombre y RUT, pero no teléfono ni correo, porque ninguna HU ni RF le asigna a curatoría una función de contacto.
 7. **Cola:** páginas de 20, del más antiguo al más reciente. Un filtro desconocido responde 400. `?por_vencer` llega en el incremento 5.
+
+## 10. Aclaraciones de implementación (incremento 5, 2026-09-28)
+
+Decisiones **provisionales**, tomadas con la opción más apegada al texto del informe y a los ADR. Se revisan en la revisión del sprint:
+
+1. **Vigencia:** `dias_restantes = fecha_vencimiento − hoy`, con "hoy" en la hora de Santiago, y `None` si el documento no vence. El documento está vigente solo si `dias_restantes > 0`: el día del vencimiento vale 0 y ya no está vigente (ADR-016).
+2. **Purga de `acceso_denegado`:** vive en `autorizacion/tareas.py`, no en `expediente/`. Así se respeta la prueba de aislamiento de M-08 (ningún módulo fuera de `autorizacion` usa ese registro).
+3. **Licencia reemplazada que sigue contando (ADR-017 E-1):** genera aviso mientras siga habilitando el oficio.
+4. **Avisos según el estado del expediente:** se avisa por cualquier documento actual que venza en 30 días o menos, **incluso si el expediente está rechazado**. Es la lectura literal de RF-35 y queda pendiente de validar.
+5. **Texto del aviso:** lo arma el servidor al mostrarlo, en un solo lugar y sin jerga. La tabla `aviso` no guarda texto ni datos personales.
+6. **Qué avisos se muestran:** mientras el documento siga vigente y actual. La fila se conserva para no volver a emitir el aviso.
+7. **`?por_vencer`:** solo acepta el valor `1`; cualquier otro valor responde 400.
+8. **Archivos huérfanos:** solo se borran los nombres que genera la aplicación (UUID y temporales `.subiendo-`) con más de una hora de antigüedad. Cualquier otro archivo no se toca.
+9. **Salud del planificador:** un archivo de latido en `/tmp`; el healthcheck exige que tenga menos de 180 s.

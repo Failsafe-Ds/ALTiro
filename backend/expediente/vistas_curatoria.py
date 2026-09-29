@@ -27,14 +27,16 @@ from autorizacion.decoradores import requiere_rol
 from bitacora.models import AutorTipo, Bitacora
 from catalogo.vistas import datos_oficio
 from comun.api import ErrorSolicitud, ErroresDeCampo, leer_json, manejar_errores, metodos, respuesta_error
-from expediente import servicios, vigencia
+from expediente import avisos, servicios, vigencia
 from expediente.errores import ErrorEstado, ErroresValidacion
 from expediente.models import Documento, EstadoDocumento, EstadoExpediente, Expediente, OficioMaestro
 from expediente.politicas import PoliticaDocumentoCuratoria, PoliticaExpedienteCuratoria
 from identidad.models import Usuario
 
 TAMANO_PAGINA = 20
-PARAMETROS_COLA = frozenset({"estado", "pagina"})
+PARAMETROS_COLA = frozenset({"estado", "pagina", "por_vencer"})
+# ?por_vencer=1: expedientes con algún documento que vence en 30 días o menos (RF-35).
+VALOR_POR_VENCER = "1"
 CAMPOS_CAMBIAR_ESTADO = {"estado_nuevo", "estado_actual", "motivo"}
 CAMPOS_REVISION = {"resultado", "estado_actual", "motivo"}
 
@@ -83,7 +85,10 @@ def _filtros_cola(request):
     texto_pagina = parametros.get("pagina", "1")
     if not texto_pagina.isascii() or not texto_pagina.isdigit() or int(texto_pagina) < 1:
         raise ErrorSolicitud(MENSAJE_FILTRO_INVALIDO)
-    return estado, int(texto_pagina)
+    por_vencer = parametros.get("por_vencer")
+    if por_vencer is not None and por_vencer != VALOR_POR_VENCER:
+        raise ErrorSolicitud(MENSAJE_FILTRO_INVALIDO)
+    return estado, int(texto_pagina), por_vencer is not None
 
 
 def _datos_en_cola(expediente, hoy):
@@ -103,11 +108,18 @@ def _datos_en_cola(expediente, hoy):
 @requiere_rol("curatoria")
 @manejar_errores
 def cola(request):
-    """Cola de expedientes, paginada, con filtro ``?estado=``. Excluye el expediente propio (ADR-011, E-2)."""
-    estado, pagina = _filtros_cola(request)
+    """Cola de expedientes, paginada, con filtros ``?estado=`` y ``?por_vencer=1``.
+
+    Excluye el expediente propio (ADR-011, E-2). ``por_vencer``: expedientes con
+    algún documento que vence en 30 días o menos (RF-35; ``vigencia.expedientes_por_vencer``).
+    """
+    estado, pagina, por_vencer = _filtros_cola(request)
+    hoy = vigencia.hoy_negocio()
     consulta = Expediente.objects.exclude(perfil_maestro_id=request.usuario.pk)
     if estado is not None:
         consulta = consulta.filter(estado=estado)
+    if por_vencer:
+        consulta = consulta.filter(pk__in=vigencia.expedientes_por_vencer(hoy))
     total = consulta.count()
     inicio = (pagina - 1) * TAMANO_PAGINA
     expedientes = (
@@ -117,7 +129,6 @@ def cola(request):
         )
         .order_by("creado_en", "pk")[inicio : inicio + TAMANO_PAGINA]
     )
-    hoy = vigencia.hoy_negocio()
     return _json(
         {
             "expedientes": [_datos_en_cola(expediente, hoy) for expediente in expedientes],
@@ -141,6 +152,8 @@ def _datos_documento(documento, hoy):
         "fecha_emision": documento.fecha_emision.isoformat(),
         "fecha_vencimiento": _fecha(documento.fecha_vencimiento),
         "vigente": vigencia.vigente(documento.fecha_vencimiento, hoy),
+        # CA-17.1 y RF-08: null si no vence; 0 o negativo si ya venció.
+        "dias_restantes": vigencia.dias_restantes(documento.fecha_vencimiento, hoy),
         "motivo_observacion": documento.motivo_observacion,
         "tiene_reverso": documento.archivo_reverso is not None,
         "cargado_en": _fecha(documento.cargado_en),
@@ -279,3 +292,17 @@ def historial(request, ref):
     )
     autores = _autores(entradas)
     return _json({"historial": [_datos_entrada(entrada, autores, documentos) for entrada in entradas]})
+
+
+# --- Avisos de RF-35 (ADR-016, punto 2) ---
+
+
+@metodos("GET")
+@requiere_rol("curatoria")
+def avisos_curatoria(request):
+    """Avisos del rol curatoría, sin los del expediente propio (conflicto de interés; ADR-011, E-2).
+
+    Cada aviso trae el nombre del maestro y la ``ref`` del expediente para abrir
+    el detalle; nunca RUT, contacto ni ids internos. Ver ``expediente.avisos``.
+    """
+    return _json({"avisos": avisos.de_curatoria(request.usuario, vigencia.hoy_negocio())})

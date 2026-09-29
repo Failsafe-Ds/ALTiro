@@ -3,8 +3,8 @@
 - ``RETENCION_DIAS``: política del equipo (90 días), no un ajuste del servidor.
   El trigger de la tabla usa el mismo literal; una prueba verifica que coincidan.
 - ``purgar_vencidos()``: única función de purga. Se llama al registrar una
-  denegación y desde el comando ``purgar_accesos_denegados``; en S4 la llamará
-  el planificador. Es una purga automática por retención: no se atribuye al
+  denegación, desde el comando ``purgar_accesos_denegados`` y, cada hora, desde
+  el planificador (``autorizacion.tareas``; ADR-016). Es una purga automática por retención: no se atribuye al
   usuario de la petición. La condición usa ``now()`` de SQL, igual que el trigger.
 - Ningún módulo fuera de ``autorizacion`` usa este registro (M-08).
 """

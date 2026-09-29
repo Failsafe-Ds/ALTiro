@@ -129,6 +129,10 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 # Solo dos archivos por petición (anverso y reverso).
 DATA_UPLOAD_MAX_NUMBER_FILES = 2
 
+# --- Planificador del actor Sistema (ADR-016) ---
+# Cada cuántos segundos corre las tareas idempotentes (por defecto, cada hora).
+ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS = leer_entero("ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS", por_defecto=3600)
+
 # --- Registros ---
 # Solo a la consola del contenedor. Nunca registrar contraseñas, tokens,
 # cookies ni cuerpos de petición.

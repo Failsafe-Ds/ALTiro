@@ -17,7 +17,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | DA-03 | RNF-07 se cumple de forma acumulativa | S2 a S5 | Temporal |
 | DA-04 | CA-25.3 en "Terminado sin validar" | Revisión del S1 | Temporal |
 | DA-05 | CA-25.1 y CA-25.2 | S4 y S2 | Temporal |
-| DA-06 | Purga automática de `acceso_denegado` | S4 | Temporal |
+| DA-06 | Purga automática de `acceso_denegado` | S2 (cerrado el 2026-09-28, con el planificador de DA-16) | Temporal (cerrado) |
 | DA-07 | RNF-22 parcial | S5 | Temporal |
 | DA-08 | Barrera 3 de la bitácora no implementada | Evaluar en S5 | Temporal, condicionado a capacidad |
 | DA-09 | Reautenticación de RNF-09 | Según decisión de alcance | Pendiente de decisión |
@@ -27,7 +27,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | DA-13 | CA-24.4 pasa a S4 | S4 | Temporal |
 | DA-14 | Evidencia de RNF-25 pasa a S3 y S4 | S3 y S4 | Temporal |
 | DA-15 | Adelanto: catálogo mínimo de oficios (S3 → S2) | S2 | Adelanto |
-| DA-16 | Adelanto: planificador (S4 → S2) | S2 | Adelanto |
+| DA-16 | Adelanto: planificador (S4 → S2) | S2 (implementado el 2026-09-28) | Adelanto |
 
 ## Registros
 
@@ -84,6 +84,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 - **Cambio:** en S1 la purga de filas con más de 90 días ocurre al registrar una nueva denegación y con el comando `purgar_accesos_denegados`. La ejecución periódica llegará con el planificador de S4.
 - **Motivo:** S1 no tiene planificador de tareas.
 - **Impacto:** si no hay denegaciones ni se ejecuta el comando, las filas vencidas pueden quedar más de 90 días. Riesgo bajo en la prueba de concepto.
+- **Estado (2026-09-28): cerrado en S2, incremento 5 (DA-16).** El servicio `planificador` corre cada hora `autorizacion.tareas.purgar_accesos_denegados`, que reutiliza `purgar_vencidos()` (condición con `now()` de SQL, ADR-010, punto 3). Evidencia: prueba automática (fila de 91 días borrada; filas de 89 y 0 días conservadas; segunda corrida sin cambios) y corrida en vivo con el conteo en el registro del planificador (`accesos_denegados_purgados=0`, sin filas vencidas en la base local).
 - **Autorización:** equipo de desarrollo.
 - **Relacionado:** M-08, CA-25.3, RNF-22; ADR-010.
 
@@ -179,5 +180,6 @@ Origen: `docs/decisions/sprint-2-propuesta-arquitectura.md`, §8, y las decision
 - **Cambio:** el servicio `planificador` llega en S2 para la "revisión diaria" de RF-35 y CA-24.2. También ejecuta la purga de `acceso_denegado`, lo que **cierra DA-06** cuando se implemente.
 - **Motivo:** RF-35 está comprometido en S2.
 - **Impacto:** un contenedor más; se vuelven a verificar RNF-04 y RNF-23.
+- **Estado (2026-09-28): implementado en S2, incremento 5.** Servicio `planificador` (misma imagen `altiro-app:local`, sin puertos publicados, solo red `interna`, secretos de solo lectura, volumen `documentos`, espera a `app` sano, sin volver a migrar, healthcheck por archivo de latido) con `manage.py planificador` (intervalo `ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS`, 3600 por defecto; `--una-vez`; SIGTERM limpio). Tareas: avisos de RF-35 (tabla `aviso`), purga de `acceso_denegado` (cierra DA-06) y archivos huérfanos (ADR-015). Evidencia en vivo: servicio `healthy`; `docker port` vacío; corrida manual con `avisos_creados=2` (maestro y curatoría) para un documento ficticio que vence en 20 días, segunda corrida con `avisos_creados=0`; avisos visibles en `GET /api/maestros/expediente` y `GET /api/curatoria/avisos`; parada con `docker compose stop` con código 0 y "Planificador detenido"; registros sin datos personales. **RNF-04:** `docker stats` con la pila completa: planificador 47,2 MiB, app 103,9 MiB, db 71,6 MiB, proxy 23,8 MiB (≈ 247 MiB en total, bajo 2 GB). RNF-23 no se volvió a medir en equipo limpio en este incremento.
 - **Autorización:** equipo de desarrollo.
 - **Relacionado:** RF-35, CA-24.2, M-08; ADR-016, DA-06.

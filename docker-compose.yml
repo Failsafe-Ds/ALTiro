@@ -83,7 +83,7 @@ services:
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
     volumes:
       - secretos:/secretos:ro
-      # Solo en app (y, desde el incremento 5, en el planificador); nunca en
+      # Solo en app y en el planificador; nunca en
       # proxy (ADR-015, D-3). El dueño 10001 y el modo 0700 los toma de
       # /documentos de la imagen al crearse el volumen (backend/Dockerfile).
       - documentos:/documentos
@@ -104,6 +104,53 @@ services:
       timeout: 5s
       retries: 6
       start_period: 20s
+    restart: unless-stopped
+
+  # Actor Sistema (ADR-016): cada hora corre tareas idempotentes (avisos de
+  # RF-35, purga de acceso_denegado y archivos huérfanos). Misma imagen que app,
+  # sin puertos, solo en la red interna. No aplica migraciones: espera a que app
+  # (que las aplica al arrancar) esté sana.
+  planificador:
+    image: altiro-app:local
+    entrypoint: ["python", "manage.py", "planificador"]
+    environment:
+      DJANGO_SECRET_KEY_FILE: /secretos/django_secret_key
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://localhost,https://127.0.0.1}
+      ALTIRO_DB_HOST: db
+      ALTIRO_DB_PORT: "5432"
+      ALTIRO_DB_NAME: ${POSTGRES_DB:-altiro}
+      ALTIRO_DB_USER: ${ALTIRO_DB_APP_USER:-altiro_app}
+      ALTIRO_DB_PASSWORD_FILE: /secretos/db_app_password
+      # Settings exige la clave al cargar (ADR-015); el planificador no descifra archivos.
+      ALTIRO_DOCUMENTOS_CLAVE_FILE: /secretos/documentos_clave
+      ALTIRO_DOCUMENTOS_DIR: /documentos
+      ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS: ${ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS:-3600}
+    volumes:
+      - secretos:/secretos:ro
+      # Para la limpieza de archivos huérfanos (ADR-015, D-3: app y planificador).
+      - documentos:/documentos
+    networks:
+      - interna
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    healthcheck:
+      # El bucle renueva el latido al menos cada 60 s (expediente/management/commands/planificador.py).
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, sys, time; sys.exit(0 if time.time() - os.path.getmtime('/tmp/altiro-planificador.latido') < 180 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
   proxy:
