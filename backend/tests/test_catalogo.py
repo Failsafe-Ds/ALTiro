@@ -49,15 +49,20 @@ def test_la_carga_es_idempotente_y_no_duplica():
 
 
 @pytest.mark.django_db
-def test_la_carga_actualiza_por_codigo_y_nunca_borra():
-    Oficio.objects.filter(codigo="gas").update(nombre="Otro nombre", regulado=False)
+def test_la_carga_solo_inserta_no_pisa_cambios_de_comercial_y_nunca_borra():
+    """ADR-018, punto 3 (D-3): el CSV es solo la carga inicial."""
+    Oficio.objects.filter(codigo="pintura").update(nombre="Pintura y barnizado", orden=40, activo=False)
+    Oficio.objects.filter(codigo="electricidad").delete()
     Oficio.objects.create(codigo="fuera_del_csv", nombre="Fuera del CSV", regulado=False, orden=99)
 
     cargar(Oficio, leer_filas())
 
-    gas = Oficio.objects.get(codigo="gas")
-    assert (gas.nombre, gas.regulado) == ("Gas", True)
+    pintura = Oficio.objects.get(codigo="pintura")
+    assert (pintura.nombre, pintura.orden, pintura.activo) == ("Pintura y barnizado", 40, False)
+    # El que faltaba se inserta, con su propio ref.
+    assert Oficio.objects.get(codigo="electricidad").regulado is True
     assert Oficio.objects.filter(codigo="fuera_del_csv").exists()
+    assert Oficio.objects.values("ref").distinct().count() == Oficio.objects.count()
 
 
 @pytest.mark.django_db
@@ -109,7 +114,10 @@ def test_la_migracion_0003_renombra_en_la_misma_fila_y_conserva_las_declaracione
     assert not Oficio.objects.filter(codigo__startswith="ejemplo_").exists()
     gasfiteria = Oficio.objects.get(codigo="gasfiteria")
     assert gasfiteria.pk == ejemplo_1.pk
-    assert (gasfiteria.nombre, gasfiteria.regulado) == ("Gasfitería (agua y alcantarillado)", False)
+    # Desde el S3 ``cargar`` solo inserta (ADR-018, punto 3): en una base que
+    # todavía tuviera los códigos de ejemplo, 0003 renombra el código en la misma
+    # fila pero ya no pisa el nombre; lo corrige comercial desde la aplicación.
+    assert (gasfiteria.nombre, gasfiteria.regulado) == ("Oficio de ejemplo 1 (por confirmar)", False)
     declaracion = OficioMaestro.objects.get(maestro=maestro.perfil_maestro)
     assert declaracion.oficio.codigo == "gasfiteria"
     assert Oficio.objects.count() == 8

@@ -105,7 +105,7 @@ def test_se_informan_todos_los_campos_con_error_a_la_vez(client):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("extra", [{"roles": ["curatoria"]}, {"activo": False}, {"id": 1}, {"<script>": "x"}])
+@pytest.mark.parametrize("extra", [{"roles": ["curatoria"]}, {"es_administrador": True}, {"id": 1}, {"<script>": "x"}])
 def test_pi010_pi273_clave_desconocida_responde_400_general_sin_repetirla(client, extra):
     respuesta = post_json(client, URL_CLIENTES, {**datos_cliente(), **extra})
 
@@ -313,7 +313,12 @@ def test_pi029_la_postulacion_no_inicia_sesion(client):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("extra, errores", [({"comuna": "8101"}, {"comuna"}), ({"activo": True}, set())])
+# "activo" es un campo conocido desde el catálogo del S3 (ADR-018): aquí no está
+# permitido y se informa en su campo; una clave desconocida sigue siendo error general.
+@pytest.mark.parametrize(
+    "extra, errores",
+    [({"comuna": "8101"}, {"comuna"}), ({"es_administrador": True}, set()), ({"activo": True}, {"activo"})],
+)
 def test_pi030_campos_no_permitidos_en_la_postulacion(client, extra, errores):
     respuesta = post_json(client, URL_POSTULACIONES, {**datos_maestro(), **extra})
 

@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "bitacora",  # RNF-11 (ADR-010)
     "catalogo",  # Catálogo mínimo de oficios (ADR-017, punto 1)
     "expediente",  # Expediente del maestro (ADR-017)
+    "perfil",  # Perfil público, servicios del maestro y regla de publicación (ADR-019)
 ]
 
 # ADR-001: fijado desde la primera migración.

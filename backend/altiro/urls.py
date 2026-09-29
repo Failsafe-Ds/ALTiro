@@ -2,10 +2,12 @@ from django.urls import path
 
 from altiro.salud import salud
 from catalogo import vistas as catalogo
+from catalogo import vistas_comercial as comercial
 from expediente import vistas as expediente
 from expediente import vistas_curatoria as curatoria
 from expediente import vistas_documentos as documentos
 from identidad import vistas as identidad
+from perfil import vistas as perfil
 from territorio import vistas as territorio
 
 # Toda ruta /api/ es privada salvo las marcadas con comun.api.publica.
@@ -22,8 +24,18 @@ urlpatterns = [
     path("api/cuenta", identidad.cuenta, name="cuenta"),
     path("api/clientes", identidad.clientes, name="clientes"),
     path("api/maestros/postulaciones", identidad.postulaciones, name="postulaciones"),
-    # Catálogo mínimo de oficios, público (ADR-017, punto 1).
+    # Catálogo público, de solo lectura (ADR-017, punto 1; ADR-018, puntos 5 y 6; CA-20.2).
     path("api/oficios", catalogo.oficios, name="oficios"),
+    path("api/catalogo", catalogo.catalogo, name="catalogo"),
+    # Administración del catálogo: rol comercial, versión, motivo y bitácora (RF-36, RF-37; ADR-018).
+    path("api/comercial/catalogo", comercial.catalogo_comercial, name="comercial_catalogo"),
+    path("api/comercial/oficios", comercial.crear_oficio, name="comercial_crear_oficio"),
+    path("api/comercial/oficios/<uuid:ref>", comercial.modificar_oficio, name="comercial_modificar_oficio"),
+    path("api/comercial/servicios", comercial.crear_servicio, name="comercial_crear_servicio"),
+    path("api/comercial/servicios/<uuid:ref>", comercial.modificar_servicio, name="comercial_modificar_servicio"),
+    # Servicios del maestro, patrón "me" y política de dueño (RF-05, HU-12; ADR-019).
+    path("api/maestros/servicios", perfil.mis_servicios, name="mis_servicios"),
+    path("api/maestros/servicios/<uuid:ref>", perfil.mi_servicio, name="mi_servicio"),
     # Expediente propio del maestro, patrón "me" (ADR-011; propuesta del S2, §4).
     path("api/maestros/expediente", expediente.mi_expediente, name="mi_expediente"),
     path("api/maestros/expediente/oficios", expediente.mis_oficios, name="mis_oficios"),

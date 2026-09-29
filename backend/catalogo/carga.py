@@ -1,4 +1,11 @@
-"""Carga idempotente del catálogo mínimo de oficios desde el CSV versionado (ADR-017, punto 1)."""
+"""Carga inicial del catálogo de oficios desde el CSV versionado (ADR-017, punto 1; ADR-018, punto 3).
+
+Desde el S3 el CSV es **solo la carga inicial**: comercial administra el
+catálogo desde la aplicación (RF-36), y recargar el CSV pisaría sus cambios.
+Por eso ``cargar`` solo inserta los códigos que faltan (``ON CONFLICT DO
+NOTHING``) y nunca actualiza ni borra. Ninguna migración posterior a
+``0003`` recarga el CSV (lo verifica ``tests/test_catalogo_administrable.py``).
+"""
 import csv
 from pathlib import Path
 
@@ -13,10 +20,11 @@ def leer_filas(ruta=ARCHIVO_OFICIOS):
 
 
 def cargar(Oficio, filas):
-    """Crea o actualiza los oficios por ``codigo`` en una sola inserción.
+    """Inserta los oficios cuyo ``codigo`` todavía no existe, en una sola sentencia.
 
-    Idempotente (``ON CONFLICT DO UPDATE``). Nunca borra: un oficio declarado
-    por un maestro no desaparece en silencio.
+    Idempotente. Nunca actualiza (no pisa lo que cambió comercial) ni borra
+    (un oficio declarado por un maestro no desaparece en silencio). Cada fila
+    nueva recibe su propio ``ref`` cuando el modelo lo tiene.
     """
     oficios = [
         Oficio(
@@ -27,6 +35,4 @@ def cargar(Oficio, filas):
         )
         for fila in filas
     ]
-    Oficio.objects.bulk_create(
-        oficios, update_conflicts=True, unique_fields=["codigo"], update_fields=["nombre", "regulado", "orden"]
-    )
+    Oficio.objects.bulk_create(oficios, ignore_conflicts=True)

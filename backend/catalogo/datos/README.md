@@ -2,8 +2,10 @@
 
 Archivo: `oficios.csv` (columnas `codigo`, `nombre`, `regulado` = `si`/`no`, `orden`).
 Lo carga la migración `catalogo/migrations/0002_carga_oficios.py` de forma idempotente
-(ADR-017, punto 1; mismo patrón que el catálogo territorial, ADR-012). Solo lectura:
-no hay endpoints de escritura. Es un **adelanto de datos** del S3 (DA-15); no adelanta RF-36.
+(ADR-017, punto 1; mismo patrón que el catálogo territorial, ADR-012). **Desde el S3 es solo
+la carga inicial** (ADR-018, punto 3): comercial administra el catálogo desde la aplicación
+(RF-36) y la carga solo inserta los códigos que faltan, sin pisar sus cambios. Ninguna
+migración posterior a `0003` recarga este CSV.
 
 ## Qué está confirmado y qué es supuesto
 
@@ -33,7 +35,10 @@ no hay endpoints de escritura. Es un **adelanto de datos** del S3 (DA-15); no ad
   (`ejemplo_1` → `gasfiteria`, `ejemplo_2` → `carpinteria`, `ejemplo_3` → `pintura`,
   `ejemplo_4` → `albanileria`, `ejemplo_5` → `cerrajeria`, `ejemplo_6` → `jardineria`),
   de modo que los oficios ya declarados por un maestro siguen apuntando a un oficio válido.
-- Cuando responda el representante, se corrige este CSV y se agrega una migración de datos
-  nueva; no se edita una migración ya aplicada.
-- La carga crea o actualiza por `codigo` y **nunca borra** oficios: un oficio ya
-  declarado por un maestro no puede desaparecer en silencio.
+- Cuando responda el representante, los nombres y el orden los corrige comercial desde la
+  aplicación, con motivo y bitácora (ADR-018). `regulado` no se cambia desde la aplicación:
+  exige una migración y un ADR (ADR-018, punto 2).
+- La carga solo inserta por `codigo` (`ON CONFLICT DO NOTHING`) y **nunca actualiza ni borra**
+  oficios: un oficio ya declarado por un maestro no puede desaparecer en silencio. Desde el
+  S3, en una base que todavía tuviera los códigos `ejemplo_N`, `0003` renombra el código pero
+  ya no corrige el nombre.

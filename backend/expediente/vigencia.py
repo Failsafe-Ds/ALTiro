@@ -5,7 +5,8 @@ S3 y S4 las reutilizan: no se duplican en otras capas.
 - ``hoy_negocio``: "hoy" en ``America/Santiago`` (``TIME_ZONE`` sigue en UTC).
 - ``vigente``: vigente si no tiene vencimiento o si ``hoy < fecha_vencimiento``.
 - ``requisitos_para_aprobar``: documentos exigidos (ADR-017, punto 3).
-- ``licencia_habilitante`` y ``oficio_habilitado``: un oficio regulado está
+- ``licencia_habilitante_de`` (pura, sin consultas), ``licencia_habilitante``
+  y ``oficio_habilitado``: un oficio regulado está
   habilitado si tiene una licencia SEC ``validado`` y vigente (ADR-017,
   punto 4), con la regla de renovación de ADR-017, E-1. Regla única.
 - ``faltantes_para_aprobar``: requisitos sin documento ``validado`` y, en las
@@ -103,10 +104,15 @@ def fue_validado(documento):
     return documento.estado == EstadoDocumento.REEMPLAZADO and not documento.motivo_observacion.strip()
 
 
-def licencia_habilitante(expediente, oficio, hoy=None):
-    """Licencia SEC que habilita ``oficio`` en el expediente, o ``None`` (ADR-017, punto 4 y E-1).
+def licencia_habilitante_de(licencias, hoy):
+    """Regla pura de ADR-017, punto 4 y E-1, sobre licencias ya cargadas (sin consultas).
 
-    Cuenta la licencia validada **más reciente** de ese oficio, y solo si está vigente:
+    ``licencias``: todas las licencias SEC (actuales y reemplazadas) de **un**
+    expediente y **un** oficio, en cualquier orden. Permite cargarlas en lote
+    (búsqueda de S4) sin duplicar la regla.
+
+    Cuenta la licencia validada **más reciente** (por ``cargado_en`` y ``pk``), y
+    solo si está vigente:
 
     - si la actual está ``validado``, cuenta solo ella (E-1: "cuando curatoría
       valida la nueva, cuenta solo la nueva");
@@ -114,14 +120,20 @@ def licencia_habilitante(expediente, oficio, hoy=None):
       anterior validada (ahora ``reemplazado``) mientras siga vigente;
     - nunca cuenta una licencia sin revisar ni una observada.
     """
-    hoy = hoy or hoy_negocio()
-    licencias = Documento.objects.filter(
-        expediente=expediente, tipo=LICENCIA_SEC, oficio=oficio
-    ).order_by("-cargado_en", "-pk")
-    for licencia in licencias:
+    for licencia in sorted(licencias, key=lambda d: (d.cargado_en, d.pk), reverse=True):
         if fue_validado(licencia):
             return licencia if vigente(licencia.fecha_vencimiento, hoy) else None
     return None
+
+
+def licencia_habilitante(expediente, oficio, hoy=None):
+    """Licencia SEC que habilita ``oficio`` en el expediente, o ``None`` (ADR-017, punto 4 y E-1).
+
+    Carga las licencias de ese oficio y aplica ``licencia_habilitante_de``.
+    """
+    hoy = hoy or hoy_negocio()
+    licencias = Documento.objects.filter(expediente=expediente, tipo=LICENCIA_SEC, oficio=oficio)
+    return licencia_habilitante_de(list(licencias), hoy)
 
 
 def oficio_habilitado(expediente, oficio, hoy=None):

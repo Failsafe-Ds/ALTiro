@@ -20,6 +20,8 @@ Contraseña: toda cuenta nueva la recibe, se valida con la política de ADR-013
 from django.db import IntegrityError, transaction
 
 from expediente import servicios as expedientes
+from perfil import servicios as perfiles_publicos
+from perfil.models import PerfilPublico
 from expediente.models import Expediente
 from identidad.errores import ErrorValidacion, InvarianteVioladaError
 from identidad.models import (
@@ -91,6 +93,9 @@ def verificar_invariantes(usuario):
     # impide un expediente sin perfil, así que basta revisar este sentido.
     if tiene_maestro and not Expediente.objects.filter(perfil_maestro_id=usuario.pk).exists():
         violaciones.append("perfil_maestro sin expediente")
+    # ADR-019 (propuesta del S3, §3): el perfil público nace junto con perfil_maestro.
+    if tiene_maestro and not PerfilPublico.objects.filter(perfil_maestro_id=usuario.pk).exists():
+        violaciones.append("perfil_maestro sin perfil público")
     return violaciones
 
 
@@ -182,7 +187,9 @@ def _completar_usuario(usuario, **datos):
 
 
 def _crear_perfil_maestro(usuario, rut):
-    """Perfil, rol y expediente ``en_revision`` en la misma transacción (ADR-013, punto 2; ADR-017, punto 2).
+    """Perfil, rol, expediente ``en_revision`` y perfil público en la misma transacción.
+
+    ADR-013, punto 2; ADR-017, punto 2; ADR-019 (perfil público con ``ref`` propia).
 
     Única vía de creación de ``perfil_maestro``: la usan ``crear_cuenta_maestro``
     y ``agregar_perfil_maestro``.
@@ -192,6 +199,7 @@ def _crear_perfil_maestro(usuario, rut):
     _guardar(perfil, force_insert=True)
     _asignar_rol(usuario, Rol.MAESTRO)
     expedientes.crear_para(perfil)
+    perfiles_publicos.crear_perfil_publico_para(perfil)
 
 
 # --- Vías de creación sin sesión (cuenta nueva) ---

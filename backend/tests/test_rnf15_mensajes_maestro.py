@@ -13,19 +13,27 @@ textos (si se agrega un mensaje nuevo, entra solo):
    maestro (postulación, inicio de sesión, oficios, documentos y errores
    generales) y se revisa el JSON recibido contra ``TEXTO_PROHIBIDO`` más los
    términos que RNF-17 excluye del lenguaje del maestro.
+3. Servicios del maestro (S3): errores de sus servicios y los motivos y
+   pendientes que explican por qué los clientes no ven un servicio.
 Datos ficticios; imágenes sintéticas; ``ALTIRO_DOCUMENTOS_DIR`` temporal.
 """
 import ast
 import datetime
 import io
+import json
+import uuid
 from pathlib import Path
 
 import pytest
 from django.test import Client
 from PIL import Image
 
+from catalogo.models import Oficio, Servicio, ServicioModalidad
+from expediente import servicios as expedientes
 from expediente.models import EstadoExpediente, Expediente
 from expediente.vigencia import ANTECEDENTES, CEDULA, LICENCIA_SEC, hoy_negocio
+from perfil import publicacion
+from perfil.vistas import MENSAJES_MOTIVO, MENSAJES_PENDIENTE, MENSAJES_POSTULACION
 from tests.ayudas import (
     TEL_B,
     TEXTO_PROHIBIDO,
@@ -236,3 +244,84 @@ def test_rnf15_rnf17_los_errores_que_ve_el_maestro_estan_en_su_lenguaje(client):
     assert encontrados == []
     # Resguardo: los casos provocan errores distintos, no siempre el mismo texto.
     assert len(mensajes) >= 30
+
+
+# --- 3. Servicios del maestro (S3, incremento 2; RF-05, CA-12.1, CA-12.2; ADR-019) ---
+
+URL_SERVICIOS = "/api/maestros/servicios"
+
+
+def _servicio_del_catalogo(oficio, nombre, modalidades):
+    servicio = Servicio.objects.create(oficio=Oficio.objects.get(codigo=oficio), nombre=nombre, orden=1)
+    for modalidad in modalidades:
+        ServicioModalidad.objects.create(servicio=servicio, modalidad=modalidad, precio_referencia=10000)
+    return servicio
+
+
+def _patch(client, url, datos):
+    return client.patch(url, data=json.dumps(datos), content_type="application/json")
+
+
+@pytest.mark.django_db
+def test_rnf15_rnf17_servicios_del_maestro_en_su_lenguaje(client):
+    """Errores, motivos de no visibilidad y pendientes que ve el maestro en sus servicios."""
+    maestro = crear_maestro(rut=RUT_PROPIO)
+    expedientes.declarar_oficios(Expediente.objects.get(perfil_maestro_id=maestro.pk), ["gas", "pintura"])
+    gas = _servicio_del_catalogo("gas", "Instalación de cocina", ["por_trabajo"])
+    pintura = _servicio_del_catalogo("pintura", "Pintura de muro", ["por_trabajo", "por_hora"])
+    carpinteria = _servicio_del_catalogo("carpinteria", "Arreglo de puerta", ["por_trabajo"])
+    assert iniciar_sesion(client, RUT_PROPIO).status_code == 200
+
+    respuestas = []
+
+    def registrar(descripcion, respuesta):
+        assert respuesta.status_code >= 400, descripcion
+        respuestas.append((descripcion, respuesta))
+
+    for descripcion, datos in [
+        ("servicio vacío", {}),
+        ("sin modalidad", {"servicio": str(gas.ref), "monto": 1000}),
+        ("sin monto", {"servicio": str(gas.ref), "modalidad": "por_trabajo"}),
+        ("monto inválido", {"servicio": str(gas.ref), "modalidad": "por_trabajo", "monto": "mil"}),
+        ("monto sobre el tope", {"servicio": str(gas.ref), "modalidad": "por_trabajo", "monto": 10_000_001}),
+        ("modalidad no admitida", {"servicio": str(gas.ref), "modalidad": "por_hora", "monto": 1000}),
+        ("servicio inexistente", {"servicio": "no-es", "modalidad": "por_trabajo", "monto": 1000}),
+        ("oficio no declarado", {"servicio": str(carpinteria.ref), "modalidad": "por_trabajo", "monto": 1000}),
+        ("dato que no corresponde", {"servicio": str(gas.ref), "modalidad": "por_trabajo", "monto": 1, "rut": "x"}),
+    ]:
+        registrar(descripcion, post_json(client, URL_SERVICIOS, datos))
+    creado = post_json(client, URL_SERVICIOS, {"servicio": str(gas.ref), "modalidad": "por_trabajo", "monto": 1000})
+    assert creado.status_code == 201
+    url = f"{URL_SERVICIOS}/{creado.json()['servicio']['ref']}"
+    repetido = {"servicio": str(gas.ref), "modalidad": "por_trabajo", "monto": 1}
+    registrar("servicio repetido", post_json(client, URL_SERVICIOS, repetido))
+    registrar("cambio sin datos", _patch(client, url, {}))
+    registrar("cambio a modalidad no admitida", _patch(client, url, {"modalidad": "por_hora"}))
+    registrar("servicio ajeno o inexistente", _patch(client, f"{URL_SERVICIOS}/{uuid.uuid4()}", {"monto": 1}))
+    assert client.delete(url).status_code == 204
+    registrar("servicio ya quitado", client.delete(url))
+    _con_estado(EstadoExpediente.RECHAZADO)
+    otro = {"servicio": str(pintura.ref), "modalidad": "por_hora", "monto": 1}
+    registrar("postulación rechazada", post_json(client, URL_SERVICIOS, otro))
+
+    # Motivos y pendientes que se muestran en la lista (no son errores, pero los lee el maestro).
+    textos_lista = []
+    for estado in (EstadoExpediente.EN_REVISION, EstadoExpediente.SUSPENDIDO, EstadoExpediente.RECHAZADO):
+        _con_estado(estado)
+        textos_lista += _textos_json(client.get(URL_SERVICIOS).json())
+    textos_lista += [m.format(oficio="Gas") for m in MENSAJES_MOTIVO.values()]
+    textos_lista += list(MENSAJES_PENDIENTE.values()) + list(MENSAJES_POSTULACION.values())
+    assert set(MENSAJES_MOTIVO) == set(publicacion.MOTIVOS)
+
+    encontrados = []
+    mensajes = set()
+    for descripcion, respuesta in respuestas:
+        assert respuesta["Content-Type"].startswith("application/json"), descripcion
+        for texto in _textos_json(respuesta.json()):
+            mensajes.add(texto)
+            encontrados += [(descripcion, texto, t) for t in PROHIBIDO_PARA_EL_MAESTRO if t in texto]
+    for texto in textos_lista:
+        encontrados += [("lista de servicios", texto, t) for t in PROHIBIDO_PARA_EL_MAESTRO if t in texto]
+    assert encontrados == []
+    assert len(mensajes) >= 10
+    assert Servicio.objects.count() == 3 and ServicioModalidad.objects.count() == 4

@@ -24,11 +24,14 @@ MENSAJE_VALOR_REPETIDO = "Este dato llegó repetido. Recarga la página e intén
 MENSAJE_ARCHIVO_ESPERADO = "Aquí va una foto. Elige la foto de nuevo e inténtalo otra vez."
 
 # Todos los campos que aparecen en alguna lista de campos permitidos (E-2),
-# incluidos los del formulario de documentos (multipart) y los de curatoría.
+# incluidos los del formulario de documentos (multipart), los de curatoría, los
+# del catálogo de comercial (ADR-018) y los de servicios del maestro (ADR-019).
 CAMPOS_CONOCIDOS = frozenset(
     {"nombre", "telefono", "correo", "contrasena", "comuna", "rut", "identificador", "oficios",
      "tipo", "oficio", "fecha_emision", "fecha_vencimiento", "archivo", "archivo_reverso",
-     "estado_nuevo", "estado_actual", "motivo", "resultado"}
+     "estado_nuevo", "estado_actual", "motivo", "resultado",
+     "regulado", "orden", "activo", "version", "modalidades",
+     "servicio", "modalidad", "monto"}
 )
 
 

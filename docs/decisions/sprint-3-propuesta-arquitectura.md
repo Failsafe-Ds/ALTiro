@@ -134,3 +134,12 @@ Preguntas para el representante (P-12 a P-17): ver `docs/alcance/preguntas-repre
   - Adelantos de S4 a S3: el perfil público parcial (RF-14) y la foto (dato de RF-13).
   - A S4: la evidencia de RF-06 en "resultados", CA-13.2 y CA-14.3.
   - RNF-18 retroactivo sobre S1 y S2.
+
+## 8. Aclaraciones de implementación (incrementos 1 y 2, 2026-09-29, provisionales)
+1. **Código de un oficio nuevo:** se deriva del nombre (ASCII, `[a-z0-9_]`, con sufijo `_2` si ya existe). Comercial no lo escribe.
+2. **`orden` opcional:** si no se indica, toma el siguiente. Los nombres de servicio son únicos dentro de su oficio, sin distinguir mayúsculas. El precio de referencia tiene el mismo tope técnico de 10.000.000.
+3. **Modalidades de un servicio:** cambiarlas reemplaza el conjunto completo; lo anterior queda en la bitácora. Una modificación sin cambios responde 400. Dos altas simultáneas con el mismo nombre: la segunda responde 409.
+4. **`/api/oficios` lista solo oficios activos.** Declarar un oficio dado de baja se rechaza en el incremento 3. Las declaraciones que ya existían se conservan.
+5. **El comando `cargar_datos_demo` no escribe en la bitácora**, igual que la carga del CSV: la consola no identifica a quien lo ejecuta (ADR-010). Deja un evento de aplicación con el conteo.
+6. **Migración 0003:** como `cargar` ahora solo inserta, 0003 ya no corrige nombres en una base que siga con los códigos `ejemplo_N`. Eso solo afecta a bases no actualizadas desde antes del S2.
+7. **Mientras no existan la cobertura (incremento 3) y la foto (incremento 5), ningún servicio es visible.** La regla ya las exige.
