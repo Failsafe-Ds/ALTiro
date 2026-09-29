@@ -35,3 +35,6 @@ venv/
 *.log
 .DS_Store
 Thumbs.db
+
+# Grafo de graphify, se regenera en cada equipo (ADR-025)
+graphify-out/
