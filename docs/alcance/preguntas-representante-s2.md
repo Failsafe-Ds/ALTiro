@@ -28,3 +28,15 @@ Sin respuesta del representante, y siguiendo la instrucción del equipo de tomar
 - Jardinería.
 
 El informe solo nombra al "gasfíter" y al "eléctrico" (§1) y confirma como regulados el gas y la electricidad (§3.4, RNF-25). El resto es un **supuesto** hasta que responda el representante. Para P-02, la gasfitería de agua no es regulada; la de gas queda cubierta por el oficio "Gas".
+
+## Preguntas del Sprint 3 (2026-09-29)
+
+| # | Pregunta | Supuesto vigente (provisional) | Origen |
+|---|---|---|---|
+| P-12 | ¿Puede el administrador comercial declarar un oficio nuevo como regulado? | Sí, pero solo al crearlo; después no se puede cambiar desde la aplicación | ADR-018, D-2 |
+| P-13 | ¿Los maestros organizan su disponibilidad por semana (mismos días y horas) o por fechas concretas? | Patrón semanal | ADR-020, D-9 |
+| P-14 | ¿La foto de perfil es obligatoria para aparecer? | Sí | ADR-021, D-13 |
+| P-15 | ¿Se muestra el nombre completo del maestro en su perfil público? | Sí, tal como está registrado | ADR-019, D-14 |
+| P-16 | ¿Puede un maestro ya aprobado agregar un oficio nuevo? ¿Con qué revisión? | No en el S3 (no hay HU ni RF) | Propuesta del S3, D-17 |
+| P-17 | ¿Qué servicios tiene cada oficio y con qué precios de referencia? | Datos ficticios de demostración, cargados por comercial | ADR-018 |
+| P-18 | ¿Hay moderación de las fotos de perfil? | No definida | ADR-021 |
