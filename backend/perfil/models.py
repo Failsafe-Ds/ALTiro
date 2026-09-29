@@ -73,6 +73,14 @@ class ServicioMaestro(models.Model):
 
     class Meta:
         db_table = "servicio_maestro"
+        indexes = [
+            # Búsqueda: servicios activos de un servicio del catálogo (RF-09, RNF-01; ADR-022, punto 7).
+            models.Index(
+                fields=["servicio", "maestro"],
+                condition=Q(retirado_en__isnull=True),
+                name="servicio_maestro_activo_idx",
+            ),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(modalidad__in=[valor for valor, _ in Modalidad.choices]),
@@ -112,11 +120,18 @@ class Cobertura(models.Model):
         db_column="perfil_maestro_id",
         db_index=False,
     )
-    comuna = models.ForeignKey(Comuna, on_delete=models.PROTECT, related_name="+", db_column="comuna_codigo")
+    # Sin índice propio: lo cubre cobertura_comuna_maestro_idx (búsqueda por comuna, ADR-022).
+    comuna = models.ForeignKey(
+        Comuna, on_delete=models.PROTECT, related_name="+", db_column="comuna_codigo", db_index=False
+    )
     es_base = models.BooleanField(default=False)
 
     class Meta:
         db_table = "cobertura"
+        indexes = [
+            # Búsqueda: maestros que atienden una comuna (RF-09, RNF-01; ADR-022, punto 7).
+            models.Index(fields=["comuna", "maestro"], name="cobertura_comuna_maestro_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(fields=["maestro", "comuna"], name="cobertura_comuna_unica"),
             models.UniqueConstraint(

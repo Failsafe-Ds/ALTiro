@@ -7,7 +7,7 @@ CA-12.2, CA-24.1, RNF-07; ADR-019 (puntos 3, 5 y 6), ADR-021, ADR-015 (patrón).
   480 px, permisos 0600, reemplazo con borrado al confirmar.
 - Publicación: un maestro no publicado responde el mismo 404 que una ref
   inexistente, sin fila en ``acceso_denegado``.
-- RNF-25: barrido de todas las rutas públicas con combinaciones generadas de
+- RNF-25: barrido de todas las rutas públicas (incluida la búsqueda del S4) con combinaciones generadas de
   licencias: ningún servicio de gas o electricidad visible sin licencia habilitante.
 - Privacidad: lista explícita de campos, sin la comuna base como tal.
 
@@ -353,7 +353,7 @@ def test_el_perfil_publico_muestra_solo_la_lista_explicita(publicado):
     assert respuesta.status_code == 200
     assert respuesta["Cache-Control"] == "no-store"
     datos = respuesta.json()["maestro"]
-    assert set(datos) == {"ref", "nombre", "foto", "servicios", "comunas", "agenda"}
+    assert set(datos) == {"ref", "nombre", "foto", "servicios", "comunas", "agenda", "bloques"}
     assert datos["nombre"] == "Maestro Uno"
     ref = _ref(publicado)
     assert datos["foto"] == {
@@ -363,7 +363,7 @@ def test_el_perfil_publico_muestra_solo_la_lista_explicita(publicado):
     assert {(s["oficio"]["codigo"], s["servicio"], s["monto"]) for s in datos["servicios"]} == {
         ("gas", "Instalación de cocina", MONTO_MARCA), ("pintura", "Pintura de habitación", MONTO_PINTURA),
     }
-    assert set(datos["servicios"][0]) == {"oficio", "servicio", "modalidad", "modalidad_texto", "monto"}
+    assert set(datos["servicios"][0]) == {"ref", "oficio", "servicio", "modalidad", "modalidad_texto", "monto"}
     assert datos["agenda"] == [
         {"dia_semana": 1, "dia": "lunes", "inicio": "08:00", "fin": "12:00"},
         {"dia_semana": 6, "dia": "sábado", "inicio": "14:30", "fin": "24:00"},
@@ -386,13 +386,19 @@ def test_privacidad_nunca_datos_personales_ni_del_expediente(publicado):
 
     assert_campos_ausentes(
         respuesta,
-        {"rut", "telefono", "correo", "documentos", "estado", "motivo", "estado_motivo", "expediente",
+        {"rut", "telefono", "correo", "documentos", "motivo", "estado_motivo", "expediente",
          "fecha_vencimiento", "fecha_emision", "licencia", "id", "perfil_maestro_id", "usuario_id", "archivo",
          "retirado_en", "creado_en", "inicio_min", "fin_min", "visible", "motivos"},
         valores=[RUT_CANONICO, "11.111.111-1", "910000001", "maestro.uno@example.com", str(expediente.ref),
                  str(licencia.ref), str(licencia.archivo), licencia.fecha_vencimiento.isoformat(), "aprobado",
                  str(PerfilPublico.objects.get(perfil_maestro_id=publicado.pk).foto)],
     )
+    # "estado" solo existe en los bloques de la ficha (S4, RF-14), nunca el del expediente.
+    datos = respuesta.json()["maestro"]
+    assert "estado" not in datos
+    assert {b["estado"] for b in datos["bloques"]} <= {"libre", "ocupado"}
+    for lista in ("servicios", "comunas", "agenda"):
+        assert all("estado" not in elemento for elemento in datos[lista])
 
 
 @pytest.mark.parametrize(
@@ -585,19 +591,32 @@ ESCENARIOS = [
 ]
 
 
-def _urls_publicas(usuario):
-    """Una URL GET por cada ruta pública, con la ref pública del maestro en las que la llevan."""
+def _urls_publicas(usuario, oficio="gas"):
+    """Una URL GET por cada ruta pública, con la ref pública del maestro en las que la llevan.
+
+    La búsqueda (S4, ADR-022) se consulta por el oficio regulado en sus dos
+    comunas (la base y la otra): la tarjeta no lleva monto, así que ahí la
+    marca de visibilidad es la ref pública del maestro en los resultados.
+    """
     urls = []
     for ruta in rutas():
         if not ruta.publica:
             continue
         url = "/" + ruta.patron.replace("<uuid:ref>", str(_ref(usuario))).replace("<int:codigo>", "8")
+        if ruta.patron == "api/busqueda":
+            urls += [f"{url}?oficio={oficio}&comuna={comuna}" for comuna in ("8110", "8101")]
+            continue
         urls.append(url)
         if url.endswith("/foto"):
             urls += [url + "?tam=160", url + "?tam=480"]
     return urls
 
 
+def _marca(url, usuario):
+    return str(_ref(usuario)).encode() if url.startswith("/api/busqueda") else str(MONTO_MARCA).encode()
+
+
+@pytest.mark.regla("F-07")
 @pytest.mark.parametrize(("oficio", "escenario"), list(itertools.product(["gas", "electricidad"], ESCENARIOS)))
 def test_rnf25_ningun_servicio_regulado_visible_sin_licencia_habilitante(maestro, catalogo, oficio, escenario):
     _preparar(maestro, oficios=(oficio, "pintura"))
@@ -605,20 +624,30 @@ def test_rnf25_ningun_servicio_regulado_visible_sin_licencia_habilitante(maestro
     ServicioMaestro.objects.create(maestro_id=maestro.pk, servicio=catalogo[oficio], modalidad=T, monto=MONTO_MARCA)
     ServicioMaestro.objects.create(maestro_id=maestro.pk, servicio=catalogo["pintura"], modalidad=T, monto=MONTO_PINTURA)
 
-    urls = _urls_publicas(maestro)
+    urls = _urls_publicas(maestro, oficio)
     assert any("/api/maestros/publicos/" in u for u in urls) and "/api/catalogo" in urls
+    assert any(u.startswith("/api/busqueda?") for u in urls)
     visto_en = []
     clientes = (Client(), _sesion())
     for url in urls:
         for client in clientes:
             respuesta = client.get(url)
-            if str(MONTO_MARCA).encode() in respuesta.content:
+            if url.startswith("/api/busqueda"):
+                assert respuesta.status_code == 200, url
+            if _marca(url, maestro) in respuesta.content:
                 visto_en.append(url)
     assert bool(visto_en) is habilitado, (oficio, escenario, visto_en)
+    if habilitado:
+        assert {u for u in visto_en if u.startswith("/api/busqueda")} == {
+            u for u in urls if u.startswith("/api/busqueda")
+        }
 
     # El perfil sigue publicado por pintura; el servicio regulado solo aparece si está habilitado.
     servicios = Client().get(_url(maestro)).json()["maestro"]["servicios"]
     assert {s["oficio"]["codigo"] for s in servicios} == ({oficio, "pintura"} if habilitado else {"pintura"})
+    # CA-24.4: por pintura (no regulado) aparece siempre en la búsqueda.
+    pintura = Client().get("/api/busqueda", {"oficio": "pintura", "comuna": "8101"}).json()["resultados"]
+    assert [t["ref"] for t in pintura] == [str(_ref(maestro))]
 
 
 def test_tel_a_es_el_del_maestro_de_prueba():

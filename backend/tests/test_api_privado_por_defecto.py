@@ -17,6 +17,8 @@ RUTAS_PUBLICAS = {
     # Perfil público y su foto: solo de maestros publicados; si no, 404 neutro sin registro (ADR-019, ADR-021).
     "api/maestros/publicos/<uuid:ref>",
     "api/maestros/publicos/<uuid:ref>/foto",
+    # Búsqueda: filtros excluyentes, puntaje oculto (RF-09 a RF-13; ADR-022).
+    "api/busqueda",
 }
 
 

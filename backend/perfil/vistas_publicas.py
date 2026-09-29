@@ -7,10 +7,10 @@
   deniega a nadie, solo no encuentra (ADR-019, punto 5).
 - ``GET /api/maestros/publicos/<uuid:ref>/foto?tam=160|480``: misma condición.
 
-Lista explícita de campos (D-14): nombre registrado, foto, servicios visibles
+Lista explícita de campos (D-14): nombre registrado, foto, servicios visibles (con la ref del catálogo, ADR-022),
 (oficio, servicio, modalidad y monto), comunas atendidas **sin indicar cuál es
 la base** (por nombre, así el orden tampoco la revela) y agenda semanal en
-"HH:MM". Nunca RUT, teléfono, correo, documentos, estado o motivos del
+"HH:MM" y ``bloques`` de los próximos 14 días, libres u ocupados (RF-14; ADR-022, punto 4). Nunca RUT, teléfono, correo, documentos, estado o motivos del
 expediente, fechas de licencia, ids internos ni la ref del expediente.
 
 Caché:
@@ -23,14 +23,16 @@ Caché:
   entregar su foto en la siguiente consulta, y en red móvil una foto sin
   cambios cuesta solo la revalidación (RNF-02).
 """
+import datetime
 import hashlib
 
 from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
 
 from catalogo.models import Modalidad
 from comun.api import metodos, publica, respuesta_no_encontrado
 from expediente import vigencia
-from perfil import agenda, cobertura, fotos, publicacion
+from perfil import agenda, cobertura, fotos, ocupacion, ocurrencias, publicacion
 from perfil.models import PerfilPublico
 
 CABECERAS_FOTO = {
@@ -41,6 +43,8 @@ CABECERAS_FOTO = {
     "Cross-Origin-Resource-Policy": "same-origin",
 }
 TAMANO_POR_DEFECTO = 480
+ESTADO_LIBRE = "libre"
+ESTADO_OCUPADO = "ocupado"
 
 
 def _publicado(ref):
@@ -57,7 +61,33 @@ def url_foto(perfil, tamano):
     return f"/api/maestros/publicos/{perfil.ref}/foto?tam={tamano}"
 
 
-def datos_publicos(perfil, hoy):
+def bloques_de_ficha(maestro_id, ahora, hoy):
+    """Bloques concretos de los próximos 14 días, libres u ocupados (RF-14; ADR-022, punto 4; ADR-020, E-1).
+
+    Se omiten las ocurrencias que empiezan en 4 horas o menos (RF-16) y las de
+    una hora que no existe (horario de verano). Un bloque ocupado no lleva
+    ningún dato del ticket que lo ocupa: solo su estado.
+    """
+    patrones = list(agenda.bloques_activos(maestro_id))
+    todas = ocurrencias.ocurrencias(patrones, hoy, ocurrencias.HORIZONTE_DIAS)
+    desde = ocurrencias.instante(hoy, 0) or ahora
+    hasta = desde + datetime.timedelta(days=ocurrencias.HORIZONTE_DIAS + 1)
+    ocupados = ocupacion.rangos_ocupados([maestro_id], desde, hasta).get(maestro_id, ())
+    return [
+        {
+            "fecha": una.fecha.isoformat(),
+            "inicio": agenda.formato_hora(una.inicio_min),
+            "fin": agenda.formato_hora(una.fin_min),
+            "ref": str(una.patron),
+            "estado": ESTADO_OCUPADO if ocurrencias.ocupada(una, ocupados) else ESTADO_LIBRE,
+        }
+        for una in todas
+        if ocurrencias.empieza_con_anticipacion(una, ahora)
+    ]
+
+
+def datos_publicos(perfil, ahora):
+    hoy = vigencia.hoy_negocio(ahora)
     maestro_id = perfil.perfil_maestro_id
     servicios = publicacion.servicios_visibles(maestro_id, hoy)
     return {
@@ -66,6 +96,8 @@ def datos_publicos(perfil, hoy):
         "foto": {str(tamano): url_foto(perfil, tamano) for tamano in fotos.TAMANOS},
         "servicios": [
             {
+                # Ref del servicio del catálogo, no la de servicio_maestro (ADR-022, punto 4).
+                "ref": str(s.servicio.ref),
                 "oficio": {"codigo": s.servicio.oficio.codigo, "nombre": s.servicio.oficio.nombre},
                 "servicio": s.servicio.nombre,
                 "modalidad": s.modalidad,
@@ -87,6 +119,7 @@ def datos_publicos(perfil, hoy):
             }
             for b in agenda.bloques_activos(maestro_id)
         ],
+        "bloques": bloques_de_ficha(maestro_id, ahora, hoy),
     }
 
 
@@ -96,7 +129,7 @@ def perfil_publico(request, ref):
     perfil = _publicado(ref)
     if perfil is None:
         return respuesta_no_encontrado()
-    respuesta = JsonResponse({"maestro": datos_publicos(perfil, vigencia.hoy_negocio())})
+    respuesta = JsonResponse({"maestro": datos_publicos(perfil, timezone.now())})
     respuesta["Cache-Control"] = "no-store"
     return respuesta
 

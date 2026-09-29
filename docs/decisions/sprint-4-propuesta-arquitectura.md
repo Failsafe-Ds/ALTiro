@@ -173,3 +173,13 @@
   - pasa al S5 la conversación de CA-15.2;
   - RNF-03 con mensajes pasa al S5;
   - RF-12 queda como recorte si no se construye.
+
+## 11. Aclaraciones de implementación (incrementos 1 y 2, 2026-09-29, provisionales)
+1. Una ocurrencia no se ofrece si su inicio **o** su fin cae en una hora que no existe por el cambio de horario (por ejemplo, 22:00–24:00 el sábado del salto de hora).
+2. **Horizonte de 14 días:** va de hoy a hoy+13. Pedir hoy+14 responde 400.
+3. Con filtro de bloque, la regla de las 4 horas se aplica al inicio de la ocurrencia completa, no al del rango pedido (ADR-022, lectura literal).
+4. **Parámetros:** `oficio` es el código del oficio y `comuna` es el código CUT. Un oficio inactivo o desconocido responde 400 en el campo. Una página fuera de rango devuelve una lista vacía, sin mensaje.
+5. **Sugerencias:** se acumulan primero las que no calzan con el bloque y después las de otra comuna, hasta completar 5.
+6. **Volumen sintético:** solo usa oficios no regulados, porque fabricar licencias SEC exigiría archivos cifrados. Los RUT sintéticos van desde 50.000.000 y los teléfonos son +56 9 0000 0NNN.
+7. La ficha expone la ref del patrón de disponibilidad. Las rutas privadas sobre ese patrón ya están protegidas por la política de dueño.
+8. `rangos_ocupados()` y `calificaciones_en_lote()` responden vacío hasta el incremento 4 y el S5, respectivamente.

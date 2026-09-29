@@ -65,25 +65,42 @@ def _dia(valor, errores):
     return valor
 
 
-def _minutos(datos, campo, errores):
-    """"HH:MM" de 24 horas a minutos; anota el error del campo y devuelve ``None`` si no sirve."""
-    valor = datos.get(campo)
+class HoraInvalida(ValueError):
+    """La hora recibida no sirve; ``mensaje`` es la acción correctiva para la persona (RNF-15)."""
+
+    def __init__(self, mensaje):
+        super().__init__(mensaje)
+        self.mensaje = mensaje
+
+
+def minutos_de_hora(valor):
+    """Validador reutilizable de hora de 24 horas (ADR-020, punto 2): "HH:MM" a minutos desde la medianoche.
+
+    Acepta de "00:00" a "24:00", en punto o y media. Lanza ``HoraInvalida``
+    con el mensaje del campo si falta, no tiene la forma o no es múltiplo de 30.
+    Lo usan la agenda del maestro y el filtro de bloque de la búsqueda (S4).
+    """
     if valor in (None, ""):
-        errores[campo] = MENSAJE_HORA_FALTA
-        return None
+        raise HoraInvalida(MENSAJE_HORA_FALTA)
     coincidencia = _HORA.fullmatch(valor) if isinstance(valor, str) else None
     if coincidencia is None:
-        errores[campo] = MENSAJE_HORA_INVALIDA
-        return None
+        raise HoraInvalida(MENSAJE_HORA_INVALIDA)
     horas, minutos = int(coincidencia.group(1)), int(coincidencia.group(2))
     if minutos > 59 or horas > 24 or (horas == 24 and minutos != 0):
-        errores[campo] = MENSAJE_HORA_INVALIDA
-        return None
+        raise HoraInvalida(MENSAJE_HORA_INVALIDA)
     total = horas * 60 + minutos
     if total % GRANULARIDAD_MINUTOS:
-        errores[campo] = MENSAJE_GRANULARIDAD
-        return None
+        raise HoraInvalida(MENSAJE_GRANULARIDAD)
     return total
+
+
+def _minutos(datos, campo, errores):
+    """"HH:MM" de 24 horas a minutos; anota el error del campo y devuelve ``None`` si no sirve."""
+    try:
+        return minutos_de_hora(datos.get(campo))
+    except HoraInvalida as error:
+        errores[campo] = error.mensaje
+        return None
 
 
 def _validar(datos):

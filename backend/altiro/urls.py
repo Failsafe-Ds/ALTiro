@@ -10,6 +10,7 @@ from identidad import vistas as identidad
 from perfil import vistas as perfil
 from perfil import vistas_maestro as perfil_maestro
 from perfil import vistas_publicas as perfil_publico
+from busqueda import vistas as busqueda
 from territorio import vistas as territorio
 
 # Toda ruta /api/ es privada salvo las marcadas con comun.api.publica.
@@ -47,6 +48,8 @@ urlpatterns = [
     # Perfil público: solo si el maestro está publicado; si no, 404 neutro sin registro (ADR-019, punto 5).
     path("api/maestros/publicos/<uuid:ref>", perfil_publico.perfil_publico, name="perfil_publico"),
     path("api/maestros/publicos/<uuid:ref>/foto", perfil_publico.foto_publica, name="foto_publica"),
+    # Búsqueda pública: filtros excluyentes, puntaje oculto y sugerencias aparte (RF-09 a RF-13; ADR-022).
+    path("api/busqueda", busqueda.busqueda, name="busqueda"),
     # Expediente propio del maestro, patrón "me" (ADR-011; propuesta del S2, §4).
     path("api/maestros/expediente", expediente.mi_expediente, name="mi_expediente"),
     path("api/maestros/expediente/oficios", expediente.mis_oficios, name="mis_oficios"),
