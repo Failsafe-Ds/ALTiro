@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi perfil — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/expediente.js" defer></script>
+  <script src="js/foto.js" defer></script>
+  <script src="js/mi-perfil.js" defer></script>
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" href="cuenta.html">Mi cuenta</a>
+  </header>
+  <main>
+    <h1 id="titulo-pagina" tabindex="-1">Mi perfil</h1>
+    <p id="cargando" role="status">Cargando tu perfil…</p>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+    <div id="aviso-resultado" class="aviso" role="status" aria-live="polite" tabindex="-1"></div>
+
+    <div id="contenido" hidden>
+      <!-- Estado de publicación: lo decide el servidor (ADR-019, D-7). Ícono y texto (RNF-16). -->
+      <section id="seccion-estado" class="tarjeta" aria-labelledby="titulo-estado">
+        <h2 id="titulo-estado" tabindex="-1"></h2>
+        <div id="estado-publicado" hidden>
+          <p>Los clientes pueden encontrarte y ver tus servicios, tus comunas y tus horarios.</p>
+          <div class="acciones">
+            <a class="boton" id="ver-publico" href="perfil-maestro.html">Ver cómo me ven los clientes</a>
+          </div>
+        </div>
+        <div id="estado-pendiente" hidden>
+          <p>Te falta:</p>
+          <ul id="lista-pendientes" class="lista-avisos"></ul>
+        </div>
+      </section>
+
+      <!-- Foto de perfil (ADR-021): obligatoria para que te vean los clientes. -->
+      <section id="seccion-foto" class="tarjeta" aria-labelledby="titulo-foto">
+        <h2 id="titulo-foto" tabindex="-1">Tu foto</h2>
+        <p id="foto-estado-texto" class="linea-estado"></p>
+        <img id="foto-actual" class="foto-perfil" alt="" width="160" height="160" hidden>
+        <form id="form-foto" novalidate>
+          <div class="aviso" role="alert" tabindex="-1"></div>
+          <div id="selector-foto"></div>
+          <p class="progreso-envio" id="progreso-foto" role="status"></p>
+          <div class="acciones">
+            <button type="submit" id="guardar-foto">Guardar mi foto</button>
+          </div>
+        </form>
+      </section>
+
+      <nav class="tarjeta" aria-labelledby="titulo-armar">
+        <h2 id="titulo-armar">Arma tu perfil</h2>
+        <div class="acciones">
+          <a class="boton boton-secundario" href="mi-cobertura.html">Mi cobertura</a>
+          <a class="boton boton-secundario" href="mi-agenda.html">Mi agenda</a>
+          <a class="boton boton-secundario" href="mis-servicios.html">Mis servicios</a>
+          <a class="boton boton-secundario" href="mi-postulacion.html">Mi postulación</a>
+        </div>
+      </nav>
+    </div>
+  </main>
+</body>
+</html>

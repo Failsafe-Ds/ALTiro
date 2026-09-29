@@ -910,3 +910,190 @@ button.boton-peligro[disabled]:hover {
     grid-column: 1 / -1;
   }
 }
+
+/* --- Sprint 3: cobertura, agenda, mi perfil y perfil público (HU-13, HU-14; ADR-019 a ADR-021) --- */
+
+/* Ayuda destacada (texto 16:1 sobre #f3f4f6; el borde no transmite estado). */
+.nota-ayuda {
+  padding: 0.75rem 1rem;
+  border-left: 6px solid var(--borde);
+  background: var(--fondo-suave);
+  border-radius: var(--radio);
+}
+
+/* Filas con un nombre y un botón «Quitar» (comunas y horarios). El botón
+   mantiene 44 px o más y baja de línea si el nombre es largo. */
+.linea-comuna,
+.linea-bloque {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.linea-comuna:last-child,
+.linea-bloque:last-child {
+  border-bottom: 0;
+}
+
+.nombre-comuna,
+.rango-bloque {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.rango-bloque {
+  font-variant-numeric: tabular-nums;
+}
+
+button.boton-quitar {
+  width: auto;
+  min-width: 6rem;
+}
+
+.linea-bloque > .confirmacion {
+  flex-basis: 100%;
+}
+
+.dia-agenda h3 {
+  margin-top: 0;
+}
+
+.lista-dias {
+  list-style: none;
+  padding: 0;
+}
+
+/* Selector propio de 24 horas (ADR-020): hora y minutos lado a lado. */
+.hora-24 {
+  margin-bottom: 1.25rem;
+}
+
+.hora-partes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.hora-parte {
+  min-width: 0;
+}
+
+.hora-separador {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 48px;
+}
+
+.resumen-bloque {
+  font-weight: 700;
+}
+
+.resumen-bloque:empty {
+  display: none;
+}
+
+/* Estado de publicación: con ícono y texto; el borde lo refuerza (RNF-16). */
+.estado-publicado {
+  border-left: 6px solid var(--exito);
+  background: var(--exito-fondo);
+}
+
+.estado-publicado h2 {
+  margin-top: 0;
+  color: var(--exito);
+}
+
+.foto-perfil,
+.foto-publica {
+  display: block;
+  width: 8rem;
+  height: 8rem;
+  object-fit: cover;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--fondo-suave);
+}
+
+.foto-perfil {
+  margin: 0.5rem 0 1rem;
+}
+
+/* Perfil público: foto y nombre; desde 40 rem, la foto más grande. */
+.cabecera-perfil {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.cabecera-perfil h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1 1 10rem;
+}
+
+@media (min-width: 40rem) {
+  .foto-publica {
+    width: 12rem;
+    height: 12rem;
+  }
+}
+
+.oficio-publico h3 {
+  margin-top: 0;
+}
+
+.precios-publicos li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--borde);
+  overflow-wrap: anywhere;
+}
+
+.precios-publicos li:last-child {
+  border-bottom: 0;
+}
+
+.lista-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.lista-etiquetas li {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--fondo-suave);
+  overflow-wrap: anywhere;
+}
+
+.horarios {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+.horarios dt {
+  font-weight: 700;
+}
+
+.horarios dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

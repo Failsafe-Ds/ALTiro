@@ -13,6 +13,9 @@
     curatoria: { pagina: "curatoria.html", rol: "curatoria" },
     servicios: { pagina: "mis-servicios.html", rol: "maestro" },
     comercial: { pagina: "comercial.html", rol: "comercial" },
+    perfil: { pagina: "mi-perfil.html", rol: "maestro" },
+    cobertura: { pagina: "mi-cobertura.html", rol: "maestro" },
+    agenda: { pagina: "mi-agenda.html", rol: "maestro" },
   };
   const form = document.getElementById("ingresar");
   formulario.prepararBoton(form);

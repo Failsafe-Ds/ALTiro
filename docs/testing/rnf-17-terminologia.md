@@ -96,3 +96,28 @@ Textos propios del frontend en `mis-servicios.html`/`js/mis-servicios.js` (vista
 | 403 sin rol | "Esta sección es para el área comercial. Tu cuenta no tiene acceso a ella." | `comercial` |
 
 Búsqueda en los textos visibles nuevos de la vista del maestro: "modalidad", "publicar", "visible", "elegible", "catálogo", "servidor", "versión", "código", "perfil" y "API": **0 apariciones**. "Bitácora" y "versión" solo aparecen en la vista comercial (personal administrativo). "SEC" en la vista del maestro va junto a "licencia", como en el S2 (§4).
+
+## 6. Sprint 3: «Mi perfil», «Mi cobertura», «Mi agenda» y perfil público (2026-09-29)
+
+Textos propios del frontend en `mi-perfil`, `mi-cobertura` y `mi-agenda` (vistas del maestro) y en `perfil-maestro` (vista pública). Los pendientes y los errores de cobertura y agenda los arma el servidor (`perfil/vistas_maestro.py`, `perfil/cobertura.py` y `perfil/agenda.py`). La página los muestra tal cual y solo tiene textos de respaldo por código.
+
+| Término del informe o del sistema | En pantalla | Dónde |
+|---|---|---|
+| comuna base (RF-06) | "Tu comuna principal (obligatoria)"; "Paso 1 de 2: tu comuna principal" | `mi-cobertura` |
+| cobertura | "Mi cobertura" (rótulo de navegación); "¿en qué otras comunas trabajas?"; "Comunas donde trabaja" | `mi-cobertura`, `perfil-maestro`, `cuenta` |
+| disponibilidad, bloque (RF-07) | "Mi agenda", "horario", "Tus horarios de cada semana", "Agregar un horario", "Desde" / "Hasta" | `mi-agenda` |
+| `dia_semana`, `inicio`, `fin` | "Día", "Desde", "Hasta", "Hora", "Minutos"; resumen "Vas a guardar: lunes de 08:00 a 12:00." | `mi-agenda` |
+| 1440 minutos | "24:00" ("«24:00» es el final del día") | `mi-agenda`, `perfil-maestro` |
+| retirar (baja lógica) | "Quitar"; "¿Quitar el horario del lunes de 08:00 a 12:00?" | `mi-agenda`, `mi-cobertura` |
+| declarar no compromete la asistencia (HU-14, NTI-02) | "Declarar tus horarios no te obliga a aceptar todos los trabajos: tú decides cuando te llegue una solicitud." ("solicitud" es la palabra del informe para la necesidad del cliente) | `mi-agenda` |
+| publicado / elegible, `publicado: true` | "✓ Los clientes ya pueden ver tu perfil" / "⚠ Todavía no te ven los clientes" + "Te falta:" | `mi-perfil` |
+| `pendientes` | Texto del servidor más un botón: «Ir a mi postulación», «Ir a mi cobertura», «Ir a mis servicios» o «Subir mi foto aquí». En «Mis servicios»: «Ir a mi cobertura» e «Ir a mi perfil para subir tu foto» | `mi-perfil`, `mis-servicios` |
+| `tiene_foto` | "✓ Ya subiste tu foto" / "✕ Falta tu foto. Sin foto los clientes no te ven." | `mi-perfil` |
+| perfil público, `ref` | "Ver cómo me ven los clientes" (sin mostrar la referencia) | `mi-perfil` |
+| 404 del perfil público | "No encontramos este perfil. Puede que el maestro ya no esté disponible." (el mismo texto si no está publicado, si no existe o si el enlace está mal escrito) | `perfil-maestro` |
+
+Búsqueda en los textos visibles nuevos del maestro: **0 apariciones** de "base", "cobertura" (fuera del rótulo «Mi cobertura»), "bloque", "disponibilidad", "publicar" o "publicado", "elegible", "ref", "servidor", "AM/PM", "UUID" y "API".
+
+Los errores del servidor sobre la agenda sí dicen "bloque" ("se cruza con tu bloque del lunes…", en `perfil/agenda.py`), mientras la pantalla dice "horario". Queda anotado para la tarea de backend.
+
+**Cambio respecto del §5:** en la vista del maestro ahora aparece "perfil" («Mi perfil», "Los clientes ya pueden ver tu perfil"). Es una palabra de uso cotidiano y el equipo pidió ese rótulo. Se somete a la pregunta "¿Hubo palabras que no entendió?" del protocolo de RNF-13. Lo mismo vale para «Mi cobertura», que es el nombre de la página en la propuesta del S3 (§5); si no se entiende, la alternativa es «Mis comunas».

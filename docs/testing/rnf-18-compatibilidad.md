@@ -192,3 +192,75 @@ Verificaciones funcionales incluidas en la corrida: CA-20.1 (el servicio creado 
 **Datos que dejan las corridas:** cada corrida comercial crea un oficio "Oficio Prueba S3 …" con un servicio y al final lo da de baja (queda inactivo y fuera del catálogo público, sin borrado físico por ADR-018). Cada corrida del maestro crea un maestro ficticio en revisión.
 
 El pase manual del §5 también debe incluir estas dos pantallas (comercial en notebook y a 320 px; «Mis servicios» en Chrome de Android).
+
+## 8. Pantallas nuevas del Sprint 3: cobertura, agenda, mi perfil y perfil público (2026-09-29)
+
+- **Base:** `main`, commit `e5ce0c4`, más los cambios del frontend de esta tarea (sin commit):
+  - páginas nuevas: `mi-cobertura.html` + `js/cobertura.js`, `mi-agenda.html` + `js/agenda.js`, `mi-perfil.html` + `js/mi-perfil.js`, `perfil-maestro.html` + `js/perfil-publico.js`;
+  - `api.reemplazar` (PUT) en `js/api.js`;
+  - opciones `camara` y `textoLista` en `js/foto.js` (compatibles con el uso anterior);
+  - accesos en `cuenta.html`, botones de pendientes en `js/mis-servicios.js` y destinos `perfil`, `cobertura` y `agenda` en `js/ingresar.js`;
+  - estilos al final de `base.css`.
+- **Script:** `s3_perfil.py <motor> <versión>` (scratchpad de la sesión, con la misma medición `s3_medir.js`). La cuenta de curatoría ficticia la crea `perfil_prep.sh`, con una contraseña aleatoria pasada por entrada estándar y guardada en un archivo `0600` que se borró al terminar. En cada ancho se crea un maestro ficticio nuevo, con RUT aleatorio y fotos sintéticas "MUESTRA".
+- **Recorrido "publicable" completo en cada ancho:**
+  1. El maestro postula, declara Gas y Pintura y sube la cédula, los antecedentes y la licencia de Gas.
+  2. Agrega servicios de Pintura y Gas. Gas tiene el motivo de licencia mientras no se valida.
+  3. El perfil público responde 404.
+  4. Curatoría valida los documentos y aprueba (por API).
+  5. El maestro declara su cobertura y su agenda y sube la foto: queda publicado.
+  6. El perfil público se ve sin sesión.
+  7. Al quitar los servicios, deja de estar publicado (404).
+- **Anchos:** páginas del maestro a **390 y 320 px** (móvil); el perfil público también a **1280 px** (escritorio).
+
+### 8.1 Estados medidos (53 por motor)
+
+| Página | Estados |
+|---|---|
+| `mi-perfil.html` | Con pendientes (postulación, comuna principal y foto, cada uno con su botón); guardar sin foto (error junto a los botones); foto lista con vista previa local; **sin conexión** (corte real: «Reintentar» y la foto se conserva); publicado (✓, enlace «Ver cómo me ven los clientes» y foto pública cargada); sin servicios visibles (pendiente con «Ir a mis servicios»); sesión terminada |
+| `mi-cobertura.html` | Sin comunas (paso 2 bloqueado); **CA-13.1** sin comuna principal (error del servidor junto al campo, sin guardar nada); comuna repetida; con otras comunas de dos regiones; cambiar la comuna principal; sesión terminada |
+| `mi-agenda.html` | Sin horarios (con la ayuda); faltan el día y las horas (errores del servidor en cada campo); **CA-14.2** término no posterior (y cruce de medianoche); solapamiento; lista por día con 24:00; confirmación para quitar; **CA-14.4** progreso recuperado tras volver a cargar; acceso denegado (curatoría); sesión terminada |
+| `perfil-maestro.html` | No publicado (404 neutro, con el mismo texto que una ref inexistente o inválida); publicado, sin sesión, a 390, 320 y 1280 px |
+| `mis-servicios.html`, `cuenta.html` | Pendientes con botones a «Mi cobertura» y «Mi perfil»; «Mi cuenta» del maestro con «Mi perfil», «Mi cobertura» y «Mi agenda» |
+
+### 8.2 Resultados (Playwright 1.63.0)
+
+| Motor y versión | Estados | Verificaciones funcionales | Errores de JS | Consola inesperada |
+|---|---|---|---|---|
+| Chromium 153.0.8010.12 | 53/53 **PASS** | 0 fallidas | 0 | 0 (36 avisos esperados: respuestas 4xx y el corte de red provocado) |
+| Firefox 155.0 | 53/53 **PASS** | 0 fallidas | 0 | 0 |
+
+Verificaciones funcionales incluidas en la corrida:
+
+- **Cobertura:**
+  - CA-13.1: sin comuna principal no se guarda nada y el error va junto al campo.
+  - Lo guardado coincide con `GET /api/maestros/cobertura`, con una sola comuna principal.
+  - Al cambiar la comuna principal, la anterior queda entre las otras comunas.
+- **Agenda:**
+  - CA-14.1: no hay `input type="time"`; "Desde" va de 00 a 23 y "Hasta" de 00 a 24; minutos 00 y 30; "24" solo admite ":00"; no aparece AM/PM.
+  - CA-14.2: se rechaza el término no posterior, y el cruce de medianoche lleva su sugerencia; el solapamiento se informa en «Desde».
+  - Se aceptan bloques contiguos.
+  - CA-14.4: lo elegido se recupera y los bloques guardados siguen ahí.
+  - El botón vuelve a su texto después de guardar.
+- **Foto:** con el corte de red se ofrece reintentar, y el reintento funciona.
+- **Perfil público:**
+  - Muestra Pintura ($85.000 por trabajo) y Gas ($16.000 por hora); Gas solo aparece después de validada la licencia.
+  - Comunas por nombre, sin marcar la principal; horarios en 24 h.
+  - La API pública trae solo `ref`, `nombre`, `foto`, `servicios`, `comunas` y `agenda`, y las comunas sin `es_base`.
+  - La página no muestra RUT, teléfono ni correo.
+  - `srcset` 160w/480w: el navegador eligió 160 a 390 y 320 px, y 480 a 1280 px.
+- **Sesión:** tras la sesión terminada, los enlaces llevan `siguiente=perfil|cobertura|agenda`, e `ingresar.html?siguiente=agenda` lleva a «Mi agenda».
+
+**Regresión** (Chromium 1.63.0, salvo `s3_ui.py`, que corrió en los dos motores): sin fallas en:
+
+- `s3_ui.py`: 48/48 en Chromium y en Firefox;
+- `rnf18.py`: 106/106 estados y 16/16 chequeos;
+- `s2_maestro.py`, `flujo_s2.py` y `cur_ui.py`;
+- `aviso_ui.py`, tras `aviso_prep.py` y `planificador --una-vez`.
+
+**Datos que dejan las corridas:** en cada motor, dos maestros ficticios aprobados con cobertura, agenda y foto, sin servicios al final (por lo tanto, no publicados), y una cuenta de curatoría ficticia.
+
+El pase manual del §5 debe incluir estas cuatro pantallas. En Chrome de Android, en particular:
+
+- «Tomar foto» en «Mi perfil»: debe abrir la cámara **frontal** (`capture="user"`);
+- los selectores de hora y minutos: lista nativa, sin AM/PM;
+- el perfil público con letra "grande".

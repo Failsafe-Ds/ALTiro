@@ -138,6 +138,8 @@ const api = (() => {
     obtener: (ruta) => pedir("GET", ruta),
     enviar: (ruta, datos) => pedir("POST", ruta, datos),
     modificar: (ruta, datos) => pedir("PATCH", ruta, datos),
+    // PUT: reemplaza el recurso completo (cobertura del maestro, ADR-019, punto 4).
+    reemplazar: (ruta, datos) => pedir("PUT", ruta, datos),
     borrar: (ruta) => pedir("DELETE", ruta),
     enviarArchivo,
   };

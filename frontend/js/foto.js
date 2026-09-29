@@ -96,10 +96,15 @@ const foto = (() => {
   }
 
   // Crea un selector dentro de "contenedor".
-  // opciones: { campo, titulo, ayuda }. "campo" es el nombre que usa la API
-  // ("archivo" o "archivo_reverso"): el error del servidor se muestra en
-  // #error-<campo>, junto a los botones (formulario.mostrarErrores).
-  function crearSelector(contenedor, { campo, titulo, ayuda }) {
+  // opciones: { campo, titulo, ayuda, camara, textoLista }. "campo" es el
+  // nombre que usa la API ("archivo" o "archivo_reverso"): el error del
+  // servidor se muestra en #error-<campo>, junto a los botones
+  // (formulario.mostrarErrores). Opcionales (S3, foto de perfil): "camara"
+  // ("environment" por defecto, la cámara trasera para documentos; "user"
+  // para la frontal) y "textoLista" (lo que se dice cuando la foto está lista).
+  function crearSelector(contenedor, { campo, titulo, ayuda, camara: lado, textoLista }) {
+    const ladoCamara = lado || "environment";
+    const textoFotoLista = textoLista || "✓ Foto lista. Revisa que se lean todas las letras.";
     const idTitulo = `titulo-${campo}`;
     const idError = `error-${campo}`;
     const idAyuda = `ayuda-${campo}`;
@@ -138,7 +143,7 @@ const foto = (() => {
 
     function abrir(conCamara) {
       if (conCamara) {
-        entrada.setAttribute("capture", "environment");
+        entrada.setAttribute("capture", ladoCamara);
       } else {
         entrada.removeAttribute("capture");
       }
@@ -162,7 +167,7 @@ const foto = (() => {
           blob = resultado.blob;
           vista.src = resultado.vista;
           vista.alt = `Vista previa: ${titulo.toLowerCase()}`;
-          estado.textContent = "✓ Foto lista. Revisa que se lean todas las letras.";
+          estado.textContent = textoFotoLista;
           grupo.dispatchEvent(new CustomEvent("foto-lista", { bubbles: true }));
         })
         .catch(() => {

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi agenda — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/formato.js" defer></script>
+  <script src="js/expediente.js" defer></script>
+  <script src="js/agenda.js" defer></script>
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" href="mi-perfil.html">Mi perfil</a>
+  </header>
+  <main>
+    <h1 id="titulo-pagina" tabindex="-1">Mi agenda</h1>
+    <p id="cargando" role="status">Cargando tus horarios…</p>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+    <div id="aviso-resultado" class="aviso" role="status" aria-live="polite" tabindex="-1"></div>
+
+    <div id="contenido" hidden>
+      <p>Di qué días y en qué horarios puedes trabajar cada semana. Las horas van de 00:00 a 24:00.</p>
+      <p class="nota-ayuda">Declarar tus horarios no te obliga a aceptar todos los trabajos: tú decides cuando te llegue una solicitud.</p>
+
+      <section aria-labelledby="titulo-horarios">
+        <h2 id="titulo-horarios" tabindex="-1">Tus horarios de cada semana</h2>
+        <p id="sin-horarios" hidden>Todavía no declaras horarios. Agrega el primero con el botón «Agregar un horario».</p>
+        <ul id="lista-dias" class="lista-simple lista-dias"></ul>
+      </section>
+
+      <div class="acciones" id="acciones-agregar">
+        <button type="button" id="abrir-agregar">Agregar un horario</button>
+      </div>
+
+      <!-- Agregar un horario: día, desde y hasta (5 campos, RNF-14). Selector propio de 24 h, sin AM/PM (ADR-020, CA-14.1). -->
+      <section id="seccion-agregar" class="tarjeta" aria-labelledby="titulo-agregar" hidden>
+        <h2 id="titulo-agregar" tabindex="-1">Agregar un horario</h2>
+        <form id="form-bloque" novalidate>
+          <div class="aviso" role="alert" tabindex="-1"></div>
+          <div class="campo">
+            <label for="dia">Día (obligatorio)</label>
+            <select id="dia" name="dia_semana" aria-describedby="error-dia_semana">
+              <option value="">Elige el día</option>
+              <option value="1">Lunes</option>
+              <option value="2">Martes</option>
+              <option value="3">Miércoles</option>
+              <option value="4">Jueves</option>
+              <option value="5">Viernes</option>
+              <option value="6">Sábado</option>
+              <option value="7">Domingo</option>
+            </select>
+            <span class="error-campo" id="error-dia_semana"></span>
+          </div>
+
+          <fieldset class="hora-24" aria-describedby="ayuda-horas">
+            <legend class="legend-campo">Desde (obligatorio)</legend>
+            <div class="hora-partes">
+              <div class="hora-parte">
+                <label for="inicio-hora">Hora</label>
+                <select id="inicio-hora" name="inicio-hora" aria-describedby="error-inicio"></select>
+              </div>
+              <span class="hora-separador" aria-hidden="true">:</span>
+              <div class="hora-parte">
+                <label for="inicio-minutos">Minutos</label>
+                <select id="inicio-minutos" name="inicio-minutos" aria-describedby="error-inicio"></select>
+              </div>
+            </div>
+            <span class="error-campo" id="error-inicio"></span>
+          </fieldset>
+
+          <fieldset class="hora-24">
+            <legend class="legend-campo">Hasta (obligatorio)</legend>
+            <div class="hora-partes">
+              <div class="hora-parte">
+                <label for="fin-hora">Hora</label>
+                <select id="fin-hora" name="fin-hora" aria-describedby="error-fin"></select>
+              </div>
+              <span class="hora-separador" aria-hidden="true">:</span>
+              <div class="hora-parte">
+                <label for="fin-minutos">Minutos</label>
+                <select id="fin-minutos" name="fin-minutos" aria-describedby="error-fin"></select>
+              </div>
+            </div>
+            <span class="error-campo" id="error-fin"></span>
+          </fieldset>
+
+          <p class="ayuda" id="ayuda-horas">Horas de 00 a 24, en punto o y media. Por ejemplo, de 08:00 a 17:30. «24:00» es el final del día.</p>
+          <p class="resumen-bloque" id="resumen-bloque" aria-live="polite"></p>
+
+          <div class="acciones">
+            <button type="submit">Guardar este horario</button>
+            <button type="button" class="boton-secundario" id="cancelar-agregar">Cancelar</button>
+          </div>
+        </form>
+      </section>
+
+      <nav class="tarjeta" aria-labelledby="titulo-seguir">
+        <h2 id="titulo-seguir">Sigue armando tu perfil</h2>
+        <div class="acciones">
+          <a class="boton" href="mi-perfil.html">Ir a mi perfil</a>
+          <a class="boton boton-secundario" href="mi-cobertura.html">Mi cobertura</a>
+          <a class="boton boton-secundario" href="mis-servicios.html">Mis servicios</a>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Confirmación para quitar un horario (sin ventanas del navegador): se mueve junto al horario. -->
+    <div id="confirmar-quitar" class="confirmacion" hidden>
+      <h3 id="titulo-quitar" tabindex="-1"></h3>
+      <p>Si después lo necesitas, lo puedes agregar de nuevo.</p>
+      <div id="aviso-quitar" class="aviso" role="alert" tabindex="-1"></div>
+      <div class="acciones">
+        <button type="button" id="quitar-si" class="boton-peligro">Sí, quitar el horario</button>
+        <button type="button" id="quitar-no" class="boton-secundario">No, volver</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

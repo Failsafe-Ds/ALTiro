@@ -38,6 +38,12 @@
     sin_comuna_base: "Falta que elijas tu comuna principal.",
     sin_foto: "Falta que subas tu foto.",
   };
+  // Página que resuelve cada pendiente (solo navegación).
+  const ACCIONES_PENDIENTE = {
+    postulacion_no_aprobada: { texto: "Ver mi postulación", href: "mi-postulacion.html" },
+    sin_comuna_base: { texto: "Ir a mi cobertura", href: "mi-cobertura.html" },
+    sin_foto: { texto: "Ir a mi perfil para subir tu foto", href: "mi-perfil.html" },
+  };
 
   const cargando = document.getElementById("cargando");
   const avisoPagina = document.getElementById("aviso-pagina");
@@ -257,9 +263,10 @@
         const icono = elemento("span", "icono-aviso", "⚠");
         icono.setAttribute("aria-hidden", "true");
         const detalle = elemento("span", "detalle-aviso", p.mensaje || TEXTOS_PENDIENTE[p.codigo] || "");
-        if (p.codigo === "postulacion_no_aprobada") {
-          const enlace = elemento("a", "boton boton-secundario", "Ver mi postulación");
-          enlace.href = "mi-postulacion.html";
+        const accion = ACCIONES_PENDIENTE[p.codigo];
+        if (accion) {
+          const enlace = elemento("a", "boton boton-secundario", accion.texto);
+          enlace.href = accion.href;
           detalle.append(enlace);
         }
         item.append(icono, detalle);

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perfil del maestro — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formato.js" defer></script>
+  <script src="js/perfil-publico.js" defer></script>
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+  </header>
+  <main>
+    <p id="cargando" role="status">Cargando el perfil…</p>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+
+    <!-- Perfil público (RF-14 y RF-13 parciales; ADR-019, D-12 y D-14). Sin datos de contacto: la API no los entrega. -->
+    <article id="perfil" aria-labelledby="nombre-maestro" hidden>
+      <div class="cabecera-perfil">
+        <img id="foto-maestro" class="foto-publica" alt="" width="160" height="160">
+        <h1 id="nombre-maestro" tabindex="-1"></h1>
+      </div>
+
+      <section aria-labelledby="titulo-servicios">
+        <h2 id="titulo-servicios">Servicios y precios</h2>
+        <div id="lista-servicios"></div>
+      </section>
+
+      <section aria-labelledby="titulo-comunas">
+        <h2 id="titulo-comunas">Comunas donde trabaja</h2>
+        <ul id="lista-comunas" class="lista-etiquetas"></ul>
+      </section>
+
+      <section aria-labelledby="titulo-horarios">
+        <h2 id="titulo-horarios">Horarios de cada semana</h2>
+        <p id="sin-horarios" hidden>Este maestro todavía no declara sus horarios.</p>
+        <dl id="lista-horarios" class="horarios"></dl>
+      </section>
+    </article>
+  </main>
+</body>
+</html>
