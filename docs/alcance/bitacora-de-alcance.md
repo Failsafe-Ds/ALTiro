@@ -28,7 +28,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | DA-14 | Evidencia de RNF-25 pasa a S3 y S4 | S3 (parte S3 cerrada el 2026-09-29) y S4 | Temporal |
 | DA-15 | Adelanto: catálogo mínimo de oficios (S3 → S2) | S2; RF-36 cerrado en S3 el 2026-09-29 | Adelanto (cerrado) |
 | DA-16 | Adelanto: planificador (S4 → S2) | S2 (implementado el 2026-09-28) | Adelanto |
-| DA-17 | Ejecución de RNF-13 al inicio del S3 | S3, semana 1 | Temporal |
+| DA-17 | Ejecución de RNF-13 al inicio del S3 (vencido; pasa a antes de la revisión del S4) | S4, antes de la revisión | Temporal |
 | DA-18 | Adelanto: perfil público parcial (RF-14) de S4 a S3 | S3 | Adelanto |
 | DA-19 | Adelanto: foto del maestro (dato de RF-13) de S4 a S3 | S3 | Adelanto |
 | DA-20 | Evidencia de RF-06 en "resultados", CA-13.2 y CA-14.3 pasan a S4 | S4 | Temporal |
@@ -201,6 +201,7 @@ Origen: `docs/decisions/sprint-2-propuesta-arquitectura.md`, §8, y las decision
 - **Impacto:** RNF-13 queda sin evidencia al cierre del S2. El informe lo señala como el requisito que más discute la viabilidad. No se declara cumplido sin la prueba.
 - **Autorización:** equipo de desarrollo, informando al representante del producto.
 - **Relacionado:** RNF-13, NTI-11, HU-11; ADR-008, ADR-013 E-8.
+- **Actualización 2026-09-29 (cierre del S3, DEF-QA-012):** el compromiso de la primera semana del S3 **venció sin ejecutarse**. La sesión exige tres personas externas y un teléfono real, y el trabajo automatizado no puede producirla. La ejecución pasa a **antes de la revisión del Sprint 4**, con el flujo del maestro ampliado en el S3 (servicios, cobertura, agenda y foto). RNF-13 sigue **sin evidencia y no se declara cumplido**. **Autorización:** pendiente de confirmación del equipo (se registró como provisional según `docs/Reanudar.md`).
 
 ## Sprint 3
 

@@ -67,3 +67,39 @@ Equipo: el mismo (Windows 11 Pro 10.0.26200, Docker Desktop con motor 29.8.0, 16
 
 ### Validez
 Mismas limitaciones que la medición anterior: no es otro equipo físico y el tiempo depende del ancho de banda (unos 1,08 GB de imágenes). El planificador no alarga el arranque de forma apreciable (usa la misma imagen que `app`). Sigue recomendado confirmar en un equipo del laboratorio.
+
+---
+
+## Nueva medición al cierre del Sprint 3 (catálogo, perfil, fotos y búsqueda)
+
+- **Fecha:** 2026-09-29 (18:04:20 a 18:05:04 UTC; 15:04 hora de Chile). Ejecutó: agente `qa`, cierre del Sprint 3 (`docs/testing/cierre-sprint-3.md`).
+- **Motivo:** el S3 agrega el volumen `fotos`, rutas nuevas en el proxy y migraciones de `catalogo` y `perfil`; el commit incluye además la búsqueda del S4 (incrementos 1 y 2), con la migración `perfil.0004_indices_busqueda`. No hay dependencias nuevas.
+- **Versión medida:** commit `3c5d357` (rama `main`). En el equipo había cambios sin commit en `frontend/` (trabajo en curso de otro agente); `git archive HEAD` los excluye, así que la medición corresponde exactamente al commit.
+- **Resultado: PASS, 44 segundos** (umbral: 600 s).
+
+### Método
+El mismo de las mediciones anteriores:
+1. Motor Docker vacío en un contenedor `docker:29-dind` (`qa-rnf23-s3`, id `8c2cbbd74cda…`; motor 29.8.1, Docker Compose 5.5.1), con **0 imágenes, 0 volúmenes y 0 contenedores** al comenzar. Dentro del contenedor se instaló `curl` antes de empezar a cronometrar (herramienta de medición, no del sistema).
+2. Repositorio copiado con `git archive HEAD` (solo archivos versionados), **sin `.env`** (comprobado).
+3. Un solo comando, `docker compose up -d --build`, cronometrado desde su inicio.
+4. El cronómetro se detuvo cuando `https://127.0.0.1/api/health/`, a través de Nginx, respondió `{"estado": "ok", "base_datos": "ok"}`.
+5. Antes de borrar, la misma pila limpia se usó para repetir las pruebas de interfaz del cierre sobre el código exacto del commit (ver `cierre-sprint-3.md`, §3.3).
+6. Al terminar se eliminaron **solo** el contenedor `qa-rnf23-s3` (id comprobado contra el guardado al crearlo) y su volumen anónimo `fda7bcb0864e…` (creado a las 18:03:46 UTC, etiqueta `com.docker.volume.anonymous`). No se tocó ninguna imagen ni volumen del motor del equipo (`altiro_*` y `altiro-volumen_*` siguen presentes).
+
+### Resultado
+
+| Dato | Valor |
+|---|---|
+| Código de salida de `docker compose up -d --build` | 0 (el comando terminó a los 44 s) |
+| Tiempo hasta salud por HTTPS, descargas y construcción incluidas | **44 s** |
+| Salud a través de HTTPS | `{"estado": "ok", "base_datos": "ok"}` |
+| Estado a los 54 s | `app`, `db`, `proxy` y `planificador` healthy; `init` terminó con código 0 |
+| Primera corrida del planificador | `avisos_creados=0 accesos_denegados_purgados=0 archivos_huerfanos_borrados=0 tareas_fallidas=0` |
+| Frontend | `GET https://127.0.0.1/` → 200 |
+| Catálogo inicial | `GET /api/oficios`: los 8 oficios provisionales (P-01). `GET /api/catalogo`: oficios **sin servicios** (P-17: los servicios los crea comercial; `cargar_datos_demo` los carga para la demostración, 15 servicios) |
+| Imágenes | `postgres:16.15-bookworm` (622 MB), `altiro-app:local` (349 MB), `nginx:1.30.5-alpine` (93,6 MB), `altiro-init:local` (14,2 MB) |
+
+Equipo: el mismo (Windows 11 Pro 10.0.26200, Docker Desktop con motor 29.8.0, 16 CPU, 15,56 GiB para Docker), red doméstica sin medición de ancho de banda.
+
+### Validez
+Mismas limitaciones que las mediciones anteriores: no es otro equipo físico y el tiempo depende del ancho de banda (unos 1,08 GB de imágenes). Sigue recomendado confirmar en un equipo del laboratorio. Observación: el `README.md` no menciona `cargar_datos_demo`, así que una instalación limpia no tiene servicios en el catálogo hasta que comercial los cree (ver OBS-S3-03 en `cierre-sprint-3.md`).

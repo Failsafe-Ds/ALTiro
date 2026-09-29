@@ -96,3 +96,19 @@ MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W)/backend:/b:ro" python:3.13.15-s
 
 - Todas las librerías siguen con versión exacta (`==`) en ambos archivos (RNF-27, "Cada librería queda declarada con versión exacta").
 - **Acción:** ninguna. Próxima revisión: inicio del Sprint 3 (RNF-27: "una revisión de avisos registrada al inicio de cada sprint").
+
+---
+
+## Sprint 3 — registro tardío (DEF-QA-011)
+
+- **Al inicio del S3 no se registró la revisión** que exige RNF-27. Es un incumplimiento del registro, no de las dependencias: `requirements*.txt` no cambió entre `fd6449b` (S2) y `3c5d357` (cierre del S3).
+- **Evidencia disponible:** la re-auditoría del cierre del S2 (07:25 UTC del 29-09, arriba) sobre los mismos archivos, y la del QA de cierre del S3 (`cierre-sprint-3.md`, §4.4), ambas con "No known vulnerabilities found" en PyPI y OSV.
+- **Estado:** DEF-QA-011 se cierra con este registro tardío. El FAIL del registro al inicio del S3 **se mantiene** en `cierre-sprint-3.md` como hecho histórico.
+
+## Inicio del Sprint 4
+
+- **Fecha:** 2026-09-29, 22:31 UTC. Ejecutó: sesión principal (coordinación).
+- **Commit revisado:** `a5ea358`. Los requisitos son idénticos a los del S2.
+- **Herramienta y comandos:** `pip-audit` 2.10.1 en un contenedor efímero `python:3.13.15-slim-bookworm`, con los mismos tres comandos de la re-auditoría del S2 (PyPI, OSV y `packaging==26.3` por separado).
+- **Resultado:** "No known vulnerabilities found" en las tres ejecuciones.
+- **Acción:** ninguna. Si el S4 agrega una dependencia, se audita antes de fijarla. Próxima revisión: inicio del Sprint 5.
