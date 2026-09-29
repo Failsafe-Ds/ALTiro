@@ -406,6 +406,14 @@ def _dias(n):
     return (_hoy() + datetime.timedelta(days=n)).isoformat()
 
 
+class _EnDias(int):
+    """Fecha relativa a "hoy" que se resuelve dentro de la prueba, no al importar (DEF-QA-010)."""
+
+
+def _resolver_fechas(cambios):
+    return {campo: _dias(valor) if isinstance(valor, _EnDias) else valor for campo, valor in cambios.items()}
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     ("cambios", "campo"),
@@ -415,11 +423,11 @@ def _dias(n):
         ({"fecha_emision": None}, "fecha_emision"),
         ({"fecha_emision": "28-09-2026"}, "fecha_emision"),
         ({"fecha_emision": "2026-02-30"}, "fecha_emision"),
-        ({"fecha_emision": _dias(1)}, "fecha_emision"),
-        ({"fecha_emision": _dias(-10), "fecha_vencimiento": _dias(-10)}, "fecha_vencimiento"),
-        ({"fecha_emision": _dias(-10), "fecha_vencimiento": _dias(-20)}, "fecha_vencimiento"),
-        ({"fecha_emision": _dias(-10), "fecha_vencimiento": _dias(0)}, "fecha_vencimiento"),  # ya vencido
-        ({"fecha_emision": _dias(-400), "fecha_vencimiento": _dias(-1)}, "fecha_vencimiento"),  # ya vencido
+        ({"fecha_emision": _EnDias(1)}, "fecha_emision"),
+        ({"fecha_emision": _EnDias(-10), "fecha_vencimiento": _EnDias(-10)}, "fecha_vencimiento"),
+        ({"fecha_emision": _EnDias(-10), "fecha_vencimiento": _EnDias(-20)}, "fecha_vencimiento"),
+        ({"fecha_emision": _EnDias(-10), "fecha_vencimiento": _EnDias(0)}, "fecha_vencimiento"),  # ya vencido
+        ({"fecha_emision": _EnDias(-400), "fecha_vencimiento": _EnDias(-1)}, "fecha_vencimiento"),  # ya vencido
         ({"fecha_vencimiento": "mañana"}, "fecha_vencimiento"),
         ({"archivo": None}, "archivo"),
         ({"oficio": "gas"}, "oficio"),  # el oficio solo va en la licencia
@@ -427,7 +435,7 @@ def _dias(n):
     ],
 )
 def test_campo_invalido_responde_400_en_el_campo_sin_guardar(navegador, maestro, directorio_documentos, cambios, campo):
-    respuesta = _subir(navegador, **_datos(**cambios))
+    respuesta = _subir(navegador, **_datos(**_resolver_fechas(cambios)))
 
     assert respuesta.status_code == 400
     assert campo in respuesta.json()["errores"]

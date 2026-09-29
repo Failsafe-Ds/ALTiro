@@ -12,13 +12,16 @@ Sus registros llevan solo conteos, sin datos personales (RNF-22, en parte).
   módulo fuera de ``autorizacion`` usa ese registro).
 - ``limpiar_archivos_huerfanos``: borra del volumen de documentos los archivos
   que ningún documento referencia (ADR-015), con un margen para no tocar una
-  subida en curso.
+  subida en curso. Se niega a operar si el directorio configurado no es el de
+  la base de datos en uso (DEF-QA-008).
 """
 import logging
 import os
 import uuid
+from pathlib import Path
 
 from django.conf import settings
+from django.db import connection
 
 from expediente import vigencia
 from expediente.models import Aviso, Documento, RolDestinatarioAviso, TipoAviso
@@ -92,8 +95,40 @@ def _referenciados():
     return nombres
 
 
+class DirectorioDeOtraBase(RuntimeError):
+    """El directorio de documentos configurado no corresponde a la base de datos en uso."""
+
+
+def _verificar_directorio_de_la_base(directorio):
+    """Defensa en profundidad de DEF-QA-008: nunca limpiar el volumen real desde otra base.
+
+    ``ALTIRO_DOCUMENTOS_DIR`` y ``ALTIRO_DB_NAME`` del **entorno** del proceso
+    describen un par: el volumen real y la base cuyos documentos referencian
+    sus archivos. Si la conexión usa otra base (por ejemplo, la base de
+    pruebas ``test_altiro`` que crea pytest-django) y el directorio sigue
+    siendo el del entorno, ningún archivo real estaría referenciado y todos
+    parecerían huérfanos: la tarea se niega con una excepción (el planificador
+    la registra como tarea fallida) antes de listar el directorio.
+
+    Se compara con el entorno y no con ``settings``, porque las pruebas cambian
+    ``settings`` (el directorio y el nombre de la base) pero no el entorno.
+    El mensaje no lleva rutas ni nombres de base.
+    """
+    base_en_uso = connection.settings_dict["NAME"]
+    if base_en_uso == os.environ.get("ALTIRO_DB_NAME"):
+        return
+    directorio_del_entorno = os.environ.get("ALTIRO_DOCUMENTOS_DIR")
+    if not directorio_del_entorno or Path(directorio).resolve() == Path(directorio_del_entorno).resolve():
+        raise DirectorioDeOtraBase(
+            "Limpieza de archivos huérfanos cancelada: el directorio de documentos no corresponde a la base en uso."
+        )
+
+
 def limpiar_archivos_huerfanos(ahora):
     """Borra los archivos del volumen sin documento que los referencie y devuelve cuántos borró.
+
+    - Antes de todo, verifica que el directorio corresponda a la base en uso
+      (``_verificar_directorio_de_la_base``, DEF-QA-008).
 
     - Solo considera nombres UUID (archivos cifrados) y temporales ``.subiendo-``
       de ``expediente.almacenamiento``; cualquier otro archivo se deja.
@@ -105,6 +140,7 @@ def limpiar_archivos_huerfanos(ahora):
       listado cuya fila se confirma antes de la consulta queda referenciado.
     """
     directorio = settings.ALTIRO_DOCUMENTOS_DIR
+    _verificar_directorio_de_la_base(directorio)
     limite = ahora.timestamp() - MARGEN_HUERFANOS_SEGUNDOS
     antiguos = []
     with os.scandir(directorio) as entradas:

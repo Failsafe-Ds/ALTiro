@@ -174,6 +174,7 @@ Una sola secuencia sobre el sistema levantado, con la API y en el navegador (`e2
 Numeración continuada desde DEF-QA-007.
 
 ### DEF-QA-008 — La suite de pruebas borra los archivos reales del volumen de documentos
+- **Estado (2026-09-29): corregido.** Todos los directorios `ALTIRO_*_DIR` apuntan a un temporal de pytest para toda la suite, y la limpieza de huérfanos se niega a operar si la base en uso no es la del entorno. Con `docker compose exec app pytest` el volumen siguió con 24 archivos antes y después. 61 documentos ficticios quedaron sin archivo (86 archivos); responden 500 genérico hasta que se vuelvan a cargar.
 - **Afecta a:** RF-04, RF-08 y RNF-06 en el ambiente de la demostración (integridad de los documentos); NTI-01; decisión ADR-015, punto 1.
 - **Severidad:** alta. Correr el comando de pruebas documentado (`docker compose exec -T app pytest -q`) deja todos los documentos cargados sin foto: la descarga responde 500 y no hay forma de recuperarlos (no hay respaldo hasta RNF-19, S5). Si pasa antes de la revisión del sprint, la demostración pierde sus expedientes.
 - **Precondición:** pila levantada con documentos cargados en el volumen `documentos`.
@@ -186,6 +187,7 @@ Numeración continuada desde DEF-QA-007.
 - **Área responsable:** `backend` (pruebas; `tests/test_avisos_planificador.py` y `conftest.py`). Mientras no se corrija, la suite debe correrse en un contenedor aislado (ver sección 3.1).
 
 ### DEF-QA-009 — El token del enlace de 600 s queda en el registro de errores de Nginx, y la foto descifrada pasa por el disco del proxy
+- **Estado (2026-09-29): corregido.** En la ruta de descarga: `proxy_max_temp_file_size 0` con buffers en memoria y `error_log /dev/null`. En vivo: 0 archivos en `proxy_temp` y 0 líneas con el token. Se recreó el contenedor `proxy` para descartar las líneas antiguas. Riesgo residual: esa ruta no registra errores de Nginx.
 - **Afecta a:** RNF-06 (compromiso de la propuesta del S2, §4: "`log_format` sin la cadena de consulta (el token `t` no queda en los registros)"; DA-01 afirma "el token no queda en los registros de Nginx"); ADR-015, punto 1 (volumen "nunca en `proxy`"); CLAUDE.md §8 (no escribir tokens en registros).
 - **Severidad:** media. El token está ligado al usuario y caduca a los 600 s, así que reutilizarlo exige además la sesión de ese usuario. Pero incumple un compromiso explícito, y la foto descifrada de una cédula se escribe en claro, aunque sea temporalmente, en `/var/cache/nginx/proxy_temp` del contenedor `proxy`.
 - **Precondición:** documento con foto de más de unos 64 KB (cualquier foto real de teléfono) y un navegador (HTTP/2).
@@ -196,6 +198,7 @@ Numeración continuada desde DEF-QA-007.
 - **Área responsable:** infraestructura (`infra/proxy/templates`), a cargo de `backend`. Si la corrección requiere cambiar ADR-015 u otra decisión, lo revisa `architect`.
 
 ### DEF-QA-010 — Una prueba falla si la suite cruza la medianoche de Chile
+- **Estado (2026-09-29): corregido.** Las fechas relativas se resuelven dentro de cada prueba (`_EnDias`).
 - **Afecta a:** confiabilidad de la evidencia automática de RF-04 (ADR-014).
 - **Severidad:** baja.
 - **Pasos:** correr la suite de modo que la recolección ocurra antes de las 00:00 de Santiago y la prueba después (aquí la suite empezó a las 23:59:5x del 28).

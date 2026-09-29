@@ -110,6 +110,39 @@ server {
         error_page 500 502 503 504 @api_no_disponible;
     }
 
+    # Descarga de la foto de un documento (RNF-06, ADR-015; DEF-QA-009). Es la
+    # única ruta que entrega documentos o fotos privadas, y su URL lleva el
+    # token del enlace de 600 s en "?t=…". El regex cubre cualquier <ref>.
+    # - Cuerpo nunca en el disco del proxy: proxy_max_temp_file_size 0 prohíbe
+    #   el archivo temporal (/var/cache/nginx/proxy_temp) y los buffers en
+    #   memoria (8 MB, el máximo por archivo de ADR-015) liberan pronto al
+    #   worker de la app aunque el cliente sea lento. Si una respuesta los
+    #   supera, Nginx espera a que el cliente lea; nunca escribe a disco.
+    # - Sin error_log: Nginx escribe en cada aviso o error la línea de petición
+    #   completa (con el token) y log_format no se aplica al error_log. En esta
+    #   ruta no se registra nada de Nginx; los errores de la descarga los
+    #   registra la aplicación sin la consulta, y una app caída se ve en los
+    #   errores de las demás rutas.
+    location ~ ^/api/documentos/[^/]+/archivo$ {
+        error_log /dev/null;
+
+        proxy_max_temp_file_size 0;
+        proxy_buffer_size 16k;
+        proxy_buffers 32 256k;
+        proxy_busy_buffers_size 512k;
+
+        proxy_pass http://app:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_hide_header X-Content-Type-Options;
+        proxy_hide_header Referrer-Policy;
+        proxy_hide_header Strict-Transport-Security;
+
+        error_page 500 502 503 504 @api_no_disponible;
+    }
+
     location @api_413_documentos {
         default_type application/json;
         return 413 '{"mensaje": "Las fotos son demasiado pesadas: cada una puede pesar hasta 8 MB. Tómalas de nuevo con menos resolución.", "errores": {}}';
