@@ -37,6 +37,24 @@ Para cambiarlos, cree un `.env` a partir de `.env.example` (el `.env` no se vers
 | `/postulacion-maestro.html` | Postular como maestro, en 2 pasos (RF-03) |
 | `/ingresar.html` | Ingresar con correo o RUT (RF-02) |
 | `/cuenta.html` | Datos propios, agregar el otro perfil y cerrar sesión |
+| `/mi-postulacion.html`, `/mis-documentos.html` | Maestro: estado del expediente y documentos (RF-04, RF-35) |
+| `/mis-servicios.html`, `/mi-cobertura.html`, `/mi-agenda.html`, `/mi-perfil.html` | Maestro: servicios, comunas, horarios y foto (RF-05 a RF-07) |
+| `/curatoria.html`, `/curatoria-expediente.html` | Curatoría: revisión de expedientes (RF-08) |
+| `/comercial.html` | Comercial: catálogo de oficios y servicios (RF-36) |
+| `/buscar.html`, `/perfil-maestro.html` | Público: búsqueda y ficha del maestro (RF-09 a RF-11, RF-14) |
+
+## Datos de demostración
+
+Una instalación limpia tiene oficios y comunas, pero **no tiene servicios** en el catálogo.
+Para cargar servicios ficticios (rotulados "(demo)", idempotente):
+
+```sh
+docker compose exec app python manage.py cargar_datos_demo
+```
+
+El volumen sintético de medición (RNF-01, RNF-03) se genera con `generar_volumen_prueba`,
+**solo en una pila aparte** (`-p altiro-volumen`), nunca en la de demostración. Las instrucciones
+están al inicio de `backend/busqueda/management/commands/generar_volumen_prueba.py`.
 
 ## Crear una cuenta administrativa
 
