@@ -27,12 +27,16 @@ const curatoria = (() => {
   };
 
   // Filtros de la cola: valores que acepta ?estado= (vistas_curatoria.cola).
+  // "Por vencer" no es un estado: pide ?por_vencer=1 (expedientes con algún
+  // documento que vence en 30 días o menos, RF-35; lo decide el servidor).
+  const POR_VENCER = "por_vencer";
   const FILTROS = [
     { valor: "en_revision", texto: "En revisión" },
     { valor: "observado", texto: "Observados" },
     { valor: "aprobado", texto: "Aprobados" },
     { valor: "suspendido", texto: "Suspendidos" },
     { valor: "rechazado", texto: "Rechazados" },
+    { valor: POR_VENCER, texto: "Por vencer" },
     { valor: "", texto: "Todos" },
   ];
 
@@ -96,6 +100,7 @@ const curatoria = (() => {
     ESTADOS_EXPEDIENTE,
     ESTADOS_DOCUMENTO,
     FILTROS,
+    POR_VENCER,
     FORMATO_REF,
     nombreOficios,
     enlaceBoton,

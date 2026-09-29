@@ -98,6 +98,62 @@ const expediente = (() => {
     return etiqueta;
   }
 
+  // Vigencia de un documento (CA-17.1, RF-08; ADR-016). Todo viene del
+  // servidor: "vigente" dice si sigue valiendo y "dias_restantes" cuántos días
+  // faltan. Nunca se muestra "quedan 0 días" ni un número negativo: un
+  // documento no vigente dice "Vencido" (ícono y texto, RNF-16).
+  const VENCIDO = { vencido: { texto: "Vencido", icono: "⚠", clase: "estado-rechazado" } };
+
+  function textoDias(dias) {
+    return dias === 1 ? "Queda 1 día." : `Quedan ${dias} días.`;
+  }
+
+  function vigencia(documento) {
+    const linea = document.createElement("span");
+    linea.className = "vigencia";
+    if (!documento.fecha_vencimiento) {
+      linea.textContent = "No vence";
+      return linea;
+    }
+    const fecha = formatearFecha(documento.fecha_vencimiento);
+    const dias = documento.dias_restantes;
+    const vencido =
+      documento.vigente === false || (typeof documento.vigente !== "boolean" && typeof dias === "number" && dias <= 0);
+    if (vencido) {
+      linea.append(`Venció el ${fecha}. `, etiquetaEstado("vencido", VENCIDO));
+      return linea;
+    }
+    linea.append(`Vence el ${fecha}.`);
+    if (typeof dias === "number" && dias > 0) {
+      linea.append(" ", textoDias(dias));
+    }
+    return linea;
+  }
+
+  // Avisos de RF-35 (ADR-016): el texto lo arma el servidor ("mensaje"); aquí
+  // solo se pintan con ícono y texto, dentro de una sección titulada "Avisos"
+  // (nada depende del color, RNF-16). "extra(aviso)" puede agregar un nombre o
+  // un enlace a cada aviso. Sin avisos, la sección queda oculta.
+  function pintarAvisos(seccion, lista, avisos, extra) {
+    const items = (avisos || []).map((aviso) => {
+      const item = document.createElement("li");
+      item.className = "aviso-vencimiento";
+      const icono = document.createElement("span");
+      icono.className = "icono-aviso";
+      icono.setAttribute("aria-hidden", "true");
+      icono.textContent = "⚠";
+      const detalle = document.createElement("span");
+      detalle.className = "detalle-aviso";
+      const texto = document.createElement("span");
+      texto.textContent = aviso.mensaje;
+      detalle.append(...(extra ? extra(aviso, texto) : [texto]));
+      item.append(icono, detalle);
+      return item;
+    });
+    lista.replaceChildren(...items);
+    seccion.classList.toggle("oculto", items.length === 0);
+  }
+
   // Clave de un requisito o documento: tipo más oficio (solo las licencias).
   function clave(tipo, oficio) {
     return oficio ? `${tipo}:${oficio.codigo}` : tipo;
@@ -179,6 +235,8 @@ const expediente = (() => {
     formatearFechaHora,
     formatearRut,
     etiquetaEstado,
+    vigencia,
+    pintarAvisos,
     clave,
     requisitos,
     avisarSesionTerminada,

@@ -22,6 +22,11 @@
 
     <section id="contenido" class="oculto" aria-labelledby="titulo-pagina">
       <p class="linea-estado">Tu postulación: <span id="estado-expediente"></span></p>
+      <!-- RF-35: avisos de documentos por vencer (texto del servidor). -->
+      <section id="avisos" class="tarjeta avisos oculto" aria-labelledby="titulo-avisos">
+        <h2 id="titulo-avisos">Avisos</h2>
+        <ul id="lista-avisos" class="lista-avisos"></ul>
+      </section>
       <p id="sin-documentos" class="oculto">Todavía no has enviado documentos.</p>
       <ul id="lista-documentos" class="lista-documentos"></ul>
       <div id="bloque-faltan" class="tarjeta oculto">

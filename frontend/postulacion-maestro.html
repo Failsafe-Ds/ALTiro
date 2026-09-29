@@ -14,9 +14,9 @@
   <main>
     <h1>Postular como maestro</h1>
     <section id="con-sesion" class="tarjeta oculto" aria-labelledby="titulo-con-sesion">
-      <h2 id="titulo-con-sesion" tabindex="-1">Ya tienes una sesión iniciada</h2>
+      <h2 id="titulo-con-sesion" tabindex="-1">Ya entraste con una cuenta en este teléfono</h2>
       <p id="con-sesion-texto"></p>
-      <p>Si esta no es tu cuenta, o quieres crear una distinta, primero cierra sesión en «Mi cuenta».</p>
+      <p>Si la sesión abierta no es la tuya, entra a «Mi cuenta», revisa el nombre y pulsa «Cerrar sesión». Después podrás crear tu cuenta.</p>
       <div class="acciones">
         <a class="boton" href="cuenta.html">Ir a mi cuenta</a>
       </div>
@@ -53,14 +53,8 @@
       </fieldset>
 
       <fieldset class="paso" hidden>
-        <legend>Tu acceso</legend>
-        <div class="campo">
-          <label for="correo">Correo (si tienes)</label>
-          <span class="ayuda" id="ayuda-correo">No es obligatorio: también puedes ingresar con tu RUT.</span>
-          <input id="correo" name="correo" type="email" inputmode="email" autocomplete="email"
-                 aria-describedby="ayuda-correo error-correo">
-          <span class="error-campo" id="error-correo"></span>
-        </div>
+        <legend>Tu contraseña y tu correo (opcional)</legend>
+        <!-- T-14: primero lo obligatorio (contraseña), después el correo opcional. -->
         <div class="campo">
           <label for="contrasena">Contraseña</label>
           <span class="ayuda" id="ayuda-contrasena">Al menos 12 caracteres. Puede ser una frase, por ejemplo: mi taller queda en el cerro</span>
@@ -69,8 +63,15 @@
           <label class="casilla"><input type="checkbox" data-mostrar="contrasena"> Mostrar contraseña</label>
           <span class="error-campo" id="error-contrasena"></span>
         </div>
+        <div class="campo">
+          <label for="correo">Correo (si tienes)</label>
+          <span class="ayuda" id="ayuda-correo">No es obligatorio: también puedes ingresar con tu RUT.</span>
+          <input id="correo" name="correo" type="email" inputmode="email" autocomplete="email"
+                 aria-describedby="ayuda-correo error-correo">
+          <span class="error-campo" id="error-correo"></span>
+        </div>
         <div class="acciones">
-          <button type="submit">Enviar postulación</button>
+          <button type="submit">Crear mi cuenta y seguir</button>
           <button type="button" class="boton-secundario" data-paso="anterior">Volver</button>
         </div>
       </fieldset>

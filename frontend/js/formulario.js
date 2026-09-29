@@ -50,7 +50,26 @@ const formulario = (() => {
     }
   }
 
+  // Botón que vuelve a cargar la página (hallazgo UX T-11): en vez de pedir
+  // "recarga la página", se ofrece la acción. Lo escrito en los pasos se
+  // conserva (RNF-20); la contraseña no.
+  function botonVolverACargar(texto = "Volver a cargar") {
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "boton-secundario";
+    boton.textContent = texto;
+    boton.addEventListener("click", () => location.reload());
+    return boton;
+  }
+
+  // aria-invalid solo vale en campos que se escriben o eligen; en un botón
+  // (fotos) o un fieldset el error se enlaza con aria-describedby.
+  function admiteInvalido(campo) {
+    return /^(INPUT|SELECT|TEXTAREA)$/.test(campo.tagName);
+  }
+
   // Muestra { mensaje, errores } del servidor. Devuelve el primer campo con error.
+  // Si datos.recargar es true, el aviso ofrece el botón "Volver a cargar".
   function mostrarErrores(form, datos) {
     limpiarErrores(form);
     let primero = null;
@@ -60,14 +79,22 @@ const formulario = (() => {
       const campo =
         form.querySelector(`[aria-describedby~="error-${nombre}"]`) || form.querySelector(`[name="${nombre}"]`);
       if (campo && destino) {
-        campo.setAttribute("aria-invalid", "true");
+        if (admiteInvalido(campo)) {
+          campo.setAttribute("aria-invalid", "true");
+        }
         destino.textContent = texto;
         primero = primero || campo;
       } else {
         sinCampo.push(texto);
       }
     }
-    avisar(form, [datos.mensaje, ...sinCampo].filter(Boolean).join(" "), "error");
+    // Hallazgo UX E-1: si ningún campo quedó marcado, el mensaje general
+    // ("revisa los campos marcados") no sirve; se muestran solo los errores.
+    const partes = primero || sinCampo.length === 0 ? [datos.mensaje, ...sinCampo] : sinCampo;
+    avisar(form, partes.filter(Boolean).join(" "), "error");
+    if (datos.recargar) {
+      form.querySelector(".aviso").append(" ", botonVolverACargar());
+    }
     return primero;
   }
 
@@ -79,8 +106,9 @@ const formulario = (() => {
   const NO_PERMITIDO = "Este dato no corresponde aquí: quítalo e inténtalo de nuevo.";
 
   // Reemplaza el mensaje genérico de campo no permitido por uno que la persona
-  // pueda seguir en este contexto (textos = { mensaje, campo }). No descarta
-  // ningún error: cada campo afectado conserva su aviso.
+  // pueda seguir en este contexto (textos = { mensaje, campo }), con el botón
+  // "Volver a cargar" (hallazgo UX T-4). No descarta ningún error: cada campo
+  // afectado conserva su aviso.
   function traducirNoPermitido(datos, textos) {
     let hubo = false;
     const errores = {};
@@ -88,7 +116,7 @@ const formulario = (() => {
       hubo = hubo || texto === NO_PERMITIDO;
       errores[campo] = texto === NO_PERMITIDO ? textos.campo : texto;
     }
-    return hubo ? { mensaje: textos.mensaje, errores } : datos;
+    return hubo ? { mensaje: textos.mensaje, errores, recargar: true } : datos;
   }
 
   // Con sesión iniciada no se ofrece el formulario de visitante: se explica cómo
@@ -326,6 +354,7 @@ const formulario = (() => {
     olvidar,
     olvidarTodo,
     traducirNoPermitido,
+    botonVolverACargar,
     derivarACuenta,
     mostrarVisitante,
   };

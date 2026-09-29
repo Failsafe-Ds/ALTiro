@@ -79,7 +79,20 @@
     return nodo;
   }
 
+  // Hallazgo UX M-3: con la sesión terminada no queda a la vista el expediente
+  // (nombre, RUT, motivos): se oculta y se vacía antes de avisar.
   function sesionTerminada() {
+    visor.cerrar();
+    contenido.hidden = true;
+    for (const dato of contenido.querySelectorAll("[id^='dato-']")) {
+      dato.textContent = "";
+    }
+    for (const lista of contenido.querySelectorAll("ul, ol")) {
+      lista.replaceChildren();
+    }
+    tituloPagina.textContent = "Revisar expediente";
+    document.title = "Revisar expediente — AlTiro";
+    curatoria.limpiar(avisoResultado);
     curatoria.avisarSesionTerminada(avisoPagina);
   }
 
@@ -96,8 +109,12 @@
     return boton;
   }
 
+  // aria-invalid solo en el campo de texto; en el fieldset de opciones el
+  // error queda enlazado con aria-describedby.
   function mostrarErrorCampo(campo, destino, texto) {
-    campo.setAttribute("aria-invalid", "true");
+    if (campo.tagName !== "FIELDSET") {
+      campo.setAttribute("aria-invalid", "true");
+    }
     destino.textContent = texto;
   }
 
@@ -166,23 +183,6 @@
 
   // --- Documentos ---
 
-  function textoVigencia(documento) {
-    if (!documento.fecha_vencimiento) {
-      return elemento("span", "", "No vence");
-    }
-    const texto = elemento("span", "", `Vence el ${expediente.formatearFecha(documento.fecha_vencimiento)} `);
-    // Días restantes: los calcula el servidor (CA-17.1); si aún no vienen, solo la fecha.
-    if (documento.vigente !== false && typeof documento.dias_restantes === "number" && documento.dias_restantes > 0) {
-      texto.append(documento.dias_restantes === 1 ? "(queda 1 día) " : `(quedan ${documento.dias_restantes} días) `);
-    }
-    if (documento.vigente === false) {
-      texto.append(
-        expediente.etiquetaEstado("vencido", { vencido: { texto: "Vencido", icono: "⚠", clase: "estado-rechazado" } })
-      );
-    }
-    return texto;
-  }
-
   function botonVer(documento, nombre, sufijo) {
     const ver = document.createElement("button");
     ver.type = "button";
@@ -205,7 +205,7 @@
     const ayuda = elemento(
       "span",
       "ayuda",
-      "Obligatorio para observar: el maestro verá este texto. Opcional para validar: queda solo en el historial."
+      "Obligatorio para observar: el maestro verá este texto; escríbelo simple, diciendo qué debe hacer el maestro. Opcional para validar: queda solo en el historial."
     );
     ayuda.id = `${id}-ayuda`;
     const texto = document.createElement("textarea");
@@ -239,10 +239,14 @@
   function tarjetaDocumento(documento, indice, textosPrevios) {
     const nombre = expediente.nombreDocumento(documento.tipo, documento.oficio);
     const item = elemento("li", "tarjeta documento");
+    item.dataset.ref = documento.ref;
+    const titulo = elemento("h3", "", nombre);
+    titulo.tabIndex = -1;
     item.append(
-      elemento("h3", "", nombre),
+      titulo,
       elemento("p", "", "Estado: ", expediente.etiquetaEstado(documento.estado, curatoria.ESTADOS_DOCUMENTO)),
-      elemento("p", "", textoVigencia(documento)),
+      // CA-17.1: "Vence el …. Quedan N días." o "Venció el …" con "Vencido" (servidor: vigente, dias_restantes).
+      elemento("p", "", expediente.vigencia(documento)),
       elemento("p", "ayuda", `Emitido el ${expediente.formatearFecha(documento.fecha_emision)}`),
       elemento("p", "ayuda", `Recibido el ${expediente.formatearFechaHora(documento.cargado_en)}`)
     );
@@ -303,12 +307,14 @@
 
     if (estado === 200) {
       partes.texto.value = "";
+      const lista = document.getElementById("lista-documentos");
+      const orden = Array.from(lista.children, (li) => li.dataset.ref);
       pintar(datos.expediente);
-      avisarExito(
+      const texto =
         resultado === "validar"
           ? `Listo: validaste «${nombre}». Quedó registrado en el historial.`
-          : `Listo: observaste «${nombre}». El maestro verá el motivo en «Mis documentos».`
-      );
+          : `Listo: observaste «${nombre}». El maestro verá el motivo en «Mis documentos».`;
+      enfocarTrasRevision(documento.ref, orden, texto);
       cargarHistorial();
       return;
     }
@@ -316,6 +322,37 @@
       aviso: partes.aviso,
       campos: { motivo: [partes.texto, partes.error] },
     });
+  }
+
+  // Hallazgo UX O-2: tras validar u observar, la página no salta arriba.
+  // El resultado queda junto al documento revisado y se anuncia (role=status);
+  // el foco pasa al siguiente documento que espera revisión (primero los que
+  // venían después, luego los anteriores) o, si no queda ninguno, al resultado.
+  function enfocarTrasRevision(refRevisado, ordenPrevio, texto) {
+    const lista = document.getElementById("lista-documentos");
+    const tarjetas = Array.from(lista.children);
+    const revisada = tarjetas.find((li) => li.dataset.ref === refRevisado);
+    let nota = null;
+    curatoria.limpiar(avisoResultado);
+    if (revisada) {
+      nota = elemento("p", "resultado-documento", texto);
+      nota.setAttribute("role", "status");
+      nota.tabIndex = -1;
+      revisada.append(nota);
+    } else {
+      // El documento ya no está en la lista (no debería ocurrir): aviso general.
+      avisarExito(texto);
+    }
+    const posicion = ordenPrevio.indexOf(refRevisado);
+    const pendientes = tarjetas.filter((li) => li.querySelector("form.revision"));
+    const indice = (li) => ordenPrevio.indexOf(li.dataset.ref);
+    const siguiente =
+      pendientes.find((li) => indice(li) > posicion) || pendientes.find((li) => indice(li) < posicion) || null;
+    if (siguiente) {
+      siguiente.querySelector("h3").focus();
+    } else if (nota) {
+      nota.focus();
+    }
   }
 
   // --- Cambio de estado del expediente ---
@@ -495,10 +532,13 @@
     }
     // 409 (RF-33, estado desactualizado, documento ya revisado) y 404: se ofrece recargar.
     const conRecarga = estado === 409 || estado === 404;
+    // Hallazgo UX E-1: si ningún campo quedó marcado, solo los errores (sin
+    // "revisa los campos marcados").
+    const partes = primero || sinCampo.length === 0 ? [datos.mensaje, ...sinCampo] : sinCampo;
     const texto =
       estado === 404
-        ? "No encontramos este expediente o documento. Recarga para ver la información actual."
-        : [datos.mensaje, ...sinCampo].filter(Boolean).join(" ");
+        ? "No encontramos este expediente o documento. Toca «Recargar el expediente» para ver la información actual."
+        : partes.filter(Boolean).join(" ");
     aviso.replaceChildren(texto, ...(conRecarga ? [botonRecargar()] : []));
     if (primero && sinCampo.length === 0 && estado === 400) {
       primero.focus();

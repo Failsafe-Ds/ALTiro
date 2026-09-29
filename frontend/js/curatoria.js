@@ -26,16 +26,37 @@
   let totalPaginas = 1;
   let consulta = 0; // Descarta respuestas de consultas anteriores.
 
+  // "estado" guarda el filtro elegido: un estado del expediente, "" (todos) o
+  // curatoria.POR_VENCER, que se pide como ?por_vencer=1.
   function leerDireccion() {
     const parametros = new URLSearchParams(location.search);
     const pedido = parametros.get("estado");
-    estado = pedido !== null && valoresFiltro.includes(pedido) ? pedido : FILTRO_INICIAL;
+    if (parametros.get("por_vencer") === "1") {
+      estado = curatoria.POR_VENCER;
+    } else {
+      estado = pedido !== null && pedido !== curatoria.POR_VENCER && valoresFiltro.includes(pedido) ? pedido : FILTRO_INICIAL;
+    }
     const numero = Number(parametros.get("pagina"));
     pagina = Number.isInteger(numero) && numero >= 1 ? numero : 1;
   }
 
+  // Parámetros de la consulta (y de la dirección de la página).
+  function parametrosFiltro() {
+    const parametros = new URLSearchParams();
+    if (estado === curatoria.POR_VENCER) {
+      parametros.set("por_vencer", "1");
+    } else if (estado) {
+      parametros.set("estado", estado);
+    }
+    parametros.set("pagina", String(pagina));
+    return parametros;
+  }
+
   function escribirDireccion() {
-    const parametros = new URLSearchParams({ estado, pagina: String(pagina) });
+    const parametros = parametrosFiltro();
+    if (!estado) {
+      parametros.set("estado", "");
+    }
     history.replaceState(null, "", `curatoria.html?${parametros}`);
   }
 
@@ -165,11 +186,7 @@
     contenido.hidden = false;
     resultado.textContent = "Cargando expedientes…";
     lista.setAttribute("aria-busy", "true");
-    const parametros = new URLSearchParams({ pagina: String(pagina) });
-    if (estado) {
-      parametros.set("estado", estado);
-    }
-    const { estado: codigo, datos } = await api.obtener(`${curatoria.RUTA}/expedientes?${parametros}`);
+    const { estado: codigo, datos } = await api.obtener(`${curatoria.RUTA}/expedientes?${parametrosFiltro()}`);
     if (esta !== consulta) {
       return;
     }
@@ -204,7 +221,58 @@
   anterior.addEventListener("click", () => irAPagina(Math.max(1, pagina - 1)));
   siguiente.addEventListener("click", () => irAPagina(pagina + 1));
 
+  // --- Avisos de vencimiento (RF-35; GET /api/curatoria/avisos) ---
+  // El texto de cada aviso lo arma el servidor. Se agrega el nombre del
+  // maestro y el enlace a su expediente (la API ya excluye el propio, CA-19.4).
+  const seccionAvisos = document.getElementById("avisos");
+  const estadoAvisos = document.getElementById("estado-avisos");
+  const listaAvisos = document.getElementById("lista-avisos");
+
+  async function cargarAvisos() {
+    estadoAvisos.textContent = "Cargando avisos…";
+    const { estado: codigo, datos } = await api.obtener(`${curatoria.RUTA}/avisos`);
+    if (codigo === 401 || codigo === 403) {
+      // La cola ya muestra el aviso de sesión o de acceso.
+      seccionAvisos.hidden = true;
+      return;
+    }
+    if (codigo !== 200) {
+      listaAvisos.replaceChildren();
+      const reintentar = document.createElement("button");
+      reintentar.type = "button";
+      reintentar.className = "boton-secundario";
+      reintentar.textContent = "Reintentar";
+      reintentar.addEventListener("click", cargarAvisos);
+      const error = document.createElement("span");
+      error.className = "error-campo";
+      error.textContent = datos.mensaje || "No pudimos cargar los avisos.";
+      estadoAvisos.replaceChildren(error, reintentar);
+      return;
+    }
+    expediente.pintarAvisos(seccionAvisos, listaAvisos, datos.avisos, (aviso, texto) => {
+      const nombre = document.createElement("strong");
+      nombre.textContent = aviso.expediente.nombre;
+      const ir = curatoria.enlaceBoton(
+        "Revisar expediente",
+        `curatoria-expediente.html?ref=${encodeURIComponent(aviso.expediente.ref)}`,
+        true
+      );
+      ir.setAttribute("aria-label", `Revisar el expediente de ${aviso.expediente.nombre}`);
+      return [nombre, texto, ir];
+    });
+    // La sección queda visible también sin avisos, para decir que no hay.
+    seccionAvisos.classList.remove("oculto");
+    const cuantos = datos.avisos.length;
+    estadoAvisos.textContent =
+      cuantos === 0
+        ? "No hay documentos por vencer."
+        : cuantos === 1
+          ? "1 documento está por vencer."
+          : `${cuantos} documentos están por vencer.`;
+  }
+
   leerDireccion();
   pintarFiltros();
   cargar();
+  cargarAvisos();
 })();

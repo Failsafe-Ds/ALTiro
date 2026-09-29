@@ -24,7 +24,8 @@
     formulario.avisar(
       form,
       siguiente === "postulacion"
-        ? "Tu postulación quedó registrada. Ahora ingresa con tu RUT y tu contraseña para enviar las fotos de tus documentos."
+        ? // RNF-13: no debe parecer que la postulación terminó (término falso).
+          "Primer paso listo. Ahora ingresa con tu RUT y tu contraseña para enviar las fotos de tus documentos."
         : "Tu cuenta quedó creada. Ahora ingresa con tus datos.",
       "exito"
     );

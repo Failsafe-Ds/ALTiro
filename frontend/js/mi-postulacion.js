@@ -81,10 +81,33 @@
     return form.querySelector(".aviso");
   }
 
+  // Hallazgo UX E-4: si había fotos elegidas en el paso abierto, se avisa que
+  // habrá que tomarlas de nuevo (no se guardan en el teléfono, ADR-002).
   function sesionTerminada() {
+    const habiaFotos = !formDocumento.classList.contains("oculto") && selectores.some((s) => Boolean(s.blob()));
     liberarFotos();
     mostrarSolo(null);
-    expediente.avisarSesionTerminada(avisoPagina, "postulacion", "Los pasos que ya enviaste están guardados.");
+    expediente.avisarSesionTerminada(
+      avisoPagina,
+      "postulacion",
+      "Los pasos que ya enviaste están guardados." +
+        (habiaFotos ? " Las fotos de este paso tendrás que tomarlas de nuevo." : "")
+    );
+  }
+
+  // Hallazgo UX E-5: mientras se envía, ningún botón del paso responde
+  // (fotos, "Volver", "Seguir sin cambiarlo", casillas), para no cambiar de
+  // paso ni de foto a mitad del envío.
+  function bloquearPaso(form, bloquear) {
+    for (const control of form.querySelectorAll("button, input")) {
+      if (bloquear) {
+        control.dataset.bloqueado = control.disabled ? "antes" : "si";
+        control.disabled = true;
+      } else if (control.dataset.bloqueado) {
+        control.disabled = control.dataset.bloqueado === "antes";
+        delete control.dataset.bloqueado;
+      }
+    }
   }
 
   function oficiosEditables() {
@@ -212,9 +235,11 @@
       }
       return;
     }
+    bloquearPaso(formOficios, true);
     formulario.ocupado(formOficios, true);
     const { estado, datos: respuesta } = await api.enviar(RUTA_OFICIOS, { oficios: elegidos });
     formulario.ocupado(formOficios, false);
+    bloquearPaso(formOficios, false);
     if (estado === 200) {
       datos = respuesta.expediente;
       decidir(null, "Guardamos tus oficios.");
@@ -409,6 +434,7 @@
       envio.append(selector.campo, selector.blob(), `${selector.campo}.jpg`);
     }
 
+    bloquearPaso(formDocumento, true);
     formulario.ocupado(formDocumento, true);
     progresoEnvio.textContent = textoEnvio(0);
     let ultimo = "";
@@ -420,6 +446,7 @@
       }
     });
     formulario.ocupado(formDocumento, false);
+    bloquearPaso(formDocumento, false);
     progresoEnvio.textContent = "";
 
     if (estado === 201) {
@@ -509,6 +536,9 @@
       datos.estado === "en_revision" && faltan.length
         ? "Para revisar tu postulación necesitamos todos tus documentos."
         : textos.texto;
+
+    // RF-35: avisos de vencimiento con el texto del servidor.
+    expediente.pintarAvisos(document.getElementById("avisos"), document.getElementById("lista-avisos"), datos.avisos);
 
     const motivo = document.getElementById("motivo-expediente");
     const conMotivo = CON_MOTIVO.includes(datos.estado) && Boolean(datos.motivo);

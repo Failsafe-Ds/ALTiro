@@ -34,6 +34,34 @@ const visorFotos = (() => {
     const otraCara = document.getElementById("visor-otra-cara");
     const botonCerrar = document.getElementById("visor-cerrar");
 
+    // Hallazgo UX T-11: si la foto no carga, el visor ofrece la acción en un
+    // botón ("Reintentar" o "Volver a cargar") en vez de pedir "recarga la página".
+    const reintentar = document.createElement("button");
+    reintentar.type = "button";
+    reintentar.className = "boton-secundario";
+    reintentar.hidden = true;
+    botonCerrar.parentElement.prepend(reintentar);
+    let accionReintentar = null;
+
+    function ofrecer(texto, accion) {
+      reintentar.textContent = texto;
+      reintentar.hidden = false;
+      accionReintentar = accion;
+    }
+
+    function ocultarReintentar() {
+      reintentar.hidden = true;
+      accionReintentar = null;
+    }
+
+    reintentar.addEventListener("click", () => {
+      const accion = accionReintentar;
+      ocultarReintentar();
+      if (accion) {
+        accion();
+      }
+    });
+
     // "ref:cara" => { url, caduca }. Solo en memoria.
     const enlaces = new Map();
     let fotoAbierta = null; // { documento, nombre, cara, reintentado }
@@ -61,6 +89,7 @@ const visorFotos = (() => {
       tituloVisor.textContent = dosCaras ? `${nombre}: ${textoCara(cara)}` : nombre;
       imagenVisor.hidden = true;
       imagenVisor.removeAttribute("src");
+      ocultarReintentar();
       estadoVisor.textContent = "Cargando la foto…";
       otraCara.classList.toggle("oculto", !dosCaras);
       otraCara.textContent = cara === "anverso" ? "Ver la parte de atrás" : "Ver el frente";
@@ -74,11 +103,19 @@ const visorFotos = (() => {
         opciones.alSesionTerminada();
         return;
       }
-      if (resultado.estado !== 200) {
+      if (resultado.estado === 404) {
+        // El documento cambió (por ejemplo, se subió otro): se vuelve a cargar la página.
         estadoVisor.textContent =
-          resultado.estado === 404
-            ? "No encontramos esta foto. Cierra y recarga la página para ver los documentos actualizados."
-            : resultado.mensaje;
+          "No encontramos esta foto. Puede que el documento haya cambiado. Toca «Volver a cargar» para ver los documentos actualizados.";
+        ofrecer("Volver a cargar", () => location.reload());
+        return;
+      }
+      if (resultado.estado !== 200) {
+        estadoVisor.textContent = resultado.mensaje;
+        ofrecer("Reintentar", () => {
+          fotoAbierta.reintentado = false;
+          mostrarFoto();
+        });
         return;
       }
       imagenVisor.alt = `Foto de ${nombre}${dosCaras ? `, ${textoCara(cara)}` : ""}`;
@@ -102,8 +139,11 @@ const visorFotos = (() => {
         return;
       }
       imagenVisor.removeAttribute("src");
-      estadoVisor.textContent =
-        "No pudimos mostrar la foto. Revisa tu conexión, cierra esta ventana y vuelve a abrir la foto.";
+      estadoVisor.textContent = "No pudimos mostrar la foto. Revisa tu señal o tu wifi y toca «Reintentar».";
+      ofrecer("Reintentar", () => {
+        fotoAbierta.reintentado = false;
+        mostrarFoto();
+      });
     });
 
     function abrir(documento, nombre, cara, boton) {
@@ -122,6 +162,7 @@ const visorFotos = (() => {
 
     function cerrar() {
       fotoAbierta = null;
+      ocultarReintentar();
       // Se suelta la imagen de la memoria.
       imagenVisor.removeAttribute("src");
       imagenVisor.hidden = true;

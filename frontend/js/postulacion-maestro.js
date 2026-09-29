@@ -16,9 +16,8 @@
   };
   // Respaldo si no se pudo consultar la sesión tras el error (por ejemplo, sin conexión).
   const NO_PERMITIDO = {
-    mensaje:
-      "Parece que se inició una sesión en este navegador mientras llenabas el formulario. Recarga la página para ver cómo continuar.",
-    campo: "Recarga la página para continuar.",
+    mensaje: "Parece que alguien ingresó a una cuenta en este teléfono mientras llenabas el formulario.",
+    campo: "Toca «Volver a cargar» para ver cómo seguir.",
   };
   const form = document.getElementById("postulacion");
 

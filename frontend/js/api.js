@@ -2,12 +2,18 @@
 // - Envía el token CSRF en X-CSRFToken en toda operación que cambia datos (ADR-006).
 // - Nunca lanza excepciones: siempre devuelve { estado, datos } con datos en el
 //   formato común { mensaje, errores } cuando hay error (RNF-15).
-// - Sin conexión devuelve estado 0 y un mensaje accionable (RNF-20).
+// - Sin conexión devuelve estado 0 y un mensaje accionable (RNF-20). Al leer
+//   (GET) no hay nada escrito que conservar: el mensaje pide tocar «Reintentar»,
+//   y cada página que muestra ese error ofrece ese botón (hallazgo UX E-2).
 "use strict";
 
 const api = (() => {
   const SIN_CONEXION = {
     mensaje: "No pudimos conectarnos. Revisa tu señal o tu wifi e inténtalo de nuevo. Lo que escribiste sigue aquí.",
+    errores: {},
+  };
+  const SIN_CONEXION_LECTURA = {
+    mensaje: "No pudimos conectarnos. Revisa tu señal o tu wifi y toca «Reintentar».",
     errores: {},
   };
   const RESPUESTA_ILEGIBLE = {
@@ -42,7 +48,7 @@ const api = (() => {
     try {
       respuesta = await fetch(ruta, opciones);
     } catch (error) {
-      return { estado: 0, datos: SIN_CONEXION };
+      return { estado: 0, datos: metodo === "GET" ? SIN_CONEXION_LECTURA : SIN_CONEXION };
     }
     // Señal interna (ADR-006, E-1): solo el rechazo CSRF lleva esta cabecera.
     const rechazoCsrf = respuesta.status === 403 && respuesta.headers.get("AlTiro-Rechazo") === "csrf";

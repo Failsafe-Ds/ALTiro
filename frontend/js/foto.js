@@ -155,7 +155,7 @@ const foto = (() => {
         return;
       }
       error.textContent = "";
-      camara.removeAttribute("aria-invalid");
+      grupo.classList.remove("foto-con-error");
       estado.textContent = "Preparando la foto…";
       preparando = comprimir(archivo)
         .then((resultado) => {
@@ -168,7 +168,7 @@ const foto = (() => {
         .catch(() => {
           estado.textContent = "";
           error.textContent = MENSAJE_ILEGIBLE;
-          camara.setAttribute("aria-invalid", "true");
+          grupo.classList.add("foto-con-error");
         })
         .finally(() => {
           // El archivo original no se conserva: solo la versión achicada.
@@ -193,7 +193,7 @@ const foto = (() => {
       enfocar: () => camara.focus(),
       mostrarError(texto) {
         error.textContent = texto;
-        camara.setAttribute("aria-invalid", "true");
+        grupo.classList.add("foto-con-error");
       },
       // Suelta la foto de la memoria (al enviarla con éxito o al salir).
       liberar() {
@@ -202,7 +202,7 @@ const foto = (() => {
         vista.alt = "";
         estado.textContent = "";
         error.textContent = "";
-        camara.removeAttribute("aria-invalid");
+        grupo.classList.remove("foto-con-error");
         pintar();
       },
       quitar() {

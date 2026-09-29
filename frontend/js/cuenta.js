@@ -44,6 +44,25 @@
     huella = "";
   }
 
+  // Hallazgo UX M-3: con la sesión terminada no quedan a la vista los datos de
+  // la cuenta (teléfono compartido): se vacían y se ocultan las secciones.
+  // Solo queda el aviso para volver a ingresar.
+  function ocultarCuenta() {
+    vaciarDatos();
+    for (const bloque of document.querySelectorAll("main > section, main > nav, main > .acciones")) {
+      bloque.classList.add("oculto");
+    }
+    document.body.dataset.vaciada = "si";
+  }
+
+  // Botón "Reintentar" para errores al leer la cuenta (hallazgos UX E-2 y T-11).
+  function avisarErrorCarga(mensaje) {
+    const boton = formulario.botonVolverACargar("Reintentar");
+    aviso.className = "aviso aviso-error";
+    aviso.replaceChildren(mensaje, " ", boton);
+    aviso.focus();
+  }
+
   function formatearRut(rut) {
     const cuerpo = rut.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     return cuerpo + "-" + rut.slice(-1);
@@ -127,7 +146,9 @@
   // visitante: se explica qué pasó y se ofrece volver a ingresar.
   function sesionTerminada(form) {
     formulario.limpiarErrores(form);
+    // Primero se guarda lo escrito (con la huella de la cuenta); después se vacía la página.
     const guardado = guardarPendiente(form);
+    ocultarCuenta();
     const enlace = document.createElement("a");
     enlace.className = "boton";
     enlace.href = "ingresar.html";
@@ -135,7 +156,7 @@
     avisoSesion.className = "aviso aviso-error";
     avisoSesion.replaceChildren(
       "Tu sesión terminó. Vuelve a ingresar para continuar." +
-        (guardado ? " Lo que escribiste seguirá aquí cuando vuelvas a «Mi cuenta» en esta pestaña." : ""),
+        (guardado ? " Lo que escribiste seguirá aquí cuando vuelvas a ingresar." : ""),
       enlace
     );
     avisoSesion.focus();
@@ -153,13 +174,24 @@
     if (!form || form.closest(".oculto")) {
       return;
     }
+    // Hallazgo UX M-6: el aviso solo aparece si de verdad se recuperó algo.
+    // Región y comuna ya las aplicó territorio.conectar: cuentan si quedaron puestas.
+    let recuperados = 0;
     for (const [nombre, valor] of Object.entries(pendiente.valores || {})) {
       const campo = form.querySelector(`[name="${nombre}"]`);
-      if (campo && campo.type !== "password" && !campo.closest(".oculto") && nombre !== "region" && nombre !== "comuna") {
+      if (!campo || campo.type === "password" || campo.closest(".oculto")) {
+        continue;
+      }
+      if (nombre !== "region" && nombre !== "comuna") {
         campo.value = valor;
       }
+      if (valor !== "" && campo.value === valor) {
+        recuperados += 1;
+      }
     }
-    avisarCuenta("Recuperamos lo que habías escrito. Revísalo y vuelve a enviarlo.", "exito");
+    if (recuperados > 0) {
+      avisarCuenta("Recuperamos lo que habías escrito. Revísalo y vuelve a enviarlo.", "exito");
+    }
   }
 
   // --- Errores de los formularios ---
@@ -222,7 +254,13 @@
           // muestran los errores de visitante: se avisa y se conserva lo escrito.
           formulario.ocupado(form, false);
           formulario.limpiarErrores(form);
-          formulario.avisar(form, revision.datos.mensaje, "error");
+          formulario.avisar(
+            form,
+            revision.estado === 0
+              ? `No pudimos conectarnos. Revisa tu señal o tu wifi y pulsa «${textoBoton}» de nuevo. Lo que escribiste sigue aquí.`
+              : revision.datos.mensaje,
+            "error"
+          );
           return;
         }
         if (revision.estado === 200) {
@@ -283,10 +321,17 @@
       boton.disabled = false;
       boton.textContent = texto;
       avisoCerrar.className = "aviso aviso-error";
-      avisoCerrar.textContent =
-        estado === 0
-          ? "No pudimos cerrar tu sesión porque no hay conexión: tu sesión sigue abierta en este teléfono. Revisa tu señal o tu wifi y pulsa «Cerrar sesión» de nuevo."
-          : "No pudimos cerrar tu sesión: sigue abierta en este teléfono. Pulsa «Cerrar sesión» de nuevo; si no funciona, recarga la página e inténtalo otra vez.";
+      if (estado === 0) {
+        avisoCerrar.textContent =
+          "No pudimos cerrar tu sesión porque no hay conexión: tu sesión sigue abierta en este teléfono. Revisa tu señal o tu wifi y pulsa «Cerrar sesión» de nuevo.";
+      } else {
+        // T-11: en vez de "recarga la página", el botón que lo hace.
+        avisoCerrar.replaceChildren(
+          "No pudimos cerrar tu sesión: sigue abierta en este teléfono. Pulsa «Cerrar sesión» de nuevo; si no funciona, toca «Volver a cargar» e inténtalo otra vez.",
+          " ",
+          formulario.botonVolverACargar()
+        );
+      }
       avisoCerrar.focus();
     });
   }
@@ -300,7 +345,7 @@
     }
     const revision = await api.obtener("/api/cuenta");
     if (revision.estado === 200) {
-      if (!lista) {
+      if (!lista || document.body.dataset.vaciada) {
         // La primera carga no terminó (por ejemplo, sin conexión): se carga de nuevo.
         location.reload();
         return;
@@ -315,9 +360,7 @@
       return;
     }
     // Sin conexión u otro error: no se muestran datos que no se pudieron comprobar.
-    aviso.className = "aviso aviso-error";
-    aviso.textContent = revision.datos.mensaje;
-    aviso.focus();
+    avisarErrorCarga(revision.datos.mensaje);
   });
 
   const { estado, datos } = await api.obtener("/api/cuenta");
@@ -326,8 +369,7 @@
     return;
   }
   if (estado !== 200) {
-    aviso.className = "aviso aviso-error";
-    aviso.textContent = datos.mensaje;
+    avisarErrorCarga(datos.mensaje);
     return;
   }
   pintar(datos.cuenta);
@@ -345,7 +387,7 @@
   conectarFormulario(
     document.getElementById("agregar-maestro"),
     "/api/maestros/postulaciones",
-    "Listo: tu postulación como maestro quedó registrada.",
+    "Primer paso listo. Ahora envía las fotos de tus documentos desde «Mi postulación».",
     { telefono: "telefono-maestro", perfil: "perfil-maestro" }
   );
   restaurar(pendiente);

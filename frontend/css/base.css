@@ -371,8 +371,13 @@ h2:focus {
   font-size: 0.95rem;
 }
 
+/* Marca decorativa con un carácter de Unicode antiguo (se ve igual en
+   teléfonos viejos, a diferencia de un emoji). El texto alternativo vacío
+   ("/ \"\"") evita que el lector de pantalla lo lea; la primera línea es el
+   respaldo para navegadores que no conocen esa sintaxis. */
 .nota-licencia::before {
-  content: "🪪 ";
+  content: "► ";
+  content: "► " / "";
 }
 
 .etiqueta {
@@ -623,7 +628,8 @@ textarea {
 }
 
 .cuenta-pendiente::before {
-  content: "📄 ";
+  content: "► ";
+  content: "► " / "";
 }
 
 .lista-simple {
@@ -745,4 +751,94 @@ button.boton-peligro[disabled]:hover {
 .motivo,
 .datos dd {
   overflow-wrap: anywhere;
+}
+
+/* --- Cierre de UX del Sprint 2 --- */
+
+/* Foto con error: el aviso de texto va junto a los botones (aria-describedby);
+   el borde grueso lo refuerza sin depender solo del color (RNF-16). */
+.foto:has(.error-campo:not(:empty)),
+.foto-con-error {
+  border: 3px solid var(--error);
+}
+
+/* Aviso de carga de región o comuna, junto al campo (hallazgo UX E-6). */
+.aviso-territorio {
+  margin-top: -0.5rem;
+}
+
+/* Avisos de vencimiento (RF-35): sección con título "Avisos", ícono y texto
+   en cada aviso. Texto 16:1 e ícono 6,3:1 sobre #fff4e5
+   (docs/testing/rnf-16-contrastes.md). */
+.avisos {
+  border-left: 6px solid #8a4b00;
+  background: #fff4e5;
+}
+
+.avisos h2,
+.avisos h3 {
+  margin-top: 0;
+}
+
+.lista-avisos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tarjeta .lista-avisos {
+  padding-left: 0;
+}
+
+.aviso-vencimiento {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--borde);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.aviso-vencimiento:last-child {
+  border-bottom: 0;
+}
+
+.aviso-vencimiento .icono-aviso {
+  flex: none;
+  color: #8a4b00;
+}
+
+.aviso-vencimiento .detalle-aviso {
+  display: grid;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.aviso-vencimiento .boton {
+  width: auto;
+  justify-self: start;
+  margin-top: 0.25rem;
+}
+
+/* Resultado de la revisión de un documento, junto a él (hallazgo UX O-2). */
+.resultado-documento {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 6px solid var(--exito);
+  color: var(--exito);
+  background: var(--exito-fondo);
+  font-weight: 600;
+  border-radius: var(--radio);
+}
+
+.resultado-documento::before {
+  content: "✓ ";
+}
+
+.resultado-documento:focus,
+.documento h3:focus {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
 }

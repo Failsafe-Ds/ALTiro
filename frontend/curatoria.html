@@ -19,6 +19,13 @@
     <h1 id="titulo-pagina" tabindex="-1">Expedientes de maestros</h1>
     <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
 
+    <!-- RF-35: avisos de documentos por vencer (GET /api/curatoria/avisos). -->
+    <section id="avisos" class="tarjeta avisos" aria-labelledby="titulo-avisos">
+      <h2 id="titulo-avisos">Avisos de vencimiento</h2>
+      <p id="estado-avisos" role="status">Cargando avisos…</p>
+      <ul id="lista-avisos" class="lista-avisos"></ul>
+    </section>
+
     <section id="contenido" aria-labelledby="titulo-pagina">
       <nav aria-labelledby="titulo-filtros">
         <h2 id="titulo-filtros" class="titulo-filtros">Mostrar expedientes</h2>

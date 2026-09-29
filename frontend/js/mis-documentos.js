@@ -28,21 +28,6 @@
 
   // --- Lista ---
 
-  function textoVigencia(documento) {
-    if (!documento.fecha_vencimiento) {
-      return "No vence";
-    }
-    let texto = `Vence el ${expediente.formatearFecha(documento.fecha_vencimiento)}`;
-    // Punto de extensión (CA-17.1): los días restantes los calcula el servidor
-    // (incremento 5 del S2). Si la respuesta aún no los trae, se muestra solo la fecha.
-    if (documento.vigente === false || (typeof documento.dias_restantes === "number" && documento.dias_restantes <= 0)) {
-      texto += " (ya venció)";
-    } else if (typeof documento.dias_restantes === "number") {
-      texto +=documento.dias_restantes === 1 ? " (queda 1 día)" : ` (quedan ${documento.dias_restantes} días)`;
-    }
-    return texto;
-  }
-
   function parrafo(clase, ...hijos) {
     const p = document.createElement("p");
     if (clase) {
@@ -73,7 +58,8 @@
     item.append(
       titulo,
       parrafo("", "Estado: ", expediente.etiquetaEstado(documento.estado, expediente.ESTADOS_DOCUMENTO)),
-      parrafo("", textoVigencia(documento)),
+      // CA-17.1: "Vence el …. Quedan N días." o "Venció el …" con "Vencido" (servidor: vigente, dias_restantes).
+      parrafo("", expediente.vigencia(documento)),
       parrafo("ayuda", `Emitido el ${expediente.formatearFecha(documento.fecha_emision)}`)
     );
     if (documento.estado === "observado") {
@@ -111,6 +97,8 @@
       .getElementById("estado-expediente")
       .replaceChildren(expediente.etiquetaEstado(datos.estado, expediente.ESTADOS_EXPEDIENTE));
     const puedeSubir = datos.estado !== "rechazado";
+    // RF-35: avisos de vencimiento con el texto del servidor.
+    expediente.pintarAvisos(document.getElementById("avisos"), document.getElementById("lista-avisos"), datos.avisos);
     const lista = document.getElementById("lista-documentos");
     const requisitos = expediente.requisitos(datos);
     lista.replaceChildren(...requisitos.filter((r) => r.documento).map((r) => tarjeta(r.documento, puedeSubir)));
