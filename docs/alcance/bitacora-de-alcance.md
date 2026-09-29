@@ -183,3 +183,12 @@ Origen: `docs/decisions/sprint-2-propuesta-arquitectura.md`, §8, y las decision
 - **Estado (2026-09-28): implementado en S2, incremento 5.** Servicio `planificador` (misma imagen `altiro-app:local`, sin puertos publicados, solo red `interna`, secretos de solo lectura, volumen `documentos`, espera a `app` sano, sin volver a migrar, healthcheck por archivo de latido) con `manage.py planificador` (intervalo `ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS`, 3600 por defecto; `--una-vez`; SIGTERM limpio). Tareas: avisos de RF-35 (tabla `aviso`), purga de `acceso_denegado` (cierra DA-06) y archivos huérfanos (ADR-015). Evidencia en vivo: servicio `healthy`; `docker port` vacío; corrida manual con `avisos_creados=2` (maestro y curatoría) para un documento ficticio que vence en 20 días, segunda corrida con `avisos_creados=0`; avisos visibles en `GET /api/maestros/expediente` y `GET /api/curatoria/avisos`; parada con `docker compose stop` con código 0 y "Planificador detenido"; registros sin datos personales. **RNF-04:** `docker stats` con la pila completa: planificador 47,2 MiB, app 103,9 MiB, db 71,6 MiB, proxy 23,8 MiB (≈ 247 MiB en total, bajo 2 GB). RNF-23 no se volvió a medir en equipo limpio en este incremento.
 - **Autorización:** equipo de desarrollo.
 - **Relacionado:** RF-35, CA-24.2, M-08; ADR-016, DA-06.
+
+### DA-17 — La ejecución de la prueba de usabilidad de RNF-13 pasa al inicio del S3
+- **Fecha:** 2026-09-28 (cierre de UX del S2, incremento 6).
+- **Alcance original:** RNF-13 en S2. Umbral: "Al menos 2 de 3 participantes de prueba la completan en ≤ 10 minutos".
+- **Cambio:** en S2 se entrega el flujo completo del maestro y el protocolo listo para ejecutar (`docs/testing/rnf-13-protocolo.md`). La sesión con tres participantes externos, en un teléfono real, pasa a la **primera semana del S3**.
+- **Motivo:** la prueba exige personas externas, un teléfono real y la preparación del certificado (ADR-008). El trabajo automatizado del sprint no puede producirla.
+- **Impacto:** RNF-13 queda sin evidencia al cierre del S2. El informe lo señala como el requisito que más discute la viabilidad. No se declara cumplido sin la prueba.
+- **Autorización:** equipo de desarrollo, informando al representante del producto.
+- **Relacionado:** RNF-13, NTI-11, HU-11; ADR-008, ADR-013 E-8.

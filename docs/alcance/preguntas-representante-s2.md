@@ -15,3 +15,16 @@ Paquete único de preguntas (CP-01: la contraparte está disponible cada tres o 
 | P-09 | ¿Se acepta el alcance nacional del catálogo territorial? | Sí (pendiente desde el S1) | ADR-012 |
 | P-10 | ¿Se acepta que el HTML estático de una página privada sin datos cumple RF-02 ("vista privada")? | Sí (pendiente desde el S1) | ADR-002 |
 | P-11 | ¿Qué opción de alcance se elige para la reautenticación de RNF-09 (A a D)? | D: sin funciones de cambio de contraseña ni de correo | Propuesta del S1, §2.1; DA-09 |
+
+## Decisión provisional sobre P-01 y P-02 (2026-09-28)
+Sin respuesta del representante, y siguiendo la instrucción del equipo de tomar la opción recomendada, se usa una **lista provisional** de ocho oficios comunes del hogar en Chile, que aparece en pantalla sin rótulos:
+- Gas (regulado);
+- Electricidad (regulado);
+- Gasfitería (agua y alcantarillado, no regulado);
+- Carpintería;
+- Pintura;
+- Albañilería;
+- Cerrajería;
+- Jardinería.
+
+El informe solo nombra al "gasfíter" y al "eléctrico" (§1) y confirma como regulados el gas y la electricidad (§3.4, RNF-25). El resto es un **supuesto** hasta que responda el representante. Para P-02, la gasfitería de agua no es regulada; la de gas queda cubierta por el oficio "Gas".
