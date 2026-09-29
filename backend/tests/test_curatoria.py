@@ -160,7 +160,7 @@ def _sesion(identificador):
 @pytest.fixture
 def maestro():
     usuario = crear_maestro(rut=RUT_MAESTRO)
-    servicios.declarar_oficios(_expediente(usuario), ["ejemplo_1"])
+    servicios.declarar_oficios(_expediente(usuario), ["gasfiteria"])
     return usuario
 
 
@@ -405,7 +405,7 @@ def test_dos_cambios_simultaneos_no_dejan_estados_inconsistentes(monkeypatch):
 
 @pytest.fixture
 def maestro_gas(maestro):
-    servicios.declarar_oficios(_expediente(maestro), ["gas", "ejemplo_1"])
+    servicios.declarar_oficios(_expediente(maestro), ["gas", "gasfiteria"])
     _completo(maestro)
     return maestro
 
@@ -497,7 +497,7 @@ def test_e1_validada_la_nueva_cuenta_solo_la_nueva():
 
 
 def test_oficio_no_regulado_no_exige_licencia(maestro):
-    assert vigencia.oficio_habilitado(_expediente(maestro), _oficio("ejemplo_1"))
+    assert vigencia.oficio_habilitado(_expediente(maestro), _oficio("gasfiteria"))
     assert not vigencia.oficio_habilitado(_expediente(maestro), _oficio("gas"))
 
 
@@ -984,7 +984,7 @@ def test_filtro_invalido_responde_400_accionable(cura, consulta):
 
 
 def test_el_detalle_entrega_lo_necesario_para_revisar(maestro, cura, directorio_documentos):
-    servicios.declarar_oficios(_expediente(maestro), ["gas", "ejemplo_1"])
+    servicios.declarar_oficios(_expediente(maestro), ["gas", "gasfiteria"])
     cedula = _documento(maestro, CEDULA, estado=EstadoDocumento.VALIDADO)
     licencia = _documento(maestro, LICENCIA, "gas", vencimiento=_hoy() + datetime.timedelta(days=40))
     viejo = _documento(maestro, ANTECEDENTES, estado=EstadoDocumento.OBSERVADO, motivo="Vencido")
@@ -1001,7 +1001,7 @@ def test_el_detalle_entrega_lo_necesario_para_revisar(maestro, cura, directorio_
     assert (datos["nombre"], datos["rut"]) == ("Maestro Uno", RUT_MAESTRO_CANONICO)
     assert datos["oficios"] == [
         {"codigo": "gas", "nombre": "Gas", "regulado": True, "habilitado": False},
-        {"codigo": "ejemplo_1", "nombre": "Oficio de ejemplo 1 (por confirmar)", "regulado": False, "habilitado": True},
+        {"codigo": "gasfiteria", "nombre": "Gasfitería (agua y alcantarillado)", "regulado": False, "habilitado": True},
     ]
     # Solo documentos actuales: el reemplazado se abre desde el historial (ADR-017, E-3).
     assert {d["ref"] for d in datos["documentos"]} == {str(cedula.ref), str(licencia.ref), str(nuevo_antecedentes.ref)}

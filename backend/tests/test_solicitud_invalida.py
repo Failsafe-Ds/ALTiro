@@ -8,7 +8,7 @@ import pytest
 
 from tests.ayudas import sin_texto_prohibido
 
-MENSAJE = "No pudimos procesar tu solicitud. Revisa la dirección e inténtalo de nuevo."
+MENSAJE = "No pudimos leer lo que enviaste. Vuelve a cargar la página e inténtalo de nuevo."
 
 
 @pytest.mark.django_db

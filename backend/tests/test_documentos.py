@@ -236,7 +236,7 @@ def test_archivo_con_permisos_0600_y_sin_temporales(navegador, maestro, director
 
 @pytest.mark.django_db
 def test_licencia_de_oficio_regulado_declarado(navegador, maestro):
-    declarar_oficios(_expediente(maestro), ["gas", "ejemplo_1"])
+    declarar_oficios(_expediente(maestro), ["gas", "gasfiteria"])
 
     respuesta = _subir(
         navegador,
@@ -460,7 +460,7 @@ def test_cedula_exige_las_dos_caras(navegador, maestro, archivos, campo):
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     ("oficio", "declarados"),
-    [(None, ["gas"]), ("ejemplo_1", ["ejemplo_1"]), ("no_existe", ["gas"]), ("GAS", ["gas"]), ("gas", ["electricidad"])],
+    [(None, ["gas"]), ("gasfiteria", ["gasfiteria"]), ("no_existe", ["gas"]), ("GAS", ["gas"]), ("gas", ["electricidad"])],
 )
 def test_licencia_exige_oficio_regulado_y_declarado(navegador, maestro, directorio_documentos, oficio, declarados):
     declarar_oficios(_expediente(maestro), declarados)
@@ -492,7 +492,7 @@ def test_expediente_rechazado_responde_409_sin_guardar(navegador, maestro, direc
     respuesta = _subir(navegador, **_datos())
 
     assert respuesta.status_code == 409
-    assert "rechazado" in respuesta.json()["mensaje"]
+    assert respuesta.json()["mensaje"] == "Tu postulación no fue aprobada, así que ya no puedes enviar documentos."
     assert sin_texto_prohibido(respuesta)
     assert not Documento.objects.exists()
     assert _archivos_en(directorio_documentos) == []

@@ -1,7 +1,9 @@
 """Catálogo mínimo de oficios (ADR-017, punto 1; RF-33; DA-15)."""
 import csv
+import importlib
 
 import pytest
+from django.apps import apps as registro_apps
 
 from catalogo.carga import ARCHIVO_OFICIOS, cargar, leer_filas
 from catalogo.models import Oficio
@@ -17,10 +19,14 @@ def test_el_csv_versionado_solo_confirma_gas_y_electricidad_como_regulados():
     assert len({f["codigo"] for f in filas}) == 8
     assert {f["codigo"] for f in filas if f["regulado"] == "si"} == {"gas", "electricidad"}
     assert {f["regulado"] for f in filas} == {"si", "no"}
-    # P-01 sin respuesta: los no regulados son ficticios y se rotulan como tales.
+    # Lista provisional (P-01, P-02): nombres reales, sin rótulos de ejemplo.
+    assert [f["codigo"] for f in filas] == [
+        "gas", "electricidad", "gasfiteria", "carpinteria", "pintura", "albanileria", "cerrajeria", "jardineria",
+    ]
+    assert [int(f["orden"]) for f in filas] == list(range(1, 9))
     for fila in filas:
-        if fila["regulado"] == "no":
-            assert "(por confirmar)" in fila["nombre"]
+        assert "ejemplo" not in fila["nombre"].lower()
+        assert "por confirmar" not in fila["nombre"]
 
 
 @pytest.mark.django_db
@@ -73,3 +79,60 @@ def test_oficios_es_de_solo_lectura(client, metodo):
 
     assert respuesta.status_code == 405
     assert Oficio.objects.count() == 8
+
+
+# --- Migración 0003: renombra los oficios de ejemplo (P-01) ---
+
+_migracion_0003 = importlib.import_module("catalogo.migrations.0003_renombra_oficios_de_ejemplo")
+
+
+def _base_con_oficios_de_ejemplo():
+    """Deja el catálogo como quedaba con el CSV anterior (ejemplo_1 a ejemplo_6)."""
+    for anterior, nuevo in _migracion_0003.RENOMBRES:
+        Oficio.objects.filter(codigo=nuevo).update(
+            codigo=anterior, nombre=f"Oficio de ejemplo {anterior[-1]} (por confirmar)"
+        )
+
+
+@pytest.mark.django_db
+def test_la_migracion_0003_renombra_en_la_misma_fila_y_conserva_las_declaraciones():
+    from expediente.models import OficioMaestro
+    from tests.ayudas import crear_maestro
+
+    _base_con_oficios_de_ejemplo()
+    maestro = crear_maestro()
+    ejemplo_1 = Oficio.objects.get(codigo="ejemplo_1")
+    OficioMaestro.objects.create(maestro=maestro.perfil_maestro, oficio=ejemplo_1)
+
+    _migracion_0003.renombrar_oficios(registro_apps, None)
+
+    assert not Oficio.objects.filter(codigo__startswith="ejemplo_").exists()
+    gasfiteria = Oficio.objects.get(codigo="gasfiteria")
+    assert gasfiteria.pk == ejemplo_1.pk
+    assert (gasfiteria.nombre, gasfiteria.regulado) == ("Gasfitería (agua y alcantarillado)", False)
+    declaracion = OficioMaestro.objects.get(maestro=maestro.perfil_maestro)
+    assert declaracion.oficio.codigo == "gasfiteria"
+    assert Oficio.objects.count() == 8
+
+
+@pytest.mark.django_db
+def test_la_migracion_0003_es_idempotente():
+    _base_con_oficios_de_ejemplo()
+    _migracion_0003.renombrar_oficios(registro_apps, None)
+    despues = list(Oficio.objects.values_list("pk", "codigo", "nombre", "regulado", "orden"))
+
+    _migracion_0003.renombrar_oficios(registro_apps, None)
+
+    assert list(Oficio.objects.values_list("pk", "codigo", "nombre", "regulado", "orden")) == despues
+    assert not Oficio.objects.filter(codigo__startswith="ejemplo_").exists()
+
+
+@pytest.mark.django_db
+def test_la_migracion_0003_no_toca_un_ejemplo_si_su_codigo_nuevo_ya_existe():
+    Oficio.objects.create(codigo="ejemplo_1", nombre="Oficio de ejemplo 1 (por confirmar)", regulado=False, orden=3)
+    gasfiteria_pk = Oficio.objects.get(codigo="gasfiteria").pk
+
+    _migracion_0003.renombrar_oficios(registro_apps, None)
+
+    assert Oficio.objects.get(codigo="gasfiteria").pk == gasfiteria_pk
+    assert Oficio.objects.filter(codigo="ejemplo_1").exists()

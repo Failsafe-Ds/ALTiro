@@ -48,7 +48,7 @@ class ImagenInvalida(Exception):
 
 MENSAJE_FORMATO = "Envía una foto. Este archivo no es una foto que podamos leer."
 MENSAJE_PESO = "La foto es muy pesada. Toma la foto de nuevo o elige otra."
-MENSAJE_PIXELES = "La foto es demasiado grande. Tómala de nuevo con menos resolución o elige otra foto."
+MENSAJE_PIXELES = "La foto es demasiado grande. Elige otra o tómala de nuevo."
 MENSAJE_VACIA = "La foto llegó vacía. Elígela de nuevo e inténtalo otra vez."
 
 

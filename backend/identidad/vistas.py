@@ -269,6 +269,6 @@ def postulaciones(request):
         telefono=_opcional(datos, "telefono"),
     )
     return JsonResponse(
-        {"mensaje": "Agregamos el perfil de maestro a tu cuenta.", "cuenta": datos_cuenta(usuario)},
+        {"mensaje": "Tu postulación como maestro quedó registrada en tu cuenta.", "cuenta": datos_cuenta(usuario)},
         status=201,
     )

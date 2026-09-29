@@ -233,11 +233,11 @@ def test_la_migracion_crea_los_expedientes_faltantes_y_es_idempotente():
 def test_declarar_oficios_guarda_y_reemplaza_la_declaracion(maestro):
     expediente = _expediente_de(maestro)
 
-    declarar_oficios(expediente, ["gas", "ejemplo_1"])
-    assert _codigos(maestro) == {"gas", "ejemplo_1"}
+    declarar_oficios(expediente, ["gas", "gasfiteria"])
+    assert _codigos(maestro) == {"gas", "gasfiteria"}
 
-    declarar_oficios(expediente, ["ejemplo_1", "electricidad", "ejemplo_1"])
-    assert _codigos(maestro) == {"ejemplo_1", "electricidad"}
+    declarar_oficios(expediente, ["gasfiteria", "electricidad", "gasfiteria"])
+    assert _codigos(maestro) == {"gasfiteria", "electricidad"}
     assert OficioMaestro.objects.filter(maestro_id=maestro.pk).count() == 2
 
 
@@ -249,13 +249,13 @@ def test_declarar_oficios_guarda_y_reemplaza_la_declaracion(maestro):
 )
 def test_declarar_oficios_invalidos_responde_error_y_no_cambia_nada(maestro, codigos):
     expediente = _expediente_de(maestro)
-    declarar_oficios(expediente, ["ejemplo_2"])
+    declarar_oficios(expediente, ["carpinteria"])
 
     with pytest.raises(ErrorValidacion) as error:
         declarar_oficios(expediente, codigos)
 
     assert error.value.campo == "oficios"
-    assert _codigos(maestro) == {"ejemplo_2"}
+    assert _codigos(maestro) == {"carpinteria"}
 
 
 @pytest.mark.django_db
@@ -274,13 +274,13 @@ def test_declarar_oficios_se_permite_en_revision_y_observado(maestro, estado):
 )
 def test_declarar_oficios_en_otro_estado_es_error_de_estado_sin_cambios(maestro, estado):
     expediente = _expediente_de(maestro)
-    declarar_oficios(expediente, ["ejemplo_3"])
+    declarar_oficios(expediente, ["pintura"])
     _con_estado(maestro, estado)
 
     with pytest.raises(ErrorEstado):
         declarar_oficios(expediente, ["gas"])
 
-    assert _codigos(maestro) == {"ejemplo_3"}
+    assert _codigos(maestro) == {"pintura"}
 
 
 # --- GET /api/maestros/expediente ---
@@ -342,7 +342,7 @@ def test_privacidad_sin_rut_ni_identificadores_internos(navegador_maestro, maest
 
 @pytest.mark.django_db
 def test_faltantes_incluyen_una_licencia_por_oficio_regulado_declarado(navegador_maestro, maestro):
-    declarar_oficios(_expediente_de(maestro), ["ejemplo_1", "electricidad", "gas"])
+    declarar_oficios(_expediente_de(maestro), ["gasfiteria", "electricidad", "gas"])
 
     faltantes = navegador_maestro.get(URL_EXPEDIENTE).json()["expediente"]["faltantes"]
 
@@ -357,7 +357,7 @@ def test_faltantes_incluyen_una_licencia_por_oficio_regulado_declarado(navegador
 @pytest.mark.django_db
 def test_faltantes_sin_oficios_regulados_no_piden_licencia(maestro):
     expediente = _expediente_de(maestro)
-    declarar_oficios(expediente, ["ejemplo_1", "ejemplo_2"])
+    declarar_oficios(expediente, ["gasfiteria", "carpinteria"])
 
     assert faltantes_para_aprobar(expediente) == [(CEDULA, None), (ANTECEDENTES, None)]
     assert LICENCIA_SEC not in {tipo for tipo, _ in faltantes_para_aprobar(expediente)}
@@ -414,17 +414,17 @@ def test_cliente_que_agrega_perfil_maestro_ve_su_expediente(client):
 
 @pytest.mark.django_db
 def test_declarar_oficios_por_la_api_devuelve_el_expediente(navegador_maestro, maestro):
-    respuesta = post_json(navegador_maestro, URL_OFICIOS_EXPEDIENTE, {"oficios": ["ejemplo_1", "gas"]})
+    respuesta = post_json(navegador_maestro, URL_OFICIOS_EXPEDIENTE, {"oficios": ["gasfiteria", "gas"]})
 
     assert respuesta.status_code == 200
     assert respuesta["Cache-Control"] == "no-store"
     datos = respuesta.json()["expediente"]
     assert datos["oficios"] == [
         {"codigo": "gas", "nombre": "Gas", "regulado": True},
-        {"codigo": "ejemplo_1", "nombre": "Oficio de ejemplo 1 (por confirmar)", "regulado": False},
+        {"codigo": "gasfiteria", "nombre": "Gasfitería (agua y alcantarillado)", "regulado": False},
     ]
     assert {"tipo": "licencia_sec", "oficio": {"codigo": "gas", "nombre": "Gas"}} in datos["faltantes"]
-    assert _codigos(maestro) == {"gas", "ejemplo_1"}
+    assert _codigos(maestro) == {"gas", "gasfiteria"}
 
 
 @pytest.mark.django_db
@@ -481,7 +481,7 @@ def test_oficios_en_registro_es_campo_no_permitido(client):
     "estado", [EstadoExpediente.APROBADO, EstadoExpediente.RECHAZADO, EstadoExpediente.SUSPENDIDO]
 )
 def test_declarar_oficios_en_estado_no_editable_responde_409(navegador_maestro, maestro, estado):
-    declarar_oficios(_expediente_de(maestro), ["ejemplo_4"])
+    declarar_oficios(_expediente_de(maestro), ["albanileria"])
     _con_estado(maestro, estado)
 
     respuesta = post_json(navegador_maestro, URL_OFICIOS_EXPEDIENTE, {"oficios": ["gas"]})
@@ -490,7 +490,7 @@ def test_declarar_oficios_en_estado_no_editable_responde_409(navegador_maestro, 
     assert "oficios" in respuesta.json()["mensaje"]
     assert sin_texto_prohibido(respuesta)
     assert "_" not in respuesta.json()["mensaje"]
-    assert _codigos(maestro) == {"ejemplo_4"}
+    assert _codigos(maestro) == {"albanileria"}
     assert not RegistroAccesoDenegado.objects.exists()  # Regla de negocio: no se registra (ADR-011, punto 3).
 
 
@@ -504,11 +504,11 @@ def test_get_de_oficios_del_expediente_no_esta_disponible(navegador_maestro):
 @pytest.mark.django_db
 def test_el_maestro_solo_modifica_su_propio_expediente(navegador_maestro, maestro):
     otro = crear_maestro(rut=RUT_OTRO, telefono=TEL_B)
-    declarar_oficios(_expediente_de(otro), ["ejemplo_5"])
+    declarar_oficios(_expediente_de(otro), ["cerrajeria"])
 
     post_json(navegador_maestro, URL_OFICIOS_EXPEDIENTE, {"oficios": ["gas"]})
 
-    assert _codigos(otro) == {"ejemplo_5"}
+    assert _codigos(otro) == {"cerrajeria"}
     assert _codigos(maestro) == {"gas"}
 
 

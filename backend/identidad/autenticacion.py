@@ -26,7 +26,8 @@ def interpretar_identificador(valor):
     except ErrorValidacion:
         raise ErrorValidacion(
             "identificador",
-            "Revisa tu RUT y su dígito verificador, por ejemplo 12.345.678-5. Si usas correo, escríbelo completo.",
+            "Revisa tu RUT y su dígito verificador (el número o la K después del guion), por ejemplo 12.345.678-5. "
+            "Si usas correo, escríbelo completo.",
         ) from None
 
 

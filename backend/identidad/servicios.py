@@ -43,19 +43,25 @@ from territorio.servicios import buscar_comuna
 AUSENTE = object()
 
 _MENSAJE_CORREO_EN_USO = (
-    "Este correo ya está registrado. Si es tuyo, inicia sesión y agrega el perfil desde tu cuenta."
+    "Este correo ya está registrado. Si es tuyo, inicia sesión con ese correo y continúa desde tu cuenta."
 )
 _MENSAJE_RUT_EN_USO = "Ese RUT ya tiene una postulación. Si es tuyo, inicia sesión con tu RUT."  # CA-11.3
+# Mensajes al agregar cliente o maestro a una cuenta existente (RNF-15, RNF-17):
+# sin "perfil" ni "solicitud". ``{para}`` dice para qué se pide el dato.
+PARA_CLIENTE = "pedir trabajos"
+PARA_MAESTRO = "postular como maestro"
 _MENSAJES_DATO_DE_CONTACTO = {
     "telefono": (
-        "Tu cuenta no tiene teléfono y este perfil lo necesita: ingrésalo para continuar.",
-        "Tu cuenta ya tiene teléfono; quita este dato de la solicitud e inténtalo de nuevo.",
+        "Para {para} necesitamos tu teléfono: escríbelo.",
+        "Tu cuenta ya tiene teléfono, así que no hace falta escribirlo. Bórralo e inténtalo de nuevo.",
     ),
     "correo": (
-        "Tu cuenta no tiene correo y este perfil lo necesita: ingrésalo para continuar.",
-        "Tu cuenta ya tiene correo; quita este dato de la solicitud e inténtalo de nuevo.",
+        "Para {para} necesitamos tu correo: escríbelo.",
+        "Tu cuenta ya tiene correo, así que no hace falta escribirlo. Bórralo e inténtalo de nuevo.",
     ),
 }
+MENSAJE_YA_ES_CLIENTE = "Tu cuenta ya puede pedir trabajos."
+MENSAJE_YA_ES_MAESTRO = "Ya postulaste como maestro con esta cuenta."
 
 
 # --- Invariantes (ADR-013, punto 9) ---
@@ -150,7 +156,7 @@ def _bloquear(usuario):
     return Usuario.objects.select_for_update().get(pk=usuario.pk)
 
 
-def _dato_faltante(usuario, campo, valor, normalizar):
+def _dato_faltante(usuario, campo, valor, normalizar, para):
     """Dato de contacto al agregar un perfil (E-1, E-2, punto 7).
 
     - La cuenta no lo tiene: es obligatorio y se devuelve normalizado.
@@ -159,7 +165,7 @@ def _dato_faltante(usuario, campo, valor, normalizar):
     falta, sobra = _MENSAJES_DATO_DE_CONTACTO[campo]
     if getattr(usuario, campo) is None:
         if valor is AUSENTE:
-            raise ErrorValidacion(campo, falta)
+            raise ErrorValidacion(campo, falta.format(para=para))
         return normalizar(valor)
     if valor is not AUSENTE:
         raise ErrorValidacion(campo, sobra)
@@ -275,9 +281,9 @@ def agregar_perfil_cliente(usuario, *, comuna, correo=AUSENTE, telefono=AUSENTE)
     """
     usuario = _bloquear(usuario)
     if PerfilCliente.objects.filter(usuario=usuario).exists():
-        raise ErrorValidacion("perfil", "Tu cuenta ya tiene el perfil de cliente.")
-    telefono = _dato_faltante(usuario, "telefono", telefono, normalizar_telefono)
-    correo = _dato_faltante(usuario, "correo", correo, normalizar_correo)
+        raise ErrorValidacion("perfil", MENSAJE_YA_ES_CLIENTE)
+    telefono = _dato_faltante(usuario, "telefono", telefono, normalizar_telefono, PARA_CLIENTE)
+    correo = _dato_faltante(usuario, "correo", correo, normalizar_correo, PARA_CLIENTE)
     comuna = buscar_comuna(comuna)
     if correo is not AUSENTE:
         _correo_libre(correo)
@@ -297,9 +303,9 @@ def agregar_perfil_maestro(usuario, *, rut, telefono=AUSENTE):
     """
     usuario = _bloquear(usuario)
     if PerfilMaestro.objects.filter(usuario=usuario).exists():
-        raise ErrorValidacion("perfil", "Tu cuenta ya tiene el perfil de maestro.")
+        raise ErrorValidacion("perfil", MENSAJE_YA_ES_MAESTRO)
     rut = normalizar_rut(rut)
-    telefono = _dato_faltante(usuario, "telefono", telefono, normalizar_telefono)
+    telefono = _dato_faltante(usuario, "telefono", telefono, normalizar_telefono, PARA_MAESTRO)
     _rut_libre(rut)
     _completar_usuario(usuario, telefono=telefono)
     _crear_perfil_maestro(usuario, rut)

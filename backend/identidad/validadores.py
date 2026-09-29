@@ -76,7 +76,9 @@ def normalizar_rut(valor):
 
     Acepta el RUT con o sin puntos y guion. Rechaza el DV incorrecto.
     """
-    mensaje_formato = "Ingresa tu RUT con su dígito verificador, por ejemplo 12.345.678-5."
+    mensaje_formato = (
+        "Ingresa tu RUT con su dígito verificador (el número o la K después del guion), por ejemplo 12.345.678-5."
+    )
     if not isinstance(valor, str):
         raise ErrorValidacion("rut", mensaje_formato)
     rut = valor.replace(".", "").replace("-", "").upper()
@@ -89,7 +91,8 @@ def normalizar_rut(valor):
     cuerpo, dv = rut[:-1], rut[-1]
     if calcular_digito_verificador(cuerpo) != dv:
         raise ErrorValidacion(
-            "rut", "El RUT no es válido: revisa los números y el dígito verificador."
+            "rut",
+            "El RUT no es válido: revisa los números y el dígito verificador (el número o la K después del guion).",
         )
     return rut
 

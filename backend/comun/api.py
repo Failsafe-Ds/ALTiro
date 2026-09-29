@@ -15,7 +15,7 @@ from django.http import JsonResponse
 
 MENSAJE_REVISA_CAMPOS = "Revisa los campos marcados."
 MENSAJE_CLAVE_DESCONOCIDA = (
-    "La solicitud contiene datos que este formulario no usa. Recarga la página e inténtalo de nuevo."
+    "Lo que enviaste tiene datos que este formulario no usa. Vuelve a cargar la página e inténtalo de nuevo."
 )
 MENSAJE_CUERPO_INVALIDO = "No pudimos leer los datos enviados. Recarga la página e inténtalo de nuevo."
 MENSAJE_CAMPO_NO_PERMITIDO = "Este dato no corresponde aquí: quítalo e inténtalo de nuevo."
@@ -198,7 +198,7 @@ def fallo_csrf(request, reason=""):
     return respuesta
 
 
-MENSAJE_NO_ENCONTRADO = "No encontramos lo que buscas. Revisa la dirección o vuelve al inicio."
+MENSAJE_NO_ENCONTRADO = "No encontramos lo que buscas. Revisa el enlace o vuelve al inicio."
 
 
 def respuesta_no_encontrado():
@@ -214,11 +214,15 @@ def no_encontrado(request, exception=None):
     return respuesta_no_encontrado()
 
 
+MENSAJE_SOLICITUD_INVALIDA = "No pudimos leer lo que enviaste. Vuelve a cargar la página e inténtalo de nuevo."
+MENSAJE_ERROR_INTERNO = "Tuvimos un problema y no pudimos completar lo que pediste. Inténtalo de nuevo en unos minutos."
+
+
 def solicitud_invalida(request, exception=None):
     """handler400 (DEF-QA-006, RNF-15): Host no permitido, cuerpo multipart ilegible,
     demasiados campos o archivos. JSON en español; nunca el motivo interno."""
-    return respuesta_error(400, "No pudimos procesar tu solicitud. Revisa la dirección e inténtalo de nuevo.")
+    return respuesta_error(400, MENSAJE_SOLICITUD_INVALIDA)
 
 
 def error_interno(request):
-    return respuesta_error(500, "Tuvimos un problema al procesar tu solicitud. Inténtalo de nuevo en unos minutos.")
+    return respuesta_error(500, MENSAJE_ERROR_INTERNO)

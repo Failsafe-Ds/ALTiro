@@ -41,10 +41,11 @@ _MAXIMO_RECIBIDOS = 50
 
 _MENSAJE_ELIGE = "Elige al menos un oficio de la lista."
 _MENSAJE_NO_EXISTE = "Uno de los oficios elegidos no está en la lista. Elige tus oficios de la lista."
-_TEXTO_ESTADO = {
-    EstadoExpediente.APROBADO: "aprobado",
-    EstadoExpediente.RECHAZADO: "rechazado",
-    EstadoExpediente.SUSPENDIDO: "suspendido",
+# Lo ve el maestro (RNF-17): sin "expediente".
+MENSAJES_OFICIOS_NO_EDITABLES = {
+    EstadoExpediente.APROBADO: "Tu postulación ya fue aprobada, así que no puedes cambiar tus oficios aquí.",
+    EstadoExpediente.RECHAZADO: "Tu postulación no fue aprobada, así que ya no puedes cambiar tus oficios.",
+    EstadoExpediente.SUSPENDIDO: "Tu cuenta de maestro está suspendida, así que no puedes cambiar tus oficios.",
 }
 
 
@@ -80,9 +81,7 @@ def declarar_oficios(expediente, codigos):
     oficios = _oficios_de(codigos)
     expediente = Expediente.objects.select_for_update().get(pk=expediente.pk)
     if expediente.estado not in ESTADOS_EDITABLES:
-        raise ErrorEstado(
-            f"Tu expediente está {_TEXTO_ESTADO[expediente.estado]}, así que ya no puedes cambiar tus oficios."
-        )
+        raise ErrorEstado(MENSAJES_OFICIOS_NO_EDITABLES[expediente.estado])
     maestro_id = expediente.perfil_maestro_id
     nuevos = {oficio.pk for oficio in oficios}
     OficioMaestro.objects.filter(maestro_id=maestro_id).exclude(oficio_id__in=nuevos).delete()
@@ -120,7 +119,7 @@ MENSAJE_YA_VENCIDO = (
 MENSAJE_FOTO_FALTA = "Adjunta la foto del documento."
 MENSAJE_ANVERSO_FALTA = "Adjunta la foto del frente de tu cédula."
 MENSAJE_REVERSO_FALTA = "Adjunta la foto de la parte de atrás de tu cédula."
-MENSAJE_RECHAZADO = "Tu expediente fue rechazado, así que ya no puedes subir documentos."
+MENSAJE_RECHAZADO = "Tu postulación no fue aprobada, así que ya no puedes enviar documentos."
 
 
 def _fecha(texto, errores, campo):

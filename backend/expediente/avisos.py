@@ -21,7 +21,7 @@ MESES = (
 NOMBRES_DOCUMENTO = {
     TipoDocumento.CEDULA_IDENTIDAD: "cédula de identidad",
     TipoDocumento.CERTIFICADO_ANTECEDENTES: "certificado de antecedentes",
-    TipoDocumento.LICENCIA_SEC: "licencia SEC",
+    TipoDocumento.LICENCIA_SEC: "licencia de la Superintendencia de Electricidad y Combustibles (SEC)",
 }
 ARTICULOS = {
     TipoDocumento.CEDULA_IDENTIDAD: "La",

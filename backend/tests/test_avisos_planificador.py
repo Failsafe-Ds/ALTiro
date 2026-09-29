@@ -626,7 +626,8 @@ def test_el_maestro_ve_su_aviso_con_lista_explicita(reloj, maestro):
             "fecha_vencimiento": "2026-11-03",
             "dias_restantes": 20,
             "creado_en": AHORA.isoformat(),
-            "mensaje": "Tu licencia SEC de Gas vence en 20 días, el 3 de noviembre de 2026. "
+            "mensaje": "Tu licencia de la Superintendencia de Electricidad y Combustibles (SEC) de Gas "
+            "vence en 20 días, el 3 de noviembre de 2026. "
             "Sube el documento nuevo antes de esa fecha.",
         }
     ]
@@ -839,7 +840,8 @@ def test_mensaje_de_aviso_para_cada_tipo_de_documento():
     licencia = doc(LICENCIA, oficio=Oficio(codigo="electricidad", nombre="Electricidad"),
                    estado=EstadoDocumento.REEMPLAZADO)
     assert avisos.mensaje(licencia, HOY, para_maestro=False) == (
-        "La licencia SEC de Electricidad vence mañana, el 15 de octubre de 2026. Hay una licencia nueva sin validar."
+        "La licencia de la Superintendencia de Electricidad y Combustibles (SEC) de Electricidad "
+        "vence mañana, el 15 de octubre de 2026. Hay una licencia nueva sin validar."
     )
     for texto in (avisos.mensaje(doc(CEDULA), HOY, True), avisos.mensaje(licencia, HOY, False)):
         assert not {"_", "null", "None"} & set(texto.split())

@@ -359,7 +359,7 @@ def test_pi084_cuenta_que_ya_es_maestro_no_puede_postular_de_nuevo(client):
     respuesta = post_json(client, URL_POSTULACIONES, {"rut": "22.222.222-2"})
 
     assert respuesta.status_code == 400
-    assert "ya tiene el perfil de maestro" in respuesta.json()["errores"]["perfil"]
+    assert respuesta.json()["errores"]["perfil"] == "Ya postulaste como maestro con esta cuenta."
 
 
 @pytest.mark.django_db
@@ -424,7 +424,7 @@ def test_pi099_cuenta_que_ya_es_cliente_recibe_400(client):
     respuesta = post_json(client, URL_CLIENTES, {"comuna": "8101"})
 
     assert respuesta.status_code == 400
-    assert "ya tiene el perfil de cliente" in respuesta.json()["errores"]["perfil"]
+    assert respuesta.json()["errores"]["perfil"] == "Tu cuenta ya puede pedir trabajos."
 
 
 @pytest.mark.django_db
