@@ -24,3 +24,16 @@
 4. **Inmutabilidad:** las filas no se modifican. Editar es dar de baja (`retirado_en`) y crear otra, para que un ticket de S4 no vea cambiar el bloque bajo él.
 5. **Guardado por paso (CA-14.4):** cada bloque se guarda en una petición propia.
 6. **Fuera del S3:** "bloque ocupado" (CA-14.3), la doble reserva y el cierre de tickets incompatibles son de S4.
+
+## Enmiendas
+
+### E-1 — Ocurrencias concretas y horario de verano (PROVISIONAL)
+- **Fecha:** 2026-09-29.
+- **Cambio:**
+  - El módulo puro `perfil/ocurrencias.py` convierte el par (patrón, fecha) en instantes en `America/Santiago`.
+  - Un `fin_min = 1440` corresponde a las 00:00 del día siguiente.
+  - **Hora inexistente** (el salto hacia adelante): esa ocurrencia no se ofrece ese día.
+  - **Hora repetida:** se usa `fold=0`, es decir, la primera de las dos.
+  - Los plazos de 24 y 4 horas se miden en tiempo real transcurrido (UTC). "Hoy" y el día de la semana se calculan en Santiago.
+  - Las pruebas buscan las transiciones de horario por programa, con `zoneinfo`.
+- **Aprobación:** equipo de desarrollo (provisional), 2026-09-29.

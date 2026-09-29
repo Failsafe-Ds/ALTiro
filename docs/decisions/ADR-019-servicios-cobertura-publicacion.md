@@ -39,3 +39,15 @@
    - Se muestra el nombre tal como está registrado, la foto, los servicios visibles con modalidad y monto, las comunas atendidas **sin indicar cuál es la base**, y la agenda semanal.
    - Nunca se muestra RUT, teléfono, correo, documentos, estado o motivos del expediente, fechas de licencia ni identificadores internos.
    - **[VALIDA REPRESENTANTE] P-15:** nombre completo o parcial.
+
+## Enmiendas
+
+### E-1 — Regla de visibilidad pura con contexto cargado en lote (PROVISIONAL)
+- **Fecha:** 2026-09-29.
+- **Cambio:**
+  - `motivos_no_visible(servicio_maestro, hoy)` se divide en dos:
+    - una parte pura, `motivos_no_visible_de(servicio_maestro, ctx, hoy)`, que recibe ya cargados los oficios declarados, las modalidades admitidas, las licencias (evaluadas con `licencia_habilitante_de`) y la elegibilidad;
+    - un envoltorio que arma `ctx` con consultas y llama a la parte pura.
+  - La búsqueda de S4 arma `ctx` en lote (RNF-01).
+  - El comportamiento no cambia: las pruebas del S3 siguen en verde.
+- **Aprobación:** equipo de desarrollo (provisional), 2026-09-29.

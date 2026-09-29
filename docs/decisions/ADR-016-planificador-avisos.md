@@ -30,3 +30,14 @@
 ## Consecuencias
 - Hay un contenedor más: se vuelve a medir RNF-04 y RNF-23.
 - El planificador se adelanta de S4 a S2. Queda registrado en la bitácora de alcance.
+
+## Enmiendas
+
+### E-1 — Intervalo del planificador de 300 s y tarea de cierre de tickets (PROVISIONAL)
+- **Fecha:** 2026-09-29. Opción recomendada, aplicada como provisional (`docs/Reanudar.md`).
+- **Cambio:**
+  - El valor por defecto de `ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS` pasa de 3600 a **300**. Así los avisos de cierre (RF-21, RF-22, RF-24) llegan en 5 minutos o menos.
+  - Se agrega la tarea idempotente de cierre de tickets vencidos, con `skip_locked` (ADR-023).
+  - Hay además una protección al actuar: una acción sobre un ticket ya vencido lo cierra en ese momento.
+  - Tras el cambio se vuelve a medir RNF-04.
+- **Aprobación:** equipo de desarrollo (provisional), 2026-09-29.

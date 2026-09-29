@@ -23,6 +23,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | — | [Propuesta de arquitectura del Sprint 1](sprint-1-propuesta-arquitectura.md) | Borrador |
 | — | [Propuesta de arquitectura del Sprint 2](sprint-2-propuesta-arquitectura.md) | Borrador |
 | — | [Propuesta de arquitectura del Sprint 3](sprint-3-propuesta-arquitectura.md) | Borrador; decisiones provisionales (2026-09-29) |
+| — | [Propuesta de arquitectura del Sprint 4](sprint-4-propuesta-arquitectura.md) | Borrador; decisiones provisionales (2026-09-29) |
 | [ADR-001](ADR-001-framework-web.md) | Framework web | Aceptada (2026-09-27) |
 | [ADR-002](ADR-002-estilo-interfaz.md) | Estilo de interfaz (API JSON + frontend estático) | Aceptada (2026-09-27); Enmienda E-1 (2026-09-28) |
 | [ADR-003](ADR-003-motor-base-datos.md) | Motor de base de datos relacional (PostgreSQL 16) | Aceptada (2026-09-27); Enmiendas E-1 a E-3 (2026-09-28) |
@@ -35,15 +36,18 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | [ADR-010](ADR-010-bitacora-solo-escritura.md) | Bitácora administrativa y registro de accesos denegados | Aceptada (2026-09-28); CA-25.3 a validar con el representante; Enmienda E-1 (2026-09-28) |
 | [ADR-011](ADR-011-identificadores-publicos.md) | Identificadores públicos y respuesta ante acceso denegado | Aceptada (2026-09-28); Enmiendas E-1 y E-2 (2026-09-28) |
 | [ADR-012](ADR-012-catalogo-territorial.md) | Catálogo territorial (nacional, CUT 2018) | Aceptada (2026-09-28); alcance nacional a validar con la contraparte |
-| [ADR-013](ADR-013-acceso-politica-contrasena.md) | Identificador de acceso, unicidad de datos de contacto, roles múltiples y política de contraseña | Aceptada (2026-09-27); Enmiendas E-1 a E-8 (2026-09-27) |
+| [ADR-013](ADR-013-acceso-politica-contrasena.md) | Identificador de acceso, unicidad de datos de contacto, roles múltiples y política de contraseña | Aceptada (2026-09-27); Enmiendas E-1 a E-8 (2026-09-27); E-9 provisional (2026-09-29) |
 | [ADR-014](ADR-014-herramienta-pruebas.md) | Herramienta de pruebas | Aceptada (2026-09-27) |
 | [ADR-015](ADR-015-documentos-almacenamiento-cifrado.md) | Documentos: almacenamiento, cifrado y validación | Aceptada (2026-09-28) |
-| [ADR-016](ADR-016-planificador-avisos.md) | Planificador de tareas y avisos | Aceptada (2026-09-28) |
+| [ADR-016](ADR-016-planificador-avisos.md) | Planificador de tareas y avisos | Aceptada (2026-09-28); Enmienda E-1 provisional (2026-09-29) |
 | [ADR-017](ADR-017-expediente-oficios.md) | Expediente, revisión de documentos y catálogo mínimo de oficios | Aceptada (2026-09-28); oficios y obligatorios a validar con el representante; Enmiendas E-1 a E-3 (2026-09-28) |
 | [ADR-018](ADR-018-catalogo-administrable.md) | Catálogo administrable de oficios, servicios y precios | Aceptada — provisional (2026-09-29) |
-| [ADR-019](ADR-019-servicios-cobertura-publicacion.md) | Servicios del maestro, cobertura y regla de publicación | Aceptada — provisional (2026-09-29) |
-| [ADR-020](ADR-020-agenda-disponibilidad.md) | Agenda: disponibilidad semanal por bloques de 24 h | Aceptada — provisional (2026-09-29) |
+| [ADR-019](ADR-019-servicios-cobertura-publicacion.md) | Servicios del maestro, cobertura y regla de publicación | Aceptada — provisional (2026-09-29); E-1 (2026-09-29) |
+| [ADR-020](ADR-020-agenda-disponibilidad.md) | Agenda: disponibilidad semanal por bloques de 24 h | Aceptada — provisional (2026-09-29); E-1 (2026-09-29) |
 | [ADR-021](ADR-021-foto-perfil.md) | Foto de perfil del maestro | Aceptada — provisional (2026-09-29) |
+| [ADR-022](ADR-022-busqueda.md) | Búsqueda, filtros excluyentes y ordenamiento | Aceptada — provisional (2026-09-29) |
+| [ADR-023](ADR-023-ticket.md) | Ticket y orden: modelo, transiciones, privacidad y doble reserva | Aceptada — provisional (2026-09-29) |
+| [ADR-024](ADR-024-avisos-tickets-sesion.md) | Avisos de tickets, vocabulario y sesión | Aceptada — provisional (2026-09-29) |
 
 ## Plantilla
 

@@ -40,3 +40,13 @@ El informe solo nombra al "gasfíter" y al "eléctrico" (§1) y confirma como re
 | P-16 | ¿Puede un maestro ya aprobado agregar un oficio nuevo? ¿Con qué revisión? | No en el S3 (no hay HU ni RF) | Propuesta del S3, D-17 |
 | P-17 | ¿Qué servicios tiene cada oficio y con qué precios de referencia? | Datos ficticios de demostración, cargados por comercial | ADR-018 |
 | P-18 | ¿Hay moderación de las fotos de perfil? | No definida | ADR-021 |
+
+## Preguntas del Sprint 4 (2026-09-29)
+
+| # | Pregunta | Supuesto vigente (provisional) | Origen |
+|---|---|---|---|
+| P-19 | ¿Con cuántos días de anticipación puede pedirse un trabajo? | 14 días | ADR-022, D-5 |
+| P-20 | ¿El cliente ve el teléfono del maestro al ser aceptado? ¿El maestro ve el nombre del cliente antes de aceptar? | Sí (contacto mutuo al aceptar) / No | ADR-023, D-13 y D-21 |
+| P-21 | ¿Qué pasa si el cliente no acepta el precio final? | No definido (S5) | Propuesta del S4, §3.7 |
+| P-22 | ¿Qué pasa con un trabajo aceptado que nunca registra precio final? | No definido; no se inventa un cierre | Propuesta del S4 |
+| P-23 | ¿Qué pasa con los trabajos aceptados de un maestro que después es suspendido? | No definido | Propuesta del S4 |

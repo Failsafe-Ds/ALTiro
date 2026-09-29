@@ -288,3 +288,11 @@ Origen común: huecos señalados por QA en `docs/testing/plan-identidad-sprint-1
   - La persona inicia sesión explícitamente mediante RF-02 (`POST /api/sesion`).
 - **Impacto:** precisa el punto 2.4. La postulación por pasos del S2 (CA-11.1) deberá contar con este inicio de sesión explícito. Plan de pruebas: PI-013 y PI-029.
 - **Aprobación:** equipo de desarrollo, 2026-09-27.
+
+### E-9 — Un maestro no puede enviarse tickets a sí mismo (PROVISIONAL)
+- **Fecha:** 2026-09-29. Opción recomendada, aplicada como provisional (`docs/Reanudar.md`).
+- **Motivo:** cierra la pregunta abierta del punto 2 ("Maestro que se envía tickets a sí mismo"). Debía resolverse antes del S4.
+- **Cambio:**
+  - Se prohíbe con un CHECK `cliente_id <> perfil_maestro_id` en `ticket`, y la creación responde 400 con el mensaje "No puedes pedirte un trabajo a ti mismo".
+  - Si cliente y maestro son la misma persona, RF-17 pierde sentido, se contamina la medición de NTI-10 y se abriría la autoevaluación (NTI-06).
+- **Aprobación:** equipo de desarrollo (provisional), 2026-09-29.
