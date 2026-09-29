@@ -33,3 +33,37 @@ Equipo: Windows 11 Pro 10.0.26200, Docker Desktop (motor 29.8.0 en el equipo), 1
 - **Qué cumple:** motor sin caché de imágenes ni volúmenes, repositorio tal como se versiona, sin `.env`, un solo comando, e instrucciones en el README (RNF-23, "con las instrucciones escritas junto al código").
 - **Qué no cumple:** no es otro equipo físico. Comparte CPU, disco y red con el equipo de desarrollo. El ancho de banda domina el tiempo: con 1,03 GB de imágenes, el umbral de 10 minutos se cumpliría hasta con unos 15 Mbit/s sostenidos (estimación, no medición).
 - **Recomendación:** confirmar en un equipo del laboratorio con el procedimiento de `cierre-sprint-1.md` §7 antes de la revisión del sprint, y registrar ahí el resultado. Esta medición cierra DA-11 como evidencia del equipo de desarrollo, no como confirmación en el entorno de la contraparte.
+
+---
+
+## Nueva medición al cierre del Sprint 2 (con el servicio `planificador`)
+
+- **Fecha:** 2026-09-29 (07:29:20 a 07:30:03 UTC; 04:29 hora de Chile). Ejecutó: agente `qa`, cierre del Sprint 2 (`docs/testing/cierre-sprint-2.md`).
+- **Motivo:** ADR-016 y DA-16 agregan un contenedor (`planificador`) y dos dependencias (Pillow y cryptography); había que volver a medir.
+- **Versión medida:** commit `709e7ba` (rama `main`). Su código es idéntico al de `fd6449b` (cierre de UX del S2): `709e7ba` solo agrega documentos del Sprint 3.
+- **Resultado: PASS, 43 segundos** (umbral: 600 s).
+
+### Método
+El mismo de la medición anterior:
+1. Motor Docker vacío en un contenedor `docker:29-dind` (`qa-rnf23-s2`; motor 29.8.1, Docker Compose 5.5.1), con **0 imágenes y 0 volúmenes** al comenzar.
+2. Repositorio copiado con `git archive HEAD` (solo archivos versionados), **sin `.env`**.
+3. Un solo comando, `docker compose up -d --build`, cronometrado desde su inicio.
+4. El cronómetro se detuvo cuando `https://127.0.0.1/api/health/`, a través de Nginx, respondió `{"estado": "ok", "base_datos": "ok"}`.
+5. Al terminar se eliminaron **solo** el contenedor `qa-rnf23-s2` y su volumen anónimo (`/var/lib/docker`, creado a las 07:28:56 UTC, etiqueta `com.docker.volume.anonymous`), comprobando antes que el id del contenedor era el lanzado para la prueba. No se tocó ninguna imagen ni volumen del motor del equipo.
+
+### Resultado
+
+| Dato | Valor |
+|---|---|
+| Código de salida de `docker compose up -d --build` | 0 |
+| Tiempo hasta salud por HTTPS, descargas y construcción incluidas | **43 s** |
+| Salud a través de HTTPS | `{"estado": "ok", "base_datos": "ok"}` |
+| Estado a los 50 s | `app`, `db`, `proxy` y `planificador` healthy; `init` terminó con código 0 |
+| Primera corrida del planificador | `avisos_creados=0 accesos_denegados_purgados=0 archivos_huerfanos_borrados=0 tareas_fallidas=0` |
+| Frontend | `GET https://127.0.0.1/` → 200 |
+| Imágenes | `postgres:16.15-bookworm` (622 MB), `altiro-app:local` (348 MB, antes 297 MB: Pillow y cryptography), `nginx:1.30.5-alpine` (93,6 MB), `altiro-init:local` (14,2 MB) |
+
+Equipo: el mismo (Windows 11 Pro 10.0.26200, Docker Desktop con motor 29.8.0, 16 CPU, 15,56 GiB para Docker), red doméstica sin medición de ancho de banda.
+
+### Validez
+Mismas limitaciones que la medición anterior: no es otro equipo físico y el tiempo depende del ancho de banda (unos 1,08 GB de imágenes). El planificador no alarga el arranque de forma apreciable (usa la misma imagen que `app`). Sigue recomendado confirmar en un equipo del laboratorio.

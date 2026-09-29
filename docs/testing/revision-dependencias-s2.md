@@ -72,3 +72,27 @@ Además se instalaron las candidatas junto con los requisitos actuales para obte
 
 - **Ningún aviso** conocido en las dependencias actuales ni en las candidatas, con ambas fuentes.
 - Acción: ninguna. Repetir esta revisión al agregar Pillow y cryptography (incremento 2) y al cierre del S2.
+
+---
+
+## Re-auditoría al cierre del Sprint 2
+
+- **Fecha:** 2026-09-29 (ejecución 07:25 UTC; 04:25 hora de Chile). Ejecutó: agente `qa` (`docs/testing/cierre-sprint-2.md`).
+- **Commit revisado:** `709e7ba` (requisitos idénticos a `fd6449b`). `backend/requirements.txt` ya incluye **Pillow 12.3.0** y **cryptography 50.0.1** con versión exacta.
+- **Herramienta:** `pip-audit` 2.10.1 en un contenedor efímero `python:3.13.15-slim-bookworm` (no se agregó al proyecto).
+
+```sh
+MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W)/backend:/b:ro" python:3.13.15-slim-bookworm sh -c \
+  "pip install -q pip-audit; pip-audit -r /b/requirements.txt -r /b/requirements-pruebas.txt; \
+   pip-audit -s osv -r /b/requirements.txt -r /b/requirements-pruebas.txt; \
+   printf 'packaging==26.3\n' > /tmp/p.txt; pip-audit -r /tmp/p.txt"
+```
+
+| Fuente | Alcance | Resultado |
+|---|---|---|
+| PyPI (por defecto) | `requirements.txt` (12 paquetes, con Pillow y cryptography) y `requirements-pruebas.txt` (7) | `No known vulnerabilities found` |
+| OSV (`-s osv`) | Ídem | `No known vulnerabilities found` |
+| PyPI | `packaging==26.3` por separado (ver nota (\*)) | `No known vulnerabilities found` |
+
+- Todas las librerías siguen con versión exacta (`==`) en ambos archivos (RNF-27, "Cada librería queda declarada con versión exacta").
+- **Acción:** ninguna. Próxima revisión: inicio del Sprint 3 (RNF-27: "una revisión de avisos registrada al inicio de cada sprint").
