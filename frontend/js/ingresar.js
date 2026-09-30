@@ -22,6 +22,7 @@
     conversacion: { pagina: "conversacion.html", rol: ["cliente", "maestro"], ticket: true },
     evaluar: { pagina: "evaluar.html", rol: ["cliente", "maestro"], ticket: true },
     moderacion: { pagina: "moderacion.html", rol: "moderacion" },
+    indicadores: { pagina: "indicadores.html", rol: "control_gestion" },
   };
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const form = document.getElementById("ingresar");

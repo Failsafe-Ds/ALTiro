@@ -13,7 +13,9 @@ incremento 5. ``cierre`` entra en el incremento 6 (C-01 a C-08; C-08, fórmula d
 incremento 1, el precio final agrega C-09 a C-15 y A-06 a A-08; en el
 incremento 3, la operación agrega el grupo ``operacion`` (O-01 a O-04); en el
 incremento 4, la conversación agrega A-09 a A-15; en los incrementos 5 y 6,
-la evaluación y la moderación agregan P-12 a P-14, C-16, C-17 y A-16 a A-24.
+la evaluación y la moderación agregan P-12 a P-14, C-16, C-17 y A-16 a A-24; en
+el incremento 7, los indicadores agregan A-25 y los grupos ``indicadores``
+(I-01 a I-04) y ``anonimizacion`` (N-01 a N-05).
 """
 
 REGLAS = {
@@ -93,6 +95,7 @@ REGLAS = {
         "A-22": "M-04 / E-4.4: cada consulta de la conversación escribe la bitácora y avisa a ambas partes",
         "A-23": "E-4.1 / E-4.3: sin denuncia abierta, la conversación da el 404 idéntico con registro",
         "A-24": "CA-21.2 / RF-37: la resolución exige motivo y registra decisión, autor, estado anterior y nuevo",
+        "A-25": "HU-22 / ADR-026, E-6.3: solo control_gestion consulta indicadores y exporta; otro rol, 403 registrado",
     },
     # S5, incremento 3 (ADR-026, E-8 y E-9).
     "operacion": {
@@ -101,9 +104,25 @@ REGLAS = {
         "O-03": "E-9.2: la retención no toca documentos de un expediente aprobado (ni antes del plazo)",
         "O-04": "RNF-22 / E-8: cada línea del registro trae los campos exigidos y ningún dato personal",
     },
+    # S5, incremento 7 (ADR-026, E-6).
+    "indicadores": {
+        "I-01": "RF-38 / E-6.1: concreción = finalizados con precio final / enviados en el período",
+        "I-02": "RF-38 / E-6.1 (P-32): primera respuesta = mediana hasta la primera respuesta del maestro, "
+                "sin bloque_tomado ni cierres del Sistema",
+        "I-03": "RF-38 / E-6.1: vigencia documental = aprobados con todos sus documentos obligatorios vigentes",
+        "I-04": "E-6.3 / ADR-013: período fuera de 31..366 días o fecha inválida, 400 en el campo",
+    },
+    "anonimizacion": {
+        "N-01": "CA-22.2 / RF-38: el CSV solo trae las columnas de la lista y ningún RUT, nombre, teléfono, correo "
+                "ni dirección",
+        "N-02": "R-08 / P-29: se suprime la fila con menos de 5 maestros o menos de 5 clientes distintos",
+        "N-03": "E-6.2: sin totales, mínimos ni máximos",
+        "N-04": "E-6.2: las celdas que empiezan con = + - @ se neutralizan",
+        "N-05": "RF-37 / E-6: cada exportación escribe la bitácora con autor, período y cantidades, sin datos personales",
+    },
 }
 
-GRUPOS_ACTIVOS = frozenset({"filtros", "puntaje", "acceso", "cierre", "operacion"})
+GRUPOS_ACTIVOS = frozenset({"filtros", "puntaje", "acceso", "cierre", "operacion", "indicadores", "anonimizacion"})
 UMBRAL = 0.60
 
 

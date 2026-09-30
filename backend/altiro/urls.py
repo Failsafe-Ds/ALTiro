@@ -14,6 +14,7 @@ from busqueda import vistas as busqueda
 from territorio import vistas as territorio
 from mensajeria import vistas as mensajeria
 from evaluaciones import vistas as evaluaciones
+from gestion import vistas as gestion
 from tickets import vistas as tickets
 
 # Toda ruta /api/ es privada salvo las marcadas con comun.api.publica.
@@ -77,6 +78,9 @@ urlpatterns = [
          name="moderacion_conversacion"),
     path("api/moderacion/denuncias/<uuid:ref>/resolucion", evaluaciones.denuncia_resolucion,
          name="moderacion_resolucion"),
+    # Control de gestión: indicadores base y exportación agregada (HU-22, RF-38; ADR-026, E-6).
+    path("api/gestion/indicadores", gestion.indicadores_base, name="gestion_indicadores"),
+    path("api/gestion/exportacion", gestion.exportar, name="gestion_exportacion"),
     path("api/clientes/tickets", tickets.del_cliente, name="tickets_del_cliente"),
     path("api/maestros/tickets", tickets.del_maestro, name="tickets_del_maestro"),
     path("api/avisos", tickets.avisos, name="avisos"),

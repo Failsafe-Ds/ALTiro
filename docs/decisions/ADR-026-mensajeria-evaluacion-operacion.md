@@ -79,6 +79,12 @@ Se mantiene y se extiende a las rutas de precio final. Quien la recibe ya es par
    - las celdas que empiezan con `= + - @` se neutralizan.
 3. **Acceso.** Solo el rol `control_gestion`. El período va de 31 a 366 días.
 
+4. **Aclaraciones de implementación (incremento 7, provisionales):**
+   - la vigencia documental se calcula a la fecha de hoy (no a `hasta`), en lote y aplicando en Python las reglas de `expediente/vigencia.py`, para no duplicarlas en SQL;
+   - la neutralización también cubre celdas que empiezan con tabulador o retorno de carro (OWASP);
+   - el CSV va en UTF-8 con BOM; las medianas se redondean con la mitad hacia arriba;
+   - cada exportación escribe la bitácora `exportacion_agregada` (autor, período, filas y filas suprimidas).
+
 ### E-7. Respaldo y restauración (RNF-19, R-04)
 1. **Servicio `respaldo`.** Usa la misma imagen `postgres:16` y no agrega imágenes. Una vez al día, a la hora configurada (RNF-24), ejecuta:
    - `pg_dump -Fc`;

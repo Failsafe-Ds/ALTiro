@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Indicadores — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/indicadores.js" defer></script>
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" href="cuenta.html">Mi cuenta</a>
+  </header>
+  <main>
+    <!-- Indicadores base y exportación agregada (HU-22, RF-38, CA-22.1, CA-22.2; ADR-026, E-6). -->
+    <h1 id="titulo-pagina" tabindex="-1">Indicadores</h1>
+
+    <form id="formulario-periodo" novalidate>
+      <div class="aviso" role="alert" tabindex="-1"></div>
+      <p class="ayuda">Elige un período de 31 a 366 días. Se cuentan ambas fechas.</p>
+      <div class="campo">
+        <label for="desde">Desde</label>
+        <input type="date" id="desde" name="desde" required aria-describedby="error-desde">
+        <span class="error-campo" id="error-desde"></span>
+      </div>
+      <div class="campo">
+        <label for="hasta">Hasta</label>
+        <input type="date" id="hasta" name="hasta" required aria-describedby="error-hasta">
+        <span class="error-campo" id="error-hasta"></span>
+      </div>
+      <div class="acciones">
+        <button type="submit" class="boton">Ver indicadores</button>
+        <button type="button" id="exportar" class="boton-secundario" aria-describedby="ayuda-exportar">Exportar CSV</button>
+      </div>
+      <span class="ayuda" id="ayuda-exportar">El archivo trae solo totales por mes, comuna y oficio, sin datos de personas. Los grupos con menos de 5 maestros o 5 clientes no aparecen. Cada exportación queda registrada con tu nombre.</span>
+    </form>
+
+    <p id="cargando" role="status" hidden>Calculando…</p>
+
+    <section id="resultados" aria-labelledby="titulo-resultados" hidden>
+      <h2 id="titulo-resultados" tabindex="-1">Resultados del período</h2>
+      <article class="tarjeta" aria-labelledby="titulo-concrecion">
+        <h3 id="titulo-concrecion">Tasa de concreción</h3>
+        <p class="indicador-valor" id="valor-concrecion"></p>
+        <p class="ayuda" id="detalle-concrecion"></p>
+        <p id="definicion-concrecion"></p>
+      </article>
+      <article class="tarjeta" aria-labelledby="titulo-primera-respuesta">
+        <h3 id="titulo-primera-respuesta">Tiempo de primera respuesta</h3>
+        <p class="indicador-valor" id="valor-primera-respuesta"></p>
+        <p class="ayuda" id="detalle-primera-respuesta"></p>
+        <p id="definicion-primera-respuesta"></p>
+      </article>
+      <article class="tarjeta" aria-labelledby="titulo-vigencia">
+        <h3 id="titulo-vigencia">Vigencia documental</h3>
+        <p class="indicador-valor" id="valor-vigencia"></p>
+        <p class="ayuda" id="detalle-vigencia"></p>
+        <p id="definicion-vigencia"></p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

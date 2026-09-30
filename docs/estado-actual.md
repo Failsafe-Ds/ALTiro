@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 6 cerrados; siguiente: incremento 7, indicadores).
+Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 7 cerrados; siguiente: incremento 8, volumen y mediciones).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -17,12 +17,12 @@
 ## Stack y cómo correr
 - Docker Compose: `init`, `db` (PostgreSQL 16), `app` (Django 5.2 + gunicorn), `proxy` (Nginx, TLS autofirmado, gzip), `planificador` (cada 300 s) y `respaldo` (postgres:16, diario).
 - Frontend estático en HTML, CSS y JS, sin framework y con CSP estricta (sin inline).
-- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 9 min y hoy pasan 1785.
+- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 9 min y hoy pasan 1882.
 - **Durante el desarrollo**, solo pruebas dirigidas: el mismo comando con `tests/test_x.py -k nombre`.
 - Migrar: `docker compose exec app python manage.py migrate`. Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
 
 ## Apps del backend (`backend/`)
-`identidad` (usuario propio, sesión, Argon2id) · `autorizacion` (políticas, `obtener_autorizado`, enlaces firmados) · `bitacora` (solo inserción) · `territorio` · `catalogo` · `expediente` (documentos cifrados, curatoría, planificador) · `perfil` (servicios, cobertura, agenda, foto, publicación, ocurrencias, ocupación) · `busqueda` · `tickets` · `mensajeria` (conversación) · `evaluaciones` (evaluación, calificación, denuncia y moderación) · `comun` (API, middleware, errores).
+`identidad` (usuario propio, sesión, Argon2id) · `autorizacion` (políticas, `obtener_autorizado`, enlaces firmados) · `bitacora` (solo inserción) · `territorio` · `catalogo` · `expediente` (documentos cifrados, curatoría, planificador) · `perfil` (servicios, cobertura, agenda, foto, publicación, ocurrencias, ocupación) · `busqueda` · `tickets` · `mensajeria` (conversación) · `evaluaciones` (evaluación, calificación, denuncia y moderación) · `gestion` (indicadores y exportación, sin modelos) · `comun` (API, middleware, errores).
 
 ## Invariantes transversales (resumen de ADR)
 - **Rutas privadas por defecto:** `@publica` para abrir una ruta. Verificar siempre identidad, rol, propiedad y estado en el servidor.
@@ -81,8 +81,13 @@
   - calificación en lectura (`evaluaciones/calificacion.py`): publicadas del cliente, redondeo mitad hacia arriba a 1 decimal; ficha pública con dimensiones y 10 comentarios sin autor; tarjeta de búsqueda en lote (`ordenar` la deja en `Candidato.calificacion`); desempate con el valor redondeado y la cantidad, antes del sorteo;
   - `/api/moderacion/denuncias[?estado=]`, `/<ref>`, `/<ref>/conversacion`, `/<ref>/resolucion`: `requiere_rol("moderacion")` + `PoliticaDenuncia` (moderador parte → `ConflictoDeInteres` 403 registrado, con `Politica.mensaje_conflicto`); conversación solo con denuncia `abierta` (si no, 404 registrado), bitácora `conversacion_consultada` y aviso `conversacion_revisada` a ambas partes; resolución → bitácora `denuncia_resuelta` (entidad `evaluacion`, estado anterior y nuevo);
   - pantallas `evaluar.html?ticket=`, `moderacion.html`; calificación en `perfil-maestro` y `buscar`; `ingresar.js` vuelve a `conversacion`/`evaluar` (con `ticket`) y `moderacion`. Reglas P-12 a P-14, C-16, C-17, A-16 a A-24.
+- **Indicadores y exportación (ADR-026, E-6; S5 inc. 7):**
+  - `GET /api/gestion/indicadores?desde=&hasta=` y `GET /api/gestion/exportacion?desde=&hasta=`: `requiere_rol("control_gestion")`; período de 31 a 366 días con ambas fechas incluidas (zona Santiago); fecha ausente o inválida → 400 en el campo; fuera de rango → 400 en `hasta`; otra clave → 400 general;
+  - `gestion/indicadores.py`: concreción y primera respuesta con agregaciones en la base (`PERCENTILE_CONT`); primera respuesta solo cuenta eventos del maestro del ticket (`aceptado` o `rechazado_maestro`); vigencia documental a hoy, en lote, con las reglas puras de `expediente/vigencia.py`;
+  - `gestion/exportacion.py`: CSV (UTF-8 con BOM) con `COLUMNAS` cerradas, supresión k=5 (maestros y clientes distintos), neutralización de `= + - @`, tabulador y retorno; bitácora `exportacion_agregada` (entidad `exportacion`, `valor_nuevo` = período, filas y suprimidas);
+  - pantalla `indicadores.html` (enlace en `cuenta.html` para `control_gestion`; `ingresar.js` vuelve a `indicadores`). Reglas A-25, I-01 a I-04 y N-01 a N-05 (grupos `indicadores` y `anonimizacion` activos).
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
-- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre y operación; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04; conversación: A-09 a A-15). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
+- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre, operación, indicadores y anonimización; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04; conversación: A-09 a A-15). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
 
 ## Decisiones provisionales abiertas
@@ -109,3 +114,4 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 | 2026-09-30 | S5 incremento 3 (respaldo, registro JSON y retención) | backend (principal) | ~197 mil (107 pasos) |
 | 2026-09-30 | S5 incremento 4 (mensajería) | backend (principal) | ~177 mil (67 pasos) |
 | 2026-09-30 | S5 incrementos 5 y 6 (evaluaciones, calificación y moderación) | backend (principal) | ~219 mil (64 pasos; se cortó por límite y se retomó) |
+| 2026-09-30 | S5 incremento 7 (indicadores y exportación) | backend (principal) | ~162 mil (61 pasos) |

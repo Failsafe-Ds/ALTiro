@@ -124,6 +124,8 @@
     mostrar(document.getElementById("accesos-comercial"), cuenta.roles.includes("comercial"));
     // Denuncias (HU-21). Solo navegación: cada ruta /api/moderacion/ exige el rol.
     mostrar(document.getElementById("accesos-moderacion"), cuenta.roles.includes("moderacion"));
+    // Indicadores (HU-22). Solo navegación: cada ruta /api/gestion/ exige el rol.
+    mostrar(document.getElementById("accesos-gestion"), cuenta.roles.includes("control_gestion"));
 
     // Agregar perfil: correo y teléfono solo se piden si la cuenta no los tiene (ADR-013, E-1 y E-2).
     mostrar(document.getElementById("seccion-cliente"), !cliente);

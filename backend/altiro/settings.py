@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "tickets",  # Ticket y orden, historial y avisos (ADR-023, ADR-024)
     "mensajeria",  # Conversación del ticket aceptado (ADR-026, E-2)
     "evaluaciones",  # Evaluación, calificación, denuncia y moderación (ADR-026, E-3 y E-4)
+    "gestion",  # Indicadores base y exportación agregada, sin modelos (ADR-026, E-6)
 ]
 
 # ADR-001: fijado desde la primera migración.

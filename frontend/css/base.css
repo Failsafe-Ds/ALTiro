@@ -1385,3 +1385,10 @@ button.boton-quitar {
 .advertencia-registro {
   font-weight: 700;
 }
+
+/* Indicadores de control de gestión (HU-22, RF-38): la cifra va en texto, no solo en color. */
+.indicador-valor {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0.25rem 0;
+}
