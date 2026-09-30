@@ -1,6 +1,7 @@
 """Planificador del actor Sistema (ADR-016, punto 1; cierra DA-06; DA-16).
 
-Corre las tareas idempotentes de ``expediente.tareas`` y ``autorizacion.tareas`` cada
+Corre las tareas idempotentes de ``expediente.tareas``, ``autorizacion.tareas`` y el cierre
+de tickets vencidos (``tickets.transiciones.cerrar_vencidos``, ADR-016 E-1) cada
 ``ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS`` (por defecto 300, ADR-016 E-1):
 
     python manage.py planificador            # bucle (servicio "planificador")
@@ -30,12 +31,15 @@ from django.utils import timezone
 
 from autorizacion import tareas as tareas_autorizacion
 from expediente import tareas
+from tickets import transiciones as tareas_tickets
 
 logger = logging.getLogger("expediente.planificador")
 
 # (nombre del conteo, tarea). El orden es el de ADR-016, punto 1.
 TAREAS = (
     ("avisos_creados", tareas.emitir_avisos_por_vencer),
+    # ADR-016 E-1: cierre de tickets pendientes vencidos (RF-21, RF-22, RF-24).
+    ("tickets_cerrados", tareas_tickets.cerrar_vencidos),
     ("accesos_denegados_purgados", tareas_autorizacion.purgar_accesos_denegados),
     ("archivos_huerfanos_borrados", tareas.limpiar_archivos_huerfanos),
 )

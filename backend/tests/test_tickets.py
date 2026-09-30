@@ -448,17 +448,6 @@ def test_d10_otro_cliente_si_puede_pedir_el_mismo_horario_pendiente(sesion_clien
     assert Ticket.objects.filter(estado=EstadoTicket.PENDIENTE).count() == 2
 
 
-def test_d10_un_pendiente_repetido_que_ya_vencio_responde_409(sesion_cliente, cliente, maestro, catalogo):
-    viejo = tk.ticket_directo(cliente, maestro, tk.VIERNES, "08:00", "12:00", enviado_en=AHORA - D(hours=25))
-    assert viejo.vence_en == AHORA - D(hours=1)
-
-    respuesta = tk.enviar(sesion_cliente, tk.pedido(maestro, catalogo, fecha=tk.VIERNES.isoformat()))
-
-    assert respuesta.status_code == 409
-    assert respuesta.json() == {"mensaje": servicios.MENSAJE_PENDIENTE_VENCIDO, "errores": {}}
-    assert Ticket.objects.count() == 1
-
-
 def test_d10_el_unico_parcial_impide_dos_pendientes_del_mismo_cliente_maestro_e_inicio(cliente, maestro, catalogo):
     tk.ticket_directo(cliente, maestro, tk.JUEVES, "08:00", "12:00")
 

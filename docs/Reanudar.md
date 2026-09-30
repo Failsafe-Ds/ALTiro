@@ -46,5 +46,11 @@ El costo de un agente crece con **lo que lee × los pasos que da**. Todo lo de a
     - anotar los tokens de cada agente, que vienen en la notificación de término, en `docs/estado-actual.md` → "Consumo";
     - si en el primer incremento del S5 el gasto no baja respecto del incremento 4 del S4 (unos 340 mil), revisar la regla de graphify que obliga a consultar el grafo antes de cada búsqueda.
 
+11. **Sesión nueva por sprint:**
+    - al cerrar un sprint (etiqueta subida), el coordinador deja `docs/estado-actual.md` al día y pide al equipo abrir una sesión nueva;
+    - la sesión nueva empieza leyendo solo este archivo y `docs/estado-actual.md`;
+    - el historial de una conversación larga se vuelve a enviar en cada turno del coordinador.
+12. **Agrupar incrementos** que tocan los mismos archivos y ADR en un solo encargo (por ejemplo, los incrementos 5 y 6 del S4).
+
 ## Siguiente trabajo
-S4, incremento 5: aceptar, rechazar y cancelar pedidos (RF-19, RF-20 y RF-23; cierra CA-14.3). Ver `docs/estado-actual.md` → "Pendientes".
+S4, incremento 7: bandejas, avisos y pantallas "mis pedidos" y "mis trabajos", con botones de aceptar, rechazar y cancelar y el `enlace` de `bloque_tomado` (backend + frontend en un encargo). Revisión pendiente de `architect`, sin bloquear: la excepción `ParteEquivocada` (propuesta del S4, §11, aclaración 20). Ver `docs/estado-actual.md` → "Pendientes".

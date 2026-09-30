@@ -55,6 +55,9 @@ urlpatterns = [
     # (RF-15 a RF-18, CA-25.1; ADR-023). Avisos de tickets dentro de la aplicación (ADR-024).
     path("api/tickets", tickets.crear, name="tickets"),
     path("api/tickets/<uuid:ref>", tickets.detalle, name="ticket"),
+    path("api/tickets/<uuid:ref>/aceptacion", tickets.aceptacion, name="ticket_aceptacion"),
+    path("api/tickets/<uuid:ref>/rechazo", tickets.rechazo, name="ticket_rechazo"),
+    path("api/tickets/<uuid:ref>/cancelacion", tickets.cancelacion, name="ticket_cancelacion"),
     path("api/clientes/tickets", tickets.del_cliente, name="tickets_del_cliente"),
     path("api/maestros/tickets", tickets.del_maestro, name="tickets_del_maestro"),
     path("api/avisos", tickets.avisos, name="avisos"),

@@ -15,8 +15,8 @@ servidor y en este orden:
    punto 4: el mismo bloqueo que tomará la aceptación), la idempotencia de
    D-10: si el cliente ya tiene un pendiente con ese maestro para ese inicio,
    se devuelve ese mismo ticket sin crear nada (200). Si ese pendiente ya
-   venció y todavía no se cierra: ``ErrorEstado`` (409; aclaración del
-   incremento 4 en la propuesta del S4, §11).
+   venció, se cierra en ese momento con su motivo (protección al actuar,
+   ADR-016 E-1) y se responde ``ErrorEstado`` (409).
 4. Maestro publicado (regla única, ``perfil.publicacion``), servicio
    **visible** y comuna en su cobertura: 400 en el campo. Un maestro que no
    existe y uno que no está publicado reciben el mismo mensaje.
@@ -28,8 +28,8 @@ servidor y en este orden:
    ``vence_en``; el primer ``ticket_evento`` y el aviso ``ticket_nuevo`` para
    el maestro (RF-18), todo en la misma transacción.
 
-Las demás transiciones (aceptar, rechazar, cancelar y cerrar) son de los
-incrementos 5 y 6.
+Las demás transiciones (aceptar, rechazar, cancelar y cerrar) están en
+``tickets.transiciones``.
 
 Mensajes en el lenguaje de pantalla (RNF-15, RNF-17; ADR-024, punto 4):
 "pedido" por ticket y "horario" por bloque.
@@ -48,6 +48,8 @@ from expediente.models import Expediente
 from perfil import agenda, ocupacion, ocurrencias, publicacion
 from perfil.models import Cobertura, PerfilPublico
 from territorio.models import Comuna
+from tickets import transiciones
+from tickets.avisos import MOTIVOS_PARA_CLIENTE
 from tickets.models import (
     ANTICIPACION_MINIMA,
     LARGO_DESCRIPCION,
@@ -84,8 +86,8 @@ MENSAJE_HORARIO_OCUPADO = (
     "Ese horario ya no está libre: el maestro tomó otro trabajo. Elige uno de sus horarios libres."
 )
 MENSAJE_PENDIENTE_VENCIDO = (
-    "Ya le enviaste un pedido a este maestro para ese horario y se está cerrando porque no respondió a tiempo. "
-    "Inténtalo de nuevo en unos minutos."
+    "Ya le habías enviado este pedido a este maestro y se cerró: {motivo}. "
+    "Si todavía necesitas el trabajo, envíalo de nuevo o elige otro horario."
 )
 
 _FECHA = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
@@ -287,9 +289,14 @@ def _pendiente_existente(cliente_id, maestro_id, inicio_en):
 
 
 def _idempotente(existente, ahora):
-    """D-10: el mismo pedido ya existe. Si ya venció sin cerrarse, 409 (aclaración del incremento 4)."""
-    if ahora >= existente.vence_en:
-        raise ErrorEstado(MENSAJE_PENDIENTE_VENCIDO)
+    """D-10: el mismo pedido ya existe. Devuelve ``(existente, False)``, o ``None`` si estaba vencido.
+
+    Protección al actuar (ADR-016 E-1, incremento 6): un pendiente vencido se
+    cierra aquí mismo con su motivo; quien llama confirma la transacción y
+    responde 409 (``PedidoRepetidoVencido``).
+    """
+    if transiciones.cerrar_si_vencido(existente, ahora):
+        return None
     return existente, False
 
 
@@ -304,67 +311,76 @@ def crear_ticket(usuario, datos, ahora=None):
     maestro_id = pedido["perfil"].perfil_maestro_id
     if maestro_id == usuario.pk:
         raise AutoPedido()
-    fecha, inicio, fin = pedido["fecha"], pedido["inicio"], pedido["fin"]
     with transaction.atomic():
-        # ADR-023, punto 4: primero el expediente del maestro (serializa con la aceptación y con curatoría).
-        if Expediente.objects.select_for_update().filter(perfil_maestro_id=maestro_id).first() is None:
-            raise ErroresDeCampo({"maestro": MENSAJE_MAESTRO})
-        inicio_en = ocurrencias.instante(fecha, inicio)
-        if inicio_en is not None:
-            existente = _pendiente_existente(usuario.pk, maestro_id, inicio_en)
-            if existente is not None:
-                return _idempotente(existente, ahora)
-        errores = {}
-        servicio_maestro = None
-        if not publicacion.maestro_publicado(maestro_id, hoy):
-            errores["maestro"] = MENSAJE_MAESTRO
-        else:
-            servicio_maestro = _servicio_visible(maestro_id, pedido["servicio_ref"], hoy)
-            if servicio_maestro is None:
-                errores["servicio"] = MENSAJE_SERVICIO
-            if not Cobertura.objects.filter(maestro_id=maestro_id, comuna=pedido["comuna"]).exists():
-                errores["comuna"] = MENSAJE_COMUNA_FUERA
-        if errores:
-            raise ErroresDeCampo(errores)
-        una = _ocurrencia_ofrecible(maestro_id, fecha, inicio, fin, ahora, hoy)
-        try:
-            with transaction.atomic():
-                ticket = Ticket.objects.create(
-                    cliente_id=usuario.pk,
-                    perfil_maestro_id=maestro_id,
-                    servicio_maestro=servicio_maestro,
-                    modalidad=servicio_maestro.modalidad,
-                    monto_publicado=servicio_maestro.monto,
-                    fecha=una.fecha,
-                    inicio_min=una.inicio_min,
-                    fin_min=una.fin_min,
-                    inicio_en=una.inicio_en,
-                    fin_en=una.fin_en,
-                    comuna=pedido["comuna"],
-                    direccion=pedido["direccion"],
-                    descripcion=pedido["descripcion"],
-                    materiales=pedido["materiales"],
-                    estado=EstadoTicket.PENDIENTE,
-                    enviado_en=ahora,
-                    vence_en=calcular_vence_en(ahora, una.inicio_en),
-                )
-        except IntegrityError:
-            # Resguardo del único parcial de D-10; con el bloqueo por maestro no debería ocurrir.
-            existente = _pendiente_existente(usuario.pk, maestro_id, una.inicio_en)
-            if existente is None:
-                raise
-            return _idempotente(existente, ahora)
-        TicketEvento.objects.create(
-            ticket_id=ticket.pk,
-            fecha=ahora,
-            estado_anterior=None,
-            estado_nuevo=EstadoTicket.PENDIENTE,
-            motivo=None,
-            autor_tipo=AutorTipo.USUARIO,
-            autor_id=usuario.pk,
-        )
-        # RF-18: el aviso nace en la misma transacción que el ticket.
-        AvisoTicket.objects.create(
-            ticket=ticket, destinatario_id=maestro_id, tipo=TipoAvisoTicket.TICKET_NUEVO, creado_en=ahora
-        )
+        resultado = _crear_con_maestro_bloqueado(usuario, pedido, maestro_id, ahora, hoy)
+    if isinstance(resultado, Ticket):
+        # Protección al actuar (incremento 6): el cierre del pendiente vencido ya quedó guardado.
+        raise ErrorEstado(MENSAJE_PENDIENTE_VENCIDO.format(motivo=MOTIVOS_PARA_CLIENTE[resultado.motivo_cierre]))
+    return resultado
+
+
+def _crear_con_maestro_bloqueado(usuario, pedido, maestro_id, ahora, hoy):
+    """Pasos 3 a 6, dentro de la transacción. Devuelve ``(ticket, creado)``, o el pendiente vencido que cerró."""
+    fecha, inicio, fin = pedido["fecha"], pedido["inicio"], pedido["fin"]
+    # ADR-023, punto 4: primero el expediente del maestro (serializa con la aceptación y con curatoría).
+    if Expediente.objects.select_for_update().filter(perfil_maestro_id=maestro_id).first() is None:
+        raise ErroresDeCampo({"maestro": MENSAJE_MAESTRO})
+    inicio_en = ocurrencias.instante(fecha, inicio)
+    if inicio_en is not None:
+        existente = _pendiente_existente(usuario.pk, maestro_id, inicio_en)
+        if existente is not None:
+            return _idempotente(existente, ahora) or existente
+    errores = {}
+    servicio_maestro = None
+    if not publicacion.maestro_publicado(maestro_id, hoy):
+        errores["maestro"] = MENSAJE_MAESTRO
+    else:
+        servicio_maestro = _servicio_visible(maestro_id, pedido["servicio_ref"], hoy)
+        if servicio_maestro is None:
+            errores["servicio"] = MENSAJE_SERVICIO
+        if not Cobertura.objects.filter(maestro_id=maestro_id, comuna=pedido["comuna"]).exists():
+            errores["comuna"] = MENSAJE_COMUNA_FUERA
+    if errores:
+        raise ErroresDeCampo(errores)
+    una = _ocurrencia_ofrecible(maestro_id, fecha, inicio, fin, ahora, hoy)
+    try:
+        with transaction.atomic():
+            ticket = Ticket.objects.create(
+                cliente_id=usuario.pk,
+                perfil_maestro_id=maestro_id,
+                servicio_maestro=servicio_maestro,
+                modalidad=servicio_maestro.modalidad,
+                monto_publicado=servicio_maestro.monto,
+                fecha=una.fecha,
+                inicio_min=una.inicio_min,
+                fin_min=una.fin_min,
+                inicio_en=una.inicio_en,
+                fin_en=una.fin_en,
+                comuna=pedido["comuna"],
+                direccion=pedido["direccion"],
+                descripcion=pedido["descripcion"],
+                materiales=pedido["materiales"],
+                estado=EstadoTicket.PENDIENTE,
+                enviado_en=ahora,
+                vence_en=calcular_vence_en(ahora, una.inicio_en),
+            )
+    except IntegrityError:
+        # Resguardo del único parcial de D-10; con el bloqueo por maestro no debería ocurrir.
+        existente = _pendiente_existente(usuario.pk, maestro_id, una.inicio_en)
+        if existente is None:
+            raise
+        return _idempotente(existente, ahora) or existente
+    TicketEvento.objects.create(
+        ticket_id=ticket.pk,
+        fecha=ahora,
+        estado_anterior=None,
+        estado_nuevo=EstadoTicket.PENDIENTE,
+        motivo=None,
+        autor_tipo=AutorTipo.USUARIO,
+        autor_id=usuario.pk,
+    )
+    # RF-18: el aviso nace en la misma transacción que el ticket.
+    AvisoTicket.objects.create(
+        ticket=ticket, destinatario_id=maestro_id, tipo=TipoAvisoTicket.TICKET_NUEVO, creado_en=ahora
+    )
     return ticket, True

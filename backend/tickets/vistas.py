@@ -11,6 +11,10 @@
 - ``GET /api/clientes/tickets`` (rol ``cliente``) y ``GET /api/maestros/tickets``
   (rol ``maestro``): versión mínima, patrón "me", páginas de 20 (``pagina``).
 - ``GET /api/avisos`` y ``POST /api/avisos/vistos``: los avisos propios (ADR-024).
+- ``POST /api/tickets/<uuid:ref>/aceptacion`` y ``.../rechazo`` (el maestro del
+  ticket) y ``.../cancelacion`` (el cliente del ticket): ``tickets.transiciones``.
+  Un tercero recibe el 404 idéntico con registro; la otra parte, 403 registrado
+  (ADR-023, punto 6). 200 con el ticket; 409 accionable si el estado no lo permite.
 
 La respuesta depende de la relación con **ese** ticket (``tickets.serializacion``).
 Todas con ``Cache-Control: no-store``.
@@ -22,6 +26,7 @@ from django.http import JsonResponse
 
 from autorizacion.acceso import obtener_autorizado
 from autorizacion.decoradores import requiere_rol
+from autorizacion.excepciones import ParteEquivocada
 from comun.api import (
     MENSAJE_CLAVE_DESCONOCIDA,
     MENSAJE_VALOR_REPETIDO,
@@ -34,7 +39,7 @@ from comun.api import (
 )
 from expediente.errores import ErrorEstado
 from tickets import avisos as avisos_ticket
-from tickets import serializacion, servicios
+from tickets import serializacion, servicios, transiciones
 from tickets.politicas import PoliticaTicket
 
 CAMPOS_CREAR = {"maestro", "servicio", "comuna", "fecha", "inicio", "fin", "direccion", "descripcion", "materiales"}
@@ -151,3 +156,49 @@ def avisos_vistos(request):
     refs = _refs_de_avisos(datos.get("avisos"))
     avisos_ticket.marcar_vistos(request.usuario.pk, refs)
     return _json({"sin_ver": avisos_ticket.sin_ver(request.usuario.pk)})
+
+
+# --- Acciones sobre el ticket (incremento 5; ADR-023, puntos 3 y 6) ---
+
+MENSAJE_SOLO_MAESTRO = "Solo el maestro que recibió este pedido puede aceptarlo o rechazarlo."
+MENSAJE_SOLO_CLIENTE = "Solo el cliente que envió este pedido puede cancelarlo. Si no puedes tomarlo, recházalo."
+
+
+def _sin_cuerpo(request):
+    """Estas acciones no reciben datos: un cuerpo con claves se rechaza como en ADR-013, E-2."""
+    if request.body:
+        leer_json(request, set())
+
+
+def _accion(request, ref, del_maestro, hacer):
+    _sin_cuerpo(request)
+    # Un tercero (incluidos los roles administrativos) recibe el 404 idéntico con registro (CA-25.1).
+    ticket = obtener_autorizado(serializacion.consulta(), ref, request.usuario, PoliticaTicket())
+    duena = ticket.perfil_maestro_id if del_maestro else ticket.cliente_id
+    if request.usuario.pk != duena:
+        mensaje = MENSAJE_SOLO_MAESTRO if del_maestro else MENSAJE_SOLO_CLIENTE
+        raise ParteEquivocada(PoliticaTicket.entidad, ticket.ref, mensaje)
+    try:
+        hacer(ticket, request.usuario)
+    except ErrorEstado as error:
+        return respuesta_error(409, error.mensaje)
+    ticket = serializacion.consulta().get(pk=ticket.pk)
+    return _json({"ticket": serializacion.para(ticket, request.usuario)})
+
+
+@metodos("POST")
+@manejar_errores
+def aceptacion(request, ref):
+    return _accion(request, ref, True, transiciones.aceptar)
+
+
+@metodos("POST")
+@manejar_errores
+def rechazo(request, ref):
+    return _accion(request, ref, True, transiciones.rechazar)
+
+
+@metodos("POST")
+@manejar_errores
+def cancelacion(request, ref):
+    return _accion(request, ref, False, transiciones.cancelar)

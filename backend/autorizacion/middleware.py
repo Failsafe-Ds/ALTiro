@@ -7,6 +7,8 @@
   un mensaje accionable.
 - ``ConflictoDeInteres`` -> se registra con la entidad y la referencia del
   recurso y responde 403 con un mensaje accionable (ADR-011, E-2).
+- ``ParteEquivocada`` -> se registra igual y responde 403 con el mensaje de la
+  excepción (ADR-023, punto 6).
 
 Ningún 403 de este middleware lleva la cabecera ``AlTiro-Rechazo``: no se
 reintentan (ADR-011, E-1 y E-2).
@@ -16,7 +18,13 @@ recurso es el método más el **patrón** de la ruta, nunca la ruta cruda ni la
 cadena de consulta (ADR-011, punto 4).
 """
 from autorizacion import acceso_denegado
-from autorizacion.excepciones import AccesoDenegado, ConflictoDeInteres, RecursoNoEncontrado, RolRequerido
+from autorizacion.excepciones import (
+    AccesoDenegado,
+    ConflictoDeInteres,
+    ParteEquivocada,
+    RecursoNoEncontrado,
+    RolRequerido,
+)
 from comun.api import respuesta_error, respuesta_no_encontrado
 
 MENSAJE_SIN_ROL = (
@@ -61,4 +69,8 @@ class AutorizacionMiddleware:
             if usuario is not None:
                 acceso_denegado.registrar(usuario, _recurso(request), excepcion.entidad, excepcion.ref)
             return respuesta_error(403, MENSAJE_CONFLICTO)
+        if isinstance(excepcion, ParteEquivocada):
+            if usuario is not None:
+                acceso_denegado.registrar(usuario, _recurso(request), excepcion.entidad, excepcion.ref)
+            return respuesta_error(403, excepcion.mensaje)
         return None

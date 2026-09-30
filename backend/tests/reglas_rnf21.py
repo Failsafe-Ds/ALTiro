@@ -7,9 +7,9 @@ y **por grupo**: una regla está cubierta si al menos una prueba de
 (``tests/test_rnf21_cobertura_de_reglas.py``).
 
 ``GRUPOS_ACTIVOS``: grupos que la prueba de control ya exige. ``acceso`` entra
-en el incremento 4 (A-01, A-03, A-04 y A-05; A-02 llega con las acciones del
-incremento 5). ``cierre`` entra en el incremento 6; C-08 (fórmula de
-``vence_en``) ya se cubre en el 4. La meta del sprint es el 100 %.
+en el incremento 4 (A-01, A-03, A-04 y A-05) y A-02 con las acciones del
+incremento 5. ``cierre`` entra en el incremento 6 (C-01 a C-08; C-08, fórmula de
+``vence_en``, ya se cubría en el 4). La meta del sprint es el 100 %.
 """
 
 REGLAS = {
@@ -61,7 +61,7 @@ REGLAS = {
     },
 }
 
-GRUPOS_ACTIVOS = frozenset({"filtros", "puntaje", "acceso"})
+GRUPOS_ACTIVOS = frozenset({"filtros", "puntaje", "acceso", "cierre"})
 UMBRAL = 0.60
 
 

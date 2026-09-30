@@ -10,6 +10,8 @@
   inexistentes se ignoran sin decir cuáles (no se revela si existen).
 Vocabulario de pantalla: "pedido" y "horario" (ADR-024, punto 4; RNF-17).
 """
+from urllib.parse import urlencode
+
 from django.utils import timezone
 
 from perfil import agenda, ocurrencias
@@ -62,6 +64,29 @@ def texto(aviso, ticket):
     return f"{dueno} de {servicio} para {cuando(ticket)} se cerró: {motivo}."
 
 
+def enlace(aviso, ticket):
+    """CA-23.5: al cliente cuyo pedido se cerró por ``bloque_tomado``, la búsqueda con alternativas.
+
+    Mismo oficio, comuna y horario del pedido, en la página de búsqueda
+    (parámetros de ``buscar.html``). En los demás avisos: ``None``.
+    """
+    if (
+        aviso.tipo != TipoAvisoTicket.TICKET_CERRADO
+        or ticket.motivo_cierre != MotivoCierre.BLOQUE_TOMADO
+        or aviso.destinatario_id != ticket.cliente_id
+    ):
+        return None
+    parametros = {
+        "oficio": ticket.servicio_maestro.servicio.oficio.codigo,
+        "region": ticket.comuna.provincia.region_id,
+        "comuna": ticket.comuna_id,
+        "fecha": ticket.fecha.isoformat(),
+        "inicio": agenda.formato_hora(ticket.inicio_min),
+        "fin": agenda.formato_hora(ticket.fin_min),
+    }
+    return f"/buscar.html?{urlencode(parametros)}"
+
+
 def datos_aviso(aviso):
     return {
         "ref": str(aviso.ref),
@@ -70,6 +95,7 @@ def datos_aviso(aviso):
         "ticket": str(aviso.ticket.ref),
         "creado_en": timezone.localtime(aviso.creado_en, ocurrencias.ZONA).isoformat(),
         "visto": aviso.visto_en is not None,
+        "enlace": enlace(aviso, aviso.ticket),
     }
 
 
@@ -78,7 +104,7 @@ def del_usuario(usuario_id):
     return (
         AvisoTicket.objects.filter(destinatario_id=usuario_id)
         .select_related(
-            "ticket__servicio_maestro__servicio", "ticket__comuna", "ticket__perfil_maestro__usuario"
+            "ticket__servicio_maestro__servicio__oficio", "ticket__comuna__provincia", "ticket__perfil_maestro__usuario"
         )
         .order_by("-creado_en", "-id")
     )

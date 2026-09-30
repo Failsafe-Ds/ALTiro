@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S4, incremento 4 cerrado, commit `7ef5f00`).
+Última actualización: 2026-09-30 (S4, incrementos 1 a 6 hechos, commit siguiente a `1bcf954`; suite 1678).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -11,13 +11,13 @@
 | S1 Identidad, roles y acceso | Cerrado | `sprint-1`, `docs/testing/cierre-sprint-1.md` |
 | S2 Expediente y curatoría | Cerrado | `sprint-2`, `cierre-sprint-2.md` |
 | S3 Catálogo, cobertura y agenda | Cerrado con observaciones | `sprint-3`, `cierre-sprint-3.md` |
-| S4 Búsqueda y ticket | En curso: incrementos 1 a 4 hechos; faltan 5 a 9 | propuesta §9 y §11 |
+| S4 Búsqueda y ticket | En curso: incrementos 1 a 6 hechos; faltan 7 a 9 | propuesta §9 y §11 |
 | S5 Mensajería, evaluación, bitácora e indicadores | No iniciado | — |
 
 ## Stack y cómo correr
 - Docker Compose: `init`, `db` (PostgreSQL 16), `app` (Django 5.2 + gunicorn), `proxy` (Nginx, TLS autofirmado, gzip) y `planificador` (cada 300 s).
 - Frontend estático en HTML, CSS y JS, sin framework y con CSP estricta (sin inline).
-- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 7 min y hoy pasan 1629.
+- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 8 min y hoy pasan 1678.
 - **Durante el desarrollo**, solo pruebas dirigidas: el mismo comando con `tests/test_x.py -k nombre`.
 - Migrar: `docker compose exec app python manage.py migrate`. Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
 
@@ -53,8 +53,12 @@
   - se bloquea primero el expediente del maestro y después los tickets;
   - mientras está pendiente, el maestro no recibe dirección, teléfono ni nombre del cliente;
   - contacto mutuo solo tras aceptar.
+  - transiciones en `tickets/transiciones.py`: aceptar y rechazar (maestro), cancelar (cliente); repetir da 200, lo demás 409 accionable;
+  - la parte equivocada recibe 403 registrado con `ParteEquivocada` (middleware de `autorizacion`);
+  - cierre por vencimiento: tarea `cerrar_vencidos` del planificador (`skip_locked`) y protección al actuar (cierra, guarda y responde 409), con autor Sistema;
+  - `ticket_cerrado` va a ambas partes; con `bloque_tomado`, el aviso del cliente trae `enlace` a `buscar.html` (CA-23.5).
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
-- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo. Fechas con time-machine.
+- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso y cierre). Fechas con time-machine.
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
 
 ## Decisiones provisionales abiertas
@@ -62,9 +66,8 @@ ADR-016 E-1 y ADR-018 a ADR-024 están en "Aceptada — PROVISIONAL" y se revisa
 
 ## Pendientes y riesgos vigentes
 - **S4:**
-  - incremento 5: aceptar, rechazar y cancelar (cierra CA-14.3);
-  - incremento 6: cierre automático y protección al actuar;
   - incremento 7: bandejas, avisos y pantallas "mis pedidos" y "mis trabajos";
+  - incremento 7: los botones aceptar, rechazar y cancelar, y mostrar el `enlace` del aviso de `bloque_tomado`;
   - incremento 8: RF-12, si hay capacidad;
   - incremento 9: mediciones de RNF-01 a 04, RNF-21 y RNF-14 a 18 con 1.000 tickets en una pila aparte, más el QA.
 - **RNF-13** sin ejecutar (DA-17: antes de la revisión del S4; requiere personas).
@@ -76,3 +79,4 @@ ADR-016 E-1 y ADR-018 a ADR-024 están en "Aceptada — PROVISIONAL" y se revisa
 |---|---|---|---|
 | 2026-09-29 | QA de cierre del S3 | qa (principal) | ~338 mil |
 | 2026-09-29 | S4 incremento 4 (tickets) | backend (principal) | ~341 mil |
+| 2026-09-30 | S4 incrementos 5 y 6 (transiciones y cierre) | backend (principal) | ~177 mil (69 pasos; dos incrementos juntos) |
