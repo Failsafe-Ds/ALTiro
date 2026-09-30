@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 7 cerrados; siguiente: incremento 8, volumen y mediciones).
+Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 8 cerrados; RNF-01 p95 0,216 s y RNF-03 cumple con 5.000 mensajes; siguiente: QA de cierre).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -115,3 +115,4 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 | 2026-09-30 | S5 incremento 4 (mensajería) | backend (principal) | ~177 mil (67 pasos) |
 | 2026-09-30 | S5 incrementos 5 y 6 (evaluaciones, calificación y moderación) | backend (principal) | ~219 mil (64 pasos; se cortó por límite y se retomó) |
 | 2026-09-30 | S5 incremento 7 (indicadores y exportación) | backend (principal) | ~162 mil (61 pasos) |
+| 2026-09-30 | S5 incremento 8 (volumen de 5.000 mensajes y mediciones RNF-01/RNF-03) | qa (Sonnet) | ~98 mil (31 pasos) |

@@ -24,7 +24,7 @@ Qué crea (informe §3 del CLAUDE.md, "volumen de prueba"):
   cerrados con alguno de los cinco motivos) de los últimos 60 días, cada uno
   con su historial en ``ticket_evento``. Los aceptados ocupan agenda, así la
   búsqueda se mide con ocupación real. Sin avisos (nadie entra con estas
-  cuentas). Los 5.000 mensajes, en el S5.
+  cuentas). S5 incremento 8: 5.000 mensajes (50 por maestro) y evaluaciones en parte de los finalizados.
 
 Rotulado y resguardos:
 
@@ -48,6 +48,7 @@ import io
 import logging
 import random
 import secrets
+import uuid
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -56,10 +57,12 @@ from PIL import Image
 
 from catalogo.management.commands.cargar_datos_demo import cargar_datos_demo
 from catalogo.models import Modalidad, Servicio, ServicioModalidad
+from evaluaciones.models import Evaluacion, ParteEvaluacion
 from expediente import vigencia
 from expediente.models import EstadoExpediente, Expediente, OficioMaestro
 from identidad import servicios as identidad
 from identidad.models import PerfilMaestro, Usuario
+from mensajeria.models import Mensaje
 from perfil import fotos, ocurrencias
 from perfil.models import Cobertura, Disponibilidad, PerfilPublico, ServicioMaestro
 from tickets.models import (
@@ -87,6 +90,10 @@ TICKETS_POR_MAESTRO = 10
 FUTUROS_POR_MAESTRO = 3  # uno aceptado y dos pendientes
 CLIENTES_POR_MAESTRO = 2
 DIAS_HISTORIA = 60
+# 50 mensajes por maestro: 5.000 con 100 maestros (RNF-03). Evaluaciones en parte de las órdenes finalizadas.
+MENSAJES_POR_MAESTRO = 50
+PROBABILIDAD_EVAL_CLIENTE = 0.6
+PROBABILIDAD_EVAL_MAESTRO = 0.4
 
 
 def rut_ficticio(semilla, numero):
@@ -357,6 +364,70 @@ def generar_tickets(semilla, maestros, ahora=None):
     return len(creados)
 
 
+def generar_conversaciones(semilla, maestros, ahora=None):
+    """Mensajes y evaluaciones ficticios sobre los tickets de la semilla (S5, incremento 8; RNF-03).
+
+    ``MENSAJES_POR_MAESTRO`` mensajes por maestro (5.000 para 100), repartidos al azar entre sus tickets
+    aceptados y finalizados (las conversaciones quedan de tamaños distintos), entre la aceptación y el
+    fin (o ahora). Evaluaciones en parte de los finalizados (del cliente y, a veces, del maestro), con
+    notas de 1 a 5 y sin comentario. Idempotente por separado: si alguno de esos tickets ya tiene
+    mensajes (o evaluaciones), no crea más de ese tipo. Devuelve ``(mensajes, evaluaciones)`` creados.
+    """
+    ahora = ahora or timezone.now()
+    ruts = [rut_ficticio(semilla, numero).replace("-", "") for numero in range(maestros)]
+    perfiles = list(PerfilMaestro.objects.filter(rut__in=ruts).order_by("rut"))
+    tickets = list(
+        Ticket.objects.filter(
+            perfil_maestro_id__in=[p.pk for p in perfiles],
+            estado__in=[EstadoTicket.ACEPTADO, EstadoTicket.FINALIZADO],
+            cliente__usuario__correo__startswith=f"cliente.ficticio.{semilla}.",
+        ).order_by("id")
+    )
+    if not tickets:
+        return 0, 0
+    azar = random.Random(f"{semilla}-conversaciones")
+    ids = [t.pk for t in tickets]
+    mensajes = []
+    if not Mensaje.objects.filter(ticket_id__in=ids).exists():
+        por_maestro = {}
+        for t in tickets:
+            por_maestro.setdefault(t.perfil_maestro_id, []).append(t)
+        for lista in por_maestro.values():
+            for n in range(MENSAJES_POR_MAESTRO):
+                t = azar.choice(lista)
+                fin = min(t.finalizado_en or ahora, ahora)
+                mensajes.append(
+                    Mensaje(
+                        ticket_id=t.pk,
+                        autor_id=azar.choice([t.cliente_id, t.perfil_maestro_id]),
+                        texto=f"Mensaje ficticio {n + 1} del volumen de prueba.",
+                        enviado_en=_entre(azar, t.aceptado_en, max(fin, t.aceptado_en + datetime.timedelta(seconds=1))),
+                        clave_envio=uuid.UUID(int=azar.getrandbits(128), version=4),
+                    )
+                )
+    evaluaciones = []
+    if not Evaluacion.objects.filter(ticket_id__in=ids).exists():
+        for t in tickets:
+            if t.estado != EstadoTicket.FINALIZADO:
+                continue
+            for parte, prob, autor, evaluado in (
+                (ParteEvaluacion.CLIENTE, PROBABILIDAD_EVAL_CLIENTE, t.cliente_id, t.perfil_maestro_id),
+                (ParteEvaluacion.MAESTRO, PROBABILIDAD_EVAL_MAESTRO, t.perfil_maestro_id, t.cliente_id),
+            ):
+                if azar.random() < prob:
+                    evaluaciones.append(
+                        Evaluacion(
+                            ticket_id=t.pk, parte=parte, autor_id=autor, evaluado_id=evaluado,
+                            puntualidad=azar.randint(3, 5), trabajo=azar.randint(2, 5),
+                            cordialidad=azar.randint(3, 5), creada_en=t.finalizado_en,
+                        )
+                    )
+    with transaction.atomic():
+        Mensaje.objects.bulk_create(mensajes, batch_size=1000)
+        Evaluacion.objects.bulk_create(evaluaciones, batch_size=1000)
+    return len(mensajes), len(evaluaciones)
+
+
 class Command(BaseCommand):
     help = "Genera el volumen de prueba FICTICIO (100 maestros, 300 servicios, 1.000 tickets). Solo para una pila aparte."
 
@@ -380,8 +451,13 @@ class Command(BaseCommand):
             raise CommandError("El catálogo no tiene servicios suficientes de oficios no regulados.")
         creados = sum(crear_maestro(semilla, numero, por_oficio) for numero in range(maestros))
         tickets = generar_tickets(semilla, maestros)
-        logger.info("Volumen de prueba ficticio generado: %s maestros nuevos, %s tickets.", creados, tickets)
+        mensajes, evaluaciones = generar_conversaciones(semilla, maestros)
+        logger.info(
+            "Volumen de prueba ficticio generado: %s maestros nuevos, %s tickets, %s mensajes, %s evaluaciones.",
+            creados, tickets, mensajes, evaluaciones,
+        )
         self.stdout.write(
             f"Maestros ficticios nuevos: {creados} de {maestros} (semilla {semilla}). "
-            f"Tickets ficticios nuevos: {tickets}."
+            f"Tickets ficticios nuevos: {tickets}. Mensajes ficticios nuevos: {mensajes}. "
+            f"Evaluaciones ficticias nuevas: {evaluaciones}."
         )

@@ -81,3 +81,30 @@ def test_crea_10_tickets_ficticios_por_maestro_coherentes_e_idempotentes(capsys)
     call_command("generar_volumen_prueba", "--semilla", "42", "--confirmo-datos-ficticios", "--maestros", "3")
     assert "Tickets ficticios nuevos: 0." in capsys.readouterr().out
     assert Ticket.objects.count() == 30 and PerfilCliente.objects.count() == 6
+
+
+def test_crea_mensajes_y_evaluaciones_ficticios_validos_e_idempotentes(capsys):
+    from django.db.models import Count
+
+    from evaluaciones.models import Evaluacion
+    from mensajeria.models import Mensaje
+
+    call_command("generar_volumen_prueba", "--semilla", "42", "--confirmo-datos-ficticios", "--maestros", "3")
+    assert "Mensajes ficticios nuevos: 150." in capsys.readouterr().out
+    assert Mensaje.objects.count() == 150
+    tickets = {t.pk: t for t in Ticket.objects.all()}
+    for m in Mensaje.objects.all():
+        t = tickets[m.ticket_id]
+        assert t.estado in (EstadoTicket.ACEPTADO, EstadoTicket.FINALIZADO)
+        assert m.autor_id in (t.cliente_id, t.perfil_maestro_id)
+        assert t.aceptado_en <= m.enviado_en <= timezone.now()
+    evaluaciones = list(Evaluacion.objects.all())
+    assert evaluaciones
+    for e in evaluaciones:
+        assert tickets[e.ticket_id].estado == EstadoTicket.FINALIZADO and e.autor_id != e.evaluado_id
+    assert not Evaluacion.objects.values("ticket_id", "parte").annotate(n=Count("id")).filter(n__gt=1).exists()
+
+    cantidades = (Mensaje.objects.count(), Evaluacion.objects.count())
+    call_command("generar_volumen_prueba", "--semilla", "42", "--confirmo-datos-ficticios", "--maestros", "3")
+    assert "Mensajes ficticios nuevos: 0. Evaluaciones ficticias nuevas: 0." in capsys.readouterr().out
+    assert (Mensaje.objects.count(), Evaluacion.objects.count()) == cantidades
