@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S5 en curso: incrementos 0, 1 y 2 cerrados; siguiente: incremento 3).
+Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 3 cerrados; siguiente: incremento 4, mensajería).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -15,9 +15,9 @@
 | S5 Mensajería, evaluación, bitácora e indicadores | En curso | propuesta `sprint-5-propuesta-arquitectura.md`, ADR-026 |
 
 ## Stack y cómo correr
-- Docker Compose: `init`, `db` (PostgreSQL 16), `app` (Django 5.2 + gunicorn), `proxy` (Nginx, TLS autofirmado, gzip) y `planificador` (cada 300 s).
+- Docker Compose: `init`, `db` (PostgreSQL 16), `app` (Django 5.2 + gunicorn), `proxy` (Nginx, TLS autofirmado, gzip), `planificador` (cada 300 s) y `respaldo` (postgres:16, diario).
 - Frontend estático en HTML, CSS y JS, sin framework y con CSP estricta (sin inline).
-- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 8 min y hoy pasan 1678.
+- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 8 min y hoy pasan 1746.
 - **Durante el desarrollo**, solo pruebas dirigidas: el mismo comando con `tests/test_x.py -k nombre`.
 - Migrar: `docker compose exec app python manage.py migrate`. Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
 
@@ -34,7 +34,7 @@
 - **Errores (ADR-013):** formato `{mensaje, errores}`. Una clave desconocida da 400 general; un campo no permitido da 400 en ese campo. Sin códigos internos.
 - **Bitácora, `ticket_evento` y `acceso_denegado`:** solo inserción, con triggers y `managed=False`, sin FK de autor (ADR-010).
 - **Sesión (ADR-005):** 1800 s deslizantes; las consultas automáticas no la renuevan. CSRF: reintento único ante `AlTiro-Rechazo: csrf`.
-- **Documentos (ADR-015):** AES-256-GCM, sin EXIF y máximo 8 MB. Enlace firmado de 600 s. El volumen de documentos solo va montado en `app`.
+- **Documentos (ADR-015):** AES-256-GCM, sin EXIF y máximo 8 MB. Enlace firmado de 600 s. El volumen de documentos va montado en `app` y `planificador`, y **de solo lectura en `respaldo`** (enmienda de ADR-026, E-7.2). La clave nunca se monta en `respaldo`.
 - **Publicación (ADR-019):** la visibilidad se calcula en cada lectura con `perfil/publicacion.py` y nunca se guarda una marca. Elegible = aprobado + comuna base + foto.
 - **Agenda (ADR-020):**
   - minutos múltiplos de 30, sin cruzar la medianoche;
@@ -65,8 +65,12 @@
   - la otra parte → `ParteEquivocada` (403 registrado); tercero → 404 registrado;
   - avisos `precio_registrado` (al cliente), `precio_objetado` (al maestro), `orden_finalizada` (a la parte que no actuó); se reactivan si ya existían;
   - bandejas: sin `estado` → historial completo; cada ticket trae `precio` (`por_aceptar`/`acordado`) y `motivo_cierre_texto`; el maestro, además, `precio_registrable`. Pestaña «Historial» en `mis-pedidos` y `mis-trabajos`.
+- **Operación (ADR-026, E-7 a E-9; S5 inc. 3):**
+  - respaldo: `scripts/respaldo.sh` (dump, conteos, tar, sumas; 7 días) hacia `ALTIRO_RESPALDO_DIR` (`../altiro-respaldos`). `scripts/restaurar.sh` se niega si existe algún volumen del proyecto destino. El simulacro solo se hace en `-p altiro-restauracion` (`docs/testing/rnf-19-respaldo.md`: 19 s);
+  - registro: JSON por línea (`comun/registro.py`: `nivel`, `marca_tiempo`, `usuario`, `operacion`, `estado`, `duracion_ms`), sin ruta real, cuerpo, parámetros, cookies ni cabeceras. `django.request` solo desde ERROR. `/api/health/` va en DEBUG;
+  - retención: `expediente/retencion.py` en el planificador. Plazos `RETENCION_DIAS_<TIPO>` vacíos (pendiente V-04/P-07, `docs/alcance/plazos-retencion.md`): sin plazo no borra nada. Aplica a expedientes rechazados o suspendidos. Marca `eliminado_en`/`motivo_eliminacion` y escribe la bitácora `documento_eliminado_retencion` (Sistema). El documento eliminado no cuenta para aprobar; su enlace da 409 y curatoría no lo revisa (409).
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
-- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso y cierre; precio final: C-09 a C-15, A-06 a A-08). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
+- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre y operación; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
 
 ## Decisiones provisionales abiertas
@@ -90,3 +94,4 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 | 2026-09-30 | S4 incremento 7: QA y re-verificación (el código venía hecho; correcciones del coordinador) | qa (Sonnet) | ~331 mil (159 mil + 172 mil) |
 | 2026-09-30 | Propuesta S5 y ADR-026 | architect (principal) | ~109 mil (36 pasos) |
 | 2026-09-30 | S5 incrementos 1 y 2 (precio final, historial y pantallas) | backend (principal) | ~206 mil (69 pasos; dos incrementos juntos) |
+| 2026-09-30 | S5 incremento 3 (respaldo, registro JSON y retención) | backend (principal) | ~197 mil (107 pasos) |

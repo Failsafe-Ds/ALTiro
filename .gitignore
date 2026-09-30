@@ -21,6 +21,7 @@ certificados/
 *.dump
 *.sql.gz
 respaldos/
+altiro-respaldos/
 
 # Python
 __pycache__/

@@ -45,6 +45,8 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "identidad.Usuario"
 
 MIDDLEWARE = [
+    # El primero: mide la petición completa y ve el estado final (RNF-22; ADR-026, E-8).
+    "comun.registro.RegistroOperacionMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",  # ADR-005
     "django.middleware.common.CommonMiddleware",
@@ -144,6 +146,16 @@ ALTIRO_FOTOS_DIR = Path(leer_variable("ALTIRO_FOTOS_DIR"))
 # ADR-016, E-1, para que los avisos de cierre de tickets lleguen en 5 minutos o menos).
 ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS = leer_entero("ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS", por_defecto=300)
 
+# --- Retención de documentos (RNF-26; ADR-026, E-9) ---
+# Días desde que el expediente quedó rechazado o suspendido, por tipo de
+# documento (``RETENCION_DIAS_<TIPO>``). Sin valor, ese tipo no se elimina y el
+# planificador registra una advertencia (P-30). Plazos pendientes de V-04/P-07:
+# docs/alcance/plazos-retencion.md.
+RETENCION_DIAS = {
+    tipo: leer_entero(f"RETENCION_DIAS_{tipo.upper()}", por_defecto=None)
+    for tipo in ("cedula_identidad", "certificado_antecedentes", "licencia_sec")
+}
+
 # --- Registros ---
 # Solo a la consola del contenedor. Nunca registrar contraseñas, tokens,
 # cookies ni cuerpos de petición.
@@ -152,6 +164,8 @@ ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS = leer_entero("ALTIRO_PLANIFICADOR_INTERV
 # Va en ``django.request`` (antes de cualquier handler) y en el handler
 # ``consola`` (todo lo que llega a root). ``django.db.backends`` queda en INFO:
 # nunca escribe SQL con sus argumentos.
+# ADR-026, E-8 (RNF-22): una línea JSON por evento (``comun.registro.FormatoJson``);
+# ``django.request`` solo desde ERROR (quita el "Not Found: <ruta>" de OBS-S3-07).
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -159,17 +173,17 @@ LOGGING = {
         "trazas_seguras": {"()": "comun.registros.FiltroTrazasSeguras"},
     },
     "formatters": {
-        "simple": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"},
+        "json": {"()": "comun.registro.FormatoJson"},
     },
     "handlers": {
         "consola": {
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "json",
             "filters": ["trazas_seguras"],
         },
     },
     "loggers": {
-        "django.request": {"filters": ["trazas_seguras"]},
+        "django.request": {"level": "ERROR", "filters": ["trazas_seguras"]},
         "django.db.backends": {"level": "INFO"},
         # Pillow escribe en DEBUG los valores de las etiquetas EXIF (GPS,
         # cámara) al leer una foto: nunca por debajo de WARNING (ADR-015, NTI-09).

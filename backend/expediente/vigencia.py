@@ -99,6 +99,9 @@ def fue_validado(documento):
     sin revisar nunca queda ``reemplazado``: se borra (ADR-017, punto 5). Por
     eso un ``reemplazado`` sin motivo de observación estaba ``validado``.
     """
+    # Un documento eliminado por retención ya no tiene archivo: no cuenta (RNF-26; ADR-026, E-9).
+    if documento.eliminado_en is not None:
+        return False
     if documento.estado == EstadoDocumento.VALIDADO:
         return True
     return documento.estado == EstadoDocumento.REEMPLAZADO and not documento.motivo_observacion.strip()
@@ -157,7 +160,9 @@ def faltantes_para_aprobar(expediente, hoy=None):
     hoy = hoy or hoy_negocio()
     validados = {
         documento.tipo
-        for documento in documentos_actuales(expediente).filter(estado=EstadoDocumento.VALIDADO)
+        for documento in documentos_actuales(expediente).filter(
+            estado=EstadoDocumento.VALIDADO, eliminado_en__isnull=True
+        )
         if documento.tipo != LICENCIA_SEC
     }
     faltantes = []
@@ -214,7 +219,9 @@ def candidatos_a_aviso(hoy):
     """
     return (
         Documento.objects.filter(
-            fecha_vencimiento__gt=hoy, fecha_vencimiento__lte=hoy + datetime.timedelta(days=DIAS_AVISO)
+            fecha_vencimiento__gt=hoy,
+            fecha_vencimiento__lte=hoy + datetime.timedelta(days=DIAS_AVISO),
+            eliminado_en__isnull=True,
         )
         .select_related("expediente", "oficio")
         .order_by("fecha_vencimiento", "pk")

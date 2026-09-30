@@ -160,6 +160,10 @@ class Documento(models.Model):
     reemplaza_a = models.ForeignKey(
         "self", on_delete=models.PROTECT, null=True, blank=True, related_name="+", db_column="reemplaza_a_id"
     )
+    # Retención (RNF-26; ADR-026, E-9): cuándo y por qué el actor Sistema borró
+    # los archivos cifrados. La fila se conserva para la trazabilidad (RF-37).
+    eliminado_en = models.DateTimeField(null=True, blank=True)
+    motivo_eliminacion = models.TextField(default="", blank=True)
 
     class Meta:
         db_table = "documento"
@@ -198,6 +202,12 @@ class Documento(models.Model):
                 condition=(Q(tipo=TipoDocumento.CEDULA_IDENTIDAD) & Q(archivo_reverso__isnull=False))
                 | (~Q(tipo=TipoDocumento.CEDULA_IDENTIDAD) & Q(archivo_reverso__isnull=True)),
                 name="documento_reverso_solo_cedula",
+            ),
+            # Eliminado por retención: fecha y motivo van juntos (RNF-26; ADR-026, E-9).
+            models.CheckConstraint(
+                condition=(Q(eliminado_en__isnull=True) & Q(motivo_eliminacion=""))
+                | (Q(eliminado_en__isnull=False) & Q(motivo_eliminacion__regex=r"\S")),
+                name="documento_eliminacion_con_motivo",
             ),
             # Un documento actual por (expediente, tipo, oficio) (D-11).
             models.UniqueConstraint(

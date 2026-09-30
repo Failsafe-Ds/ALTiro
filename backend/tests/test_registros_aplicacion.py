@@ -108,7 +108,11 @@ def test_el_handler_consola_escribe_la_traza_segura_del_500(monkeypatch):
 
     assert respuesta.status_code == 500
     texto = salida.getvalue()
-    assert "ERROR django.request Internal Server Error: /api/clientes" in texto
+    # ADR-026, E-8: JSON por línea; de django.request queda el motivo, sin la ruta.
+    assert '"nivel": "ERROR", "marca_tiempo": ' in texto
+    assert '"operacion": "django.request", "mensaje": "Internal Server Error"' in texto
+    assert '"estado": 500, "duracion_ms": ' in texto
+    assert "/api/clientes" not in texto
     assert "Contexto: método=POST estado=500" in texto
     for presente in (
         "Traceback (most recent call last):", "psycopg.errors.CheckViolation", "django.db.utils.IntegrityError",

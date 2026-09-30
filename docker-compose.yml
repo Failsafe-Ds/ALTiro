@@ -136,6 +136,12 @@ services:
       # directorio vacío de la imagen.
       ALTIRO_FOTOS_DIR: /fotos
       ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS: ${ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS:-300}
+      # Retención de documentos en días (RNF-26; ADR-026, E-9). Vacío = sin
+      # plazo: no se elimina nada y se registra una advertencia (P-30).
+      # Plazos pendientes de V-04/P-07: docs/alcance/plazos-retencion.md.
+      RETENCION_DIAS_CEDULA_IDENTIDAD: ${RETENCION_DIAS_CEDULA_IDENTIDAD:-}
+      RETENCION_DIAS_CERTIFICADO_ANTECEDENTES: ${RETENCION_DIAS_CERTIFICADO_ANTECEDENTES:-}
+      RETENCION_DIAS_LICENCIA_SEC: ${RETENCION_DIAS_LICENCIA_SEC:-}
     volumes:
       - secretos:/secretos:ro
       # Para la limpieza de archivos huérfanos (ADR-015, D-3: app y planificador).
@@ -160,6 +166,42 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    restart: unless-stopped
+
+  # Respaldo diario (RNF-19; ADR-026, E-7). Misma imagen que "db": no agrega
+  # imágenes. pg_dump -Fc + tar de "fotos" y "documentos" hacia un directorio
+  # local fuera del repositorio, con retención de 7 días (scripts/respaldo.sh).
+  # Enmienda a ADR-015 (E-7.2): "documentos" va de SOLO LECTURA y la clave de
+  # cifrado (secretos/documentos_clave) NUNCA se monta aquí; del volumen de
+  # secretos solo se monta la contraseña del rol administrativo.
+  # Respaldo inmediato: docker compose exec respaldo sh /usr/local/bin/altiro-respaldo.sh --una-vez
+  respaldo:
+    image: postgres:16.15-bookworm
+    entrypoint: ["sh", "/usr/local/bin/altiro-respaldo.sh"]
+    command: ["--bucle"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-altiro}
+      POSTGRES_USER: ${POSTGRES_USER:-altiro_admin}
+      ALTIRO_RESPALDO_HORA: ${ALTIRO_RESPALDO_HORA:-03:00}
+      ALTIRO_RESPALDO_RETENCION_DIAS: ${ALTIRO_RESPALDO_RETENCION_DIAS:-7}
+      TZ: ${ALTIRO_RESPALDO_ZONA_HORARIA:-America/Santiago}
+    volumes:
+      - ./scripts/respaldo.sh:/usr/local/bin/altiro-respaldo.sh:ro
+      - type: volume
+        source: secretos
+        target: /run/secretos/db_admin_password
+        read_only: true
+        volume:
+          subpath: db_admin_password
+      - fotos:/volumenes/fotos:ro
+      - documentos:/volumenes/documentos:ro
+      # Fuera del repositorio por defecto (RNF-24: la ruta se cambia en .env).
+      - ${ALTIRO_RESPALDO_DIR:-../altiro-respaldos}:/respaldos
+    networks:
+      - interna
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   proxy:
@@ -202,7 +244,8 @@ volumes:
   secretos: {}
   certificados: {}
   # Documentos del maestro, cifrados (ADR-015). Se respaldan por separado de
-  # la clave secretos/documentos_clave (RNF-19).
+  # la clave secretos/documentos_clave (RNF-19): el servicio "respaldo" lo
+  # monta de solo lectura y sin la clave (ADR-026, E-7.2).
   documentos: {}
   # Foto del maestro, sin cifrar (ADR-021). Se entrega solo si el maestro está
   # publicado. Nombres UUID; sin datos en el nombre.

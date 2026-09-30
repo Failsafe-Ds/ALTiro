@@ -156,6 +156,8 @@ def _datos_documento(documento, hoy):
         "dias_restantes": vigencia.dias_restantes(documento.fecha_vencimiento, hoy),
         "motivo_observacion": documento.motivo_observacion,
         "tiene_reverso": documento.archivo_reverso is not None,
+        # RNF-26 (ADR-026, E-9): sin archivo; el enlace responde 409.
+        "eliminado": documento.eliminado_en is not None,
         "cargado_en": _fecha(documento.cargado_en),
         "revisado_en": _fecha(documento.revisado_en),
     }
@@ -271,6 +273,7 @@ def _datos_entrada(entrada, autores, documentos):
             "oficio": _oficio_resumido(documento.oficio),
             "estado": documento.estado,
             "tiene_reverso": documento.archivo_reverso is not None,
+            "eliminado": documento.eliminado_en is not None,
         },
     }
 

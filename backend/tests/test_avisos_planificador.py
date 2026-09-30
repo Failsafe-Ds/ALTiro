@@ -34,7 +34,7 @@ from bitacora.models import Bitacora
 from catalogo.models import Oficio
 from comun.api import CABECERA_RECHAZO
 from autorizacion import tareas as tareas_autorizacion
-from expediente import avisos, servicios, tareas, vigencia
+from expediente import avisos, retencion, servicios, tareas, vigencia
 from expediente.management.commands import planificador
 from expediente.models import (
     Aviso,
@@ -456,17 +456,19 @@ def _tareas_simuladas(monkeypatch, fallan=()):
     return llamadas
 
 
-def test_el_planificador_tiene_las_cuatro_tareas_en_orden():
+def test_el_planificador_tiene_las_cinco_tareas_en_orden():
     assert planificador.TAREAS == (
         ("avisos_creados", tareas.emitir_avisos_por_vencer),
         ("tickets_cerrados", transiciones.cerrar_vencidos),
         ("accesos_denegados_purgados", tareas_autorizacion.purgar_accesos_denegados),
+        # S5, incremento 3 (ADR-026, E-9).
+        ("documentos_eliminados_retencion", retencion.aplicar_retencion),
         ("archivos_huerfanos_borrados", tareas.limpiar_archivos_huerfanos),
     )
 
 
 @pytest.mark.django_db
-def test_una_vez_corre_las_cuatro_tareas_con_el_mismo_ahora(monkeypatch, reloj, salida_consola):
+def test_una_vez_corre_las_cinco_tareas_con_el_mismo_ahora(monkeypatch, reloj, salida_consola):
     llamadas = _tareas_simuladas(monkeypatch)
 
     call_command("planificador", "--una-vez")
@@ -475,7 +477,7 @@ def test_una_vez_corre_las_cuatro_tareas_con_el_mismo_ahora(monkeypatch, reloj, 
     assert {ahora for _, ahora in llamadas} == {AHORA}
     assert (
         "Planificador: corrida terminada. avisos_creados=7 tickets_cerrados=7 accesos_denegados_purgados=7 "
-        "archivos_huerfanos_borrados=7 tareas_fallidas=0"
+        "documentos_eliminados_retencion=7 archivos_huerfanos_borrados=7 tareas_fallidas=0"
     ) in salida_consola.getvalue()
 
 
@@ -508,7 +510,9 @@ def test_un_error_de_base_de_datos_en_una_tarea_se_registra_sin_datos(monkeypatc
     conteos, fallidas = planificador.correr_tareas(AHORA)
 
     assert fallidas == ["duplicar"]
-    assert set(conteos) == {"tickets_cerrados", "accesos_denegados_purgados", "archivos_huerfanos_borrados"}
+    assert set(conteos) == {
+        "tickets_cerrados", "accesos_denegados_purgados", "documentos_eliminados_retencion", "archivos_huerfanos_borrados"
+    }
     texto = salida_consola.getvalue()
     assert "restriccion=aviso_una_vez" in texto
     for ausente in ("DETAIL", "Key (", str(maestro.pk) + ")", "Maestro Uno", RUT_MAESTRO_CANONICO):
@@ -526,7 +530,8 @@ def test_los_registros_del_planificador_no_tienen_datos_personales(maestro, dire
 
     assert fallidas == []
     assert conteos == {
-        "avisos_creados": 2, "tickets_cerrados": 0, "accesos_denegados_purgados": 1, "archivos_huerfanos_borrados": 1
+        "avisos_creados": 2, "tickets_cerrados": 0, "accesos_denegados_purgados": 1,
+        "documentos_eliminados_retencion": 0, "archivos_huerfanos_borrados": 1,
     }
     texto = salida_consola.getvalue()
     assert "Avisos de documentos por vencer creados: 2." in texto

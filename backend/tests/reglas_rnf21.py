@@ -10,7 +10,8 @@ y **por grupo**: una regla está cubierta si al menos una prueba de
 en el incremento 4 (A-01, A-03, A-04 y A-05) y A-02 con las acciones del
 incremento 5. ``cierre`` entra en el incremento 6 (C-01 a C-08; C-08, fórmula de
 ``vence_en``, ya se cubría en el 4). La meta del sprint es el 100 %. En el S5,
-incremento 1, el precio final agrega C-09 a C-15 y A-06 a A-08.
+incremento 1, el precio final agrega C-09 a C-15 y A-06 a A-08; en el
+incremento 3, la operación agrega el grupo ``operacion`` (O-01 a O-04).
 """
 
 REGLAS = {
@@ -70,9 +71,16 @@ REGLAS = {
         "A-07": "CA-25.1: un tercero recibe el 404 idéntico con registro en las rutas de precio final",
         "A-08": "RF-28: el cliente y el maestro ven el mismo precio final",
     },
+    # S5, incremento 3 (ADR-026, E-8 y E-9).
+    "operacion": {
+        "O-01": "RNF-26 / E-9.3 (P-30): sin plazo configurado para el tipo, la retención no borra nada y advierte",
+        "O-02": "RNF-26 / RF-37: con el plazo cumplido, borra el archivo, marca la fila y escribe la bitácora (Sistema)",
+        "O-03": "E-9.2: la retención no toca documentos de un expediente aprobado (ni antes del plazo)",
+        "O-04": "RNF-22 / E-8: cada línea del registro trae los campos exigidos y ningún dato personal",
+    },
 }
 
-GRUPOS_ACTIVOS = frozenset({"filtros", "puntaje", "acceso", "cierre"})
+GRUPOS_ACTIVOS = frozenset({"filtros", "puntaje", "acceso", "cierre", "operacion"})
 UMBRAL = 0.60
 
 

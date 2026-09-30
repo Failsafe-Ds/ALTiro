@@ -333,6 +333,9 @@ MENSAJE_DOCUMENTO_CAMBIO = "El documento cambió mientras lo revisabas. Vuelve a
 MENSAJE_DOCUMENTO_REVISADO = (
     "Este documento ya fue revisado. Si hay que corregir algo, cambia el estado del expediente con un motivo."
 )
+MENSAJE_DOCUMENTO_ELIMINADO = (
+    "Este documento se eliminó al cumplirse su plazo de retención y ya no se puede revisar."
+)
 
 _DESCRIPCION_REQUISITO = {
     vigencia.CEDULA: "la cédula de identidad por ambos lados, validada",
@@ -481,6 +484,9 @@ def revisar_documento(usuario, documento, datos):
             raise ErrorEstado(MENSAJE_DOCUMENTO_CAMBIO)
         if anterior != EstadoDocumento.EN_REVISION:
             raise ErrorEstado(MENSAJE_DOCUMENTO_REVISADO)
+        # RNF-26 (ADR-026, E-9): sin archivo no hay nada que revisar.
+        if documento.eliminado_en is not None:
+            raise ErrorEstado(MENSAJE_DOCUMENTO_ELIMINADO)
         if observar:
             documento.estado = EstadoDocumento.OBSERVADO
             documento.motivo_observacion = motivo

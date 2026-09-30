@@ -1017,6 +1017,7 @@ def test_el_detalle_entrega_lo_necesario_para_revisar(maestro, cura, directorio_
         "dias_restantes": (licencia.fecha_vencimiento - _hoy()).days,
         "motivo_observacion": "",
         "tiene_reverso": False,
+        "eliminado": False,
         "cargado_en": licencia.cargado_en.isoformat(),
         "revisado_en": None,
     }
@@ -1065,6 +1066,7 @@ def test_el_historial_muestra_autor_fecha_anterior_nuevo_y_motivo(maestro, curat
     assert revision["documento"] == {
         "ref": str(documento.ref), "tipo": "certificado_antecedentes", "oficio": None, "estado": "observado",
         "tiene_reverso": False,
+        "eliminado": False,
     }
     assert_campos_ausentes(respuesta, {"autor_id", "id", "rut", "telefono", "correo", "valor_anterior"},
                            valores=[RUT_MAESTRO_CANONICO, CORREO_CURATORIA])

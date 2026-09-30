@@ -75,7 +75,8 @@ def test_unicidad_de_rut_no_escribe_el_rut(nombre_logger):
     texto, registro = _escribir(nombre_logger, exc)
 
     for presente in (
-        f"ERROR {nombre_logger} Error de prueba QA", "Traceback (most recent call last):",
+        # ADR-026, E-8: una línea JSON por evento.
+        '"nivel": "ERROR"', f'"operacion": "{nombre_logger}", "mensaje": "Error de prueba QA"', "Traceback (most recent call last):",
         "psycopg.errors.UniqueViolation", "django.db.utils.IntegrityError", "sqlstate=23505",
         "restriccion=perfil_maestro_rut_unico", "tabla=perfil_maestro",
     ):

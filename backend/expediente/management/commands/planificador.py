@@ -30,7 +30,7 @@ from django.db import close_old_connections, connection, connections
 from django.utils import timezone
 
 from autorizacion import tareas as tareas_autorizacion
-from expediente import tareas
+from expediente import retencion, tareas
 from tickets import transiciones as tareas_tickets
 
 logger = logging.getLogger("expediente.planificador")
@@ -41,6 +41,8 @@ TAREAS = (
     # ADR-016 E-1: cierre de tickets pendientes vencidos (RF-21, RF-22, RF-24).
     ("tickets_cerrados", tareas_tickets.cerrar_vencidos),
     ("accesos_denegados_purgados", tareas_autorizacion.purgar_accesos_denegados),
+    # ADR-026, E-9: retención de documentos (RNF-26), con autor Sistema en la bitácora.
+    ("documentos_eliminados_retencion", retencion.aplicar_retencion),
     ("archivos_huerfanos_borrados", tareas.limpiar_archivos_huerfanos),
 )
 

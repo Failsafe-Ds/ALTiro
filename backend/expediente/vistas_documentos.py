@@ -41,7 +41,7 @@ from autorizacion import enlaces
 from autorizacion.acceso import obtener_autorizado
 from autorizacion.decoradores import requiere_rol
 from autorizacion.excepciones import RecursoNoEncontrado
-from comun.api import ErrorSolicitud, error_interno, manejar_errores, metodos
+from comun.api import ErrorSolicitud, error_interno, manejar_errores, metodos, respuesta_error
 from expediente import almacenamiento
 from expediente.models import Documento, EstadoDocumento
 from expediente.politicas import PoliticaDocumento, PoliticaDocumentoCuratoria, es_dueno_del_expediente
@@ -50,6 +50,11 @@ logger = logging.getLogger(__name__)
 
 MENSAJE_FOTO_INVALIDA = (
     "No pudimos abrir la foto pedida. Vuelve a la lista de documentos e inténtalo de nuevo."
+)
+# RNF-26 (ADR-026, E-9): el archivo se borró al cumplirse el plazo de retención.
+MENSAJE_ELIMINADO = (
+    "Este documento ya no está disponible: se eliminó al cumplirse su plazo de retención. "
+    "Si todavía se necesita, hay que cargarlo de nuevo."
 )
 MENSAJE_SIN_REVERSO = (
     "Este documento tiene una sola foto, la de adelante. Ábrela desde la lista de documentos."
@@ -121,6 +126,8 @@ def curatoria_documento_enlace(request, ref):
 
 
 def _respuesta_enlace(request, documento):
+    if documento.eliminado_en is not None:
+        return respuesta_error(409, MENSAJE_ELIMINADO)
     cara = _cara_del_enlace(request, documento)
     # El timestamp del token es el segundo entero en curso: caduca 600 s después.
     caduca_en = timezone.now().replace(microsecond=0) + datetime.timedelta(seconds=enlaces.VIGENCIA_SEGUNDOS)
@@ -155,7 +162,8 @@ def documento_archivo(request, ref):
     except enlaces.EnlaceInvalido:
         raise RecursoNoEncontrado() from None
     nombre = _nombre_archivo(documento, cara)
-    if referencia != str(documento.ref) or nombre is None:
+    # Un enlace emitido antes de la eliminación por retención: 404 neutro, no 500.
+    if referencia != str(documento.ref) or nombre is None or documento.eliminado_en is not None:
         raise RecursoNoEncontrado()
     try:
         contenido = almacenamiento.leer(documento.ref, cara, nombre)
