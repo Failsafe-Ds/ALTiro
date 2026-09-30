@@ -41,7 +41,7 @@ from autorizacion import enlaces
 from autorizacion.acceso import obtener_autorizado
 from autorizacion.decoradores import requiere_rol
 from autorizacion.excepciones import RecursoNoEncontrado
-from comun.api import ErrorSolicitud, error_interno, manejar_errores, metodos, respuesta_error
+from comun.api import ErrorSolicitud, manejar_errores, metodos, respuesta_error
 from expediente import almacenamiento
 from expediente.models import Documento, EstadoDocumento
 from expediente.politicas import PoliticaDocumento, PoliticaDocumentoCuratoria, es_dueno_del_expediente
@@ -55,6 +55,9 @@ MENSAJE_FOTO_INVALIDA = (
 MENSAJE_ELIMINADO = (
     "Este documento ya no está disponible: se eliminó al cumplirse su plazo de retención. "
     "Si todavía se necesita, hay que cargarlo de nuevo."
+)
+MENSAJE_ILEGIBLE = (
+    "No pudimos abrir el archivo de este documento. Hay que cargarlo de nuevo para poder revisarlo."
 )
 MENSAJE_SIN_REVERSO = (
     "Este documento tiene una sola foto, la de adelante. Ábrela desde la lista de documentos."
@@ -168,10 +171,11 @@ def documento_archivo(request, ref):
     try:
         contenido = almacenamiento.leer(documento.ref, cara, nombre)
     except almacenamiento.ArchivoIlegible:
-        # Falla de integridad del servidor, no un recurso inexistente: 500
-        # genérico. Sin nombre de archivo, ruta, clave ni contenido.
+        # Falla de integridad del archivo guardado, no un recurso inexistente:
+        # 409 accionable (volver a cargarlo), como el documento eliminado.
+        # Sin nombre de archivo, ruta, clave ni contenido en la respuesta ni en el registro.
         logger.error("No se pudo leer el archivo de un documento (documento=%s, cara=%s).", documento.ref, cara)
-        return error_interno(request)
+        return respuesta_error(409, MENSAJE_ILEGIBLE)
     respuesta = HttpResponse(contenido, content_type="image/jpeg")
     for cabecera, valor in CABECERAS_ARCHIVO.items():
         respuesta[cabecera] = valor

@@ -15,7 +15,7 @@ incremento 3, la operación agrega el grupo ``operacion`` (O-01 a O-04); en el
 incremento 4, la conversación agrega A-09 a A-15; en los incrementos 5 y 6,
 la evaluación y la moderación agregan P-12 a P-14, C-16, C-17 y A-16 a A-24; en
 el incremento 7, los indicadores agregan A-25 y los grupos ``indicadores``
-(I-01 a I-04) y ``anonimizacion`` (N-01 a N-05).
+(I-01 a I-04) y ``anonimizacion`` (N-01 a N-06).
 """
 
 REGLAS = {
@@ -119,6 +119,8 @@ REGLAS = {
         "N-03": "E-6.2: sin totales, mínimos ni máximos",
         "N-04": "E-6.2: las celdas que empiezan con = + - @ se neutralizan",
         "N-05": "RF-37 / E-6: cada exportación escribe la bitácora con autor, período y cantidades, sin datos personales",
+        "N-06": "DEF-QA-014 / E-6.5: la mediana solo se publica con 5 o más finalizadas de 5 o más maestros y 5 o más "
+                "clientes distintos; si no, la celda queda vacía",
     },
 }
 

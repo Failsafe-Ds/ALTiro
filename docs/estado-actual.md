@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 8 cerrados; RNF-01 p95 0,216 s y RNF-03 cumple con 5.000 mensajes; siguiente: QA de cierre).
+Última actualización: 2026-09-30 (S5: QA de cierre hecho y defectos corregidos; suite 1888; falta re-verificación y etiqueta `sprint-5`).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -67,8 +67,8 @@
   - bandejas: sin `estado` → historial completo; cada ticket trae `precio` (`por_aceptar`/`acordado`) y `motivo_cierre_texto`; el maestro, además, `precio_registrable`. Pestaña «Historial» en `mis-pedidos` y `mis-trabajos`.
 - **Operación (ADR-026, E-7 a E-9; S5 inc. 3):**
   - respaldo: `scripts/respaldo.sh` (dump, conteos, tar, sumas; 7 días) hacia `ALTIRO_RESPALDO_DIR` (`../altiro-respaldos`). `scripts/restaurar.sh` se niega si existe algún volumen del proyecto destino. El simulacro solo se hace en `-p altiro-restauracion` (`docs/testing/rnf-19-respaldo.md`: 19 s);
-  - registro: JSON por línea (`comun/registro.py`: `nivel`, `marca_tiempo`, `usuario`, `operacion`, `estado`, `duracion_ms`), sin ruta real, cuerpo, parámetros, cookies ni cabeceras. `django.request` solo desde ERROR. `/api/health/` va en DEBUG;
-  - retención: `expediente/retencion.py` en el planificador. Plazos `RETENCION_DIAS_<TIPO>` vacíos (pendiente V-04/P-07, `docs/alcance/plazos-retencion.md`): sin plazo no borra nada. Aplica a expedientes rechazados o suspendidos. Marca `eliminado_en`/`motivo_eliminacion` y escribe la bitácora `documento_eliminado_retencion` (Sistema). El documento eliminado no cuenta para aprobar; su enlace da 409 y curatoría no lo revisa (409).
+  - registro: JSON por línea (`comun/registro.py`: `nivel`, `marca_tiempo`, `usuario`, `operacion`, `estado`, `duracion_ms`), sin ruta real, cuerpo, parámetros, cookies ni cabeceras. Dentro de una petición, `usuario` es el de la petición (o `anonimo`); `sistema` solo fuera de peticiones (DEF-QA-015). `django.request` solo desde ERROR. `/api/health/` va en DEBUG;
+  - retención: `expediente/retencion.py` en el planificador. Plazos `RETENCION_DIAS_<TIPO>` vacíos (pendiente V-04/P-07, `docs/alcance/plazos-retencion.md`): sin plazo no borra nada. Aplica a expedientes rechazados o suspendidos. Marca `eliminado_en`/`motivo_eliminacion` y escribe la bitácora `documento_eliminado_retencion` (Sistema). Un archivo que no se puede descifrar da 409 accionable (volver a cargarlo), nunca 500. El documento eliminado no cuenta para aprobar; su enlace da 409 y curatoría no lo revisa (409).
 - **Conversación (ADR-026, E-2; S5 inc. 4):**
   - tabla `mensaje` (solo inserción, triggers, `managed=False`, sin FK; CHECK `mensaje_texto_valido`, único `mensaje_envio_unico` (ticket, autor, clave_envio));
   - `GET|POST /api/tickets/<ref>/mensajes` (`mensajeria/vistas.py`, reglas en `mensajeria/conversacion.py`): `PoliticaTicket` (tercero y administrativos → 404 registrado); escribir solo en `aceptado` (otro → 409); leer en `aceptado`/`finalizado`; `cerrado` → lista vacía y `aviso` "No hubo conversación"; `pendiente` → 409; misma `clave_envio` → 200 con el mismo mensaje; `autor` = `tu`/`cliente`/`maestro`;
@@ -84,7 +84,7 @@
 - **Indicadores y exportación (ADR-026, E-6; S5 inc. 7):**
   - `GET /api/gestion/indicadores?desde=&hasta=` y `GET /api/gestion/exportacion?desde=&hasta=`: `requiere_rol("control_gestion")`; período de 31 a 366 días con ambas fechas incluidas (zona Santiago); fecha ausente o inválida → 400 en el campo; fuera de rango → 400 en `hasta`; otra clave → 400 general;
   - `gestion/indicadores.py`: concreción y primera respuesta con agregaciones en la base (`PERCENTILE_CONT`); primera respuesta solo cuenta eventos del maestro del ticket (`aceptado` o `rechazado_maestro`); vigencia documental a hoy, en lote, con las reglas puras de `expediente/vigencia.py`;
-  - `gestion/exportacion.py`: CSV (UTF-8 con BOM) con `COLUMNAS` cerradas, supresión k=5 (maestros y clientes distintos), neutralización de `= + - @`, tabulador y retorno; bitácora `exportacion_agregada` (entidad `exportacion`, `valor_nuevo` = período, filas y suprimidas);
+  - `gestion/exportacion.py`: CSV (UTF-8 con BOM) con `COLUMNAS` cerradas, supresión k=5 (maestros y clientes distintos); mediana vacía si hay menos de 5 finalizadas o menos de 5 maestros o clientes distintos entre ellas (E-6.5, DEF-QA-014); neutralización de `= + - @`, tabulador y retorno; bitácora `exportacion_agregada` (entidad `exportacion`, `valor_nuevo` = período, filas y suprimidas);
   - pantalla `indicadores.html` (enlace en `cuenta.html` para `control_gestion`; `ingresar.js` vuelve a `indicadores`). Reglas A-25, I-01 a I-04 y N-01 a N-05 (grupos `indicadores` y `anonimizacion` activos).
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
 - **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre, operación, indicadores y anonimización; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04; conversación: A-09 a A-15). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
@@ -116,3 +116,7 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 | 2026-09-30 | S5 incrementos 5 y 6 (evaluaciones, calificación y moderación) | backend (principal) | ~219 mil (64 pasos; se cortó por límite y se retomó) |
 | 2026-09-30 | S5 incremento 7 (indicadores y exportación) | backend (principal) | ~162 mil (61 pasos) |
 | 2026-09-30 | S5 incremento 8 (volumen de 5.000 mensajes y mediciones RNF-01/RNF-03) | qa (Sonnet) | ~98 mil (31 pasos) |
+| 2026-09-30 | QA de cierre del S5 | qa (Sonnet) | ~223 mil (93 pasos) |
+| 2026-09-30 | Revisión UX del S5 | ux (Sonnet) | ~62 mil (19 pasos) |
+| 2026-09-30 | Correcciones DEF-QA-014/015 y documento ilegible | backend (principal) | ~100 mil (37 pasos) |
+| 2026-09-30 | Correcciones DEF-QA-013 y UX-S5-01 a 13 | frontend (Sonnet) | ~90 mil (21 pasos) |

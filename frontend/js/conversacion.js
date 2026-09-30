@@ -35,6 +35,10 @@
   let cadena = Promise.resolve();
   // Envío pendiente: misma clave mientras el texto no cambie (reintento sin duplicar).
   let pendiente = null;
+  let fallosSeguidos = 0;
+  let ocultarNuevos = null;
+  const avisoNuevos = document.getElementById("aviso-nuevos");
+  const FALLO_CONSULTA = "No pudimos revisar mensajes nuevos. Revisa tu señal.";
 
   function elemento(etiqueta, clase, ...hijos) {
     const nodo = document.createElement(etiqueta);
@@ -97,6 +101,7 @@
     cargando.hidden = true;
     contenido.hidden = true;
     avisoPagina.className = "aviso aviso-error";
+    avisoPagina.hidden = false;
     avisoPagina.replaceChildren(texto, " ", accion);
     avisoPagina.focus();
   }
@@ -131,6 +136,7 @@
   }
 
   function agregar(mensajes) {
+    let llegoAjeno = false;
     for (const mensaje of mensajes) {
       if (vistos.has(mensaje.ref)) {
         continue;
@@ -138,7 +144,9 @@
       vistos.add(mensaje.ref);
       lista.append(lineaMensaje(mensaje));
       ultimoRef = mensaje.ref;
+      llegoAjeno = llegoAjeno || mensaje.autor !== "tu";
     }
+    return llegoAjeno;
     sinMensajes.hidden = vistos.size > 0 || formulario.hidden;
   }
 
@@ -155,7 +163,22 @@
     }
   }
 
-  async function consultarUnaVez() {
+  function mostrarNuevos() {
+    avisoNuevos.hidden = false;
+    window.clearTimeout(ocultarNuevos);
+    ocultarNuevos = window.setTimeout(() => { avisoNuevos.hidden = true; }, 8000);
+  }
+
+  function fallaConsulta(forzar) {
+    fallosSeguidos += 1;
+    if (forzar || fallosSeguidos >= 2) {
+      avisoEstado.hidden = false;
+      avisoEstado.className = "aviso aviso-error";
+      avisoEstado.textContent = FALLO_CONSULTA;
+    }
+  }
+
+  async function consultarUnaVez(forzar) {
     const ruta = ultimoRef ? `${rutaMensajes}?despues=${encodeURIComponent(ultimoRef)}` : rutaMensajes;
     const { estado, datos } = await api.obtener(ruta);
     if (estado === 401) {
@@ -163,18 +186,24 @@
       return;
     }
     if (estado !== 200) {
-      // Señal irregular: se vuelve a intentar en la próxima vuelta, sin molestar.
+      // Señal irregular: se vuelve a intentar en la próxima vuelta; se avisa si se pidió
+      // a mano o si fallaron dos seguidas.
+      fallaConsulta(forzar);
       return;
     }
+    fallosSeguidos = 0;
+    avisoEstado.className = "aviso";
     pintarEstado(datos);
-    agregar(datos.mensajes);
+    if (agregar(datos.mensajes)) {
+      mostrarNuevos();
+    }
   }
 
   // Las consultas van en fila: así nunca se salta un mensaje ni se desordena la lista.
   // Sin «forzar» (el sondeo), solo con la página visible.
   function consultarNuevos(forzar) {
     if (forzar === true || document.visibilityState === "visible") {
-      cadena = cadena.then(consultarUnaVez);
+      cadena = cadena.then(() => consultarUnaVez(forzar === true));
     }
     return cadena;
   }
@@ -267,6 +296,7 @@
 
   async function cargar() {
     avisoPagina.className = "aviso";
+    avisoPagina.hidden = true;
     avisoPagina.replaceChildren();
     cargando.hidden = false;
     if (!refTicket) {
@@ -296,7 +326,7 @@
     if (estado === 409) {
       const enlace = elemento("a", "boton boton-secundario", "Volver");
       enlace.href = document.getElementById("volver").href;
-      errorPagina(datos.mensaje, enlace);
+      errorPagina(datos.mensaje || "Esta conversación ya no está disponible.", enlace);
       return;
     }
     if (estado !== 200) {

@@ -178,7 +178,9 @@
     }
     if (estado !== 200) {
       avisoPrecio.className = "aviso aviso-error";
-      avisoPrecio.textContent = datos.mensaje || "No pudimos registrar el precio. Vuelve a intentarlo.";
+      avisoPrecio.textContent = estado === 0
+        ? "No pudimos confirmar si se guardó. Revisa tu señal y toca Registrar de nuevo: el precio no se duplica."
+        : (datos.mensaje || "No pudimos registrar el precio. Vuelve a intentarlo.");
       avisoPrecio.focus();
       return;
     }
@@ -189,6 +191,7 @@
     guardarDetalleFlotante();
     refAbierto = null;
     cargarTab(tabActual);
+    avisoResultado.focus();
   });
 
   // --- Tarjeta resumen de un pedido ---
@@ -224,7 +227,7 @@
     if (ticket.estado === "aceptado" || ticket.estado === "finalizado") {
       const conversacion = elemento("a", "boton boton-secundario", "Ver conversación");
       conversacion.href = `conversacion.html?ticket=${encodeURIComponent(ticket.ref)}`;
-      conversacion.setAttribute("aria-label", `Ver conversación del trabajo de ${ticket.servicio.nombre} en ${ticket.comuna.nombre}`);
+      conversacion.setAttribute("aria-label", `Ver conversación del pedido de ${ticket.servicio.nombre} en ${ticket.comuna.nombre}`);
       acciones.append(conversacion);
     }
     // Evaluación (HU-09, HU-18, RF-29, RF-31): solo en una orden finalizada. En evaluar.html

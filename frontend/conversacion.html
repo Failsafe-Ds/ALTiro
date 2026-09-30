@@ -19,11 +19,14 @@
     <h1 id="titulo-pagina" tabindex="-1">Conversación</h1>
     <p id="subtitulo" class="ayuda"></p>
     <p id="cargando" role="status">Cargando la conversación…</p>
-    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1" hidden></div>
 
     <div id="contenido" hidden>
       <p id="aviso-estado" class="aviso" hidden></p>
-      <ol id="lista-mensajes" class="lista-mensajes" role="log" aria-live="polite" aria-label="Mensajes"></ol>
+      <p id="aviso-nuevos" class="aviso aviso-exito" role="status" hidden>Llegaron mensajes nuevos</p>
+      <div id="registro-mensajes" role="log" aria-live="polite" aria-label="Mensajes">
+        <ol id="lista-mensajes" class="lista-mensajes"></ol>
+      </div>
       <p id="sin-mensajes" hidden>Todavía no hay mensajes. Escribe el primero.</p>
 
       <form id="formulario-mensaje" class="tarjeta" novalidate hidden>

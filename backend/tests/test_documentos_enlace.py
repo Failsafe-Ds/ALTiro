@@ -25,7 +25,7 @@ from autorizacion.models import RegistroAccesoDenegado
 from comun.api import respuesta_no_encontrado
 from expediente import almacenamiento
 from expediente.models import Documento, EstadoDocumento, Expediente, TipoDocumento
-from expediente.vistas_documentos import MENSAJE_FOTO_INVALIDA, MENSAJE_SIN_REVERSO
+from expediente.vistas_documentos import MENSAJE_FOTO_INVALIDA, MENSAJE_ILEGIBLE, MENSAJE_SIN_REVERSO
 from identidad import servicios
 from identidad.models import Rol, UsuarioRol
 from tests.ayudas import CONTRASENA, TEL_B, crear_cliente, crear_maestro, iniciar_sesion, sin_texto_prohibido
@@ -522,15 +522,17 @@ def test_solo_get(dueno, cedula, metodo):
         assert getattr(dueno, metodo)(url).status_code == 405
 
 
-def test_archivo_ilegible_responde_500_generico_y_registra_sin_datos(dueno, cedula, directorio_documentos, caplog):
+def test_archivo_ilegible_responde_409_accionable_y_registra_sin_datos(dueno, cedula, directorio_documentos, caplog):
+    """Los documentos ilegibles del volumen (DEF-QA-008): error controlado y accionable, nunca 500."""
     url = _pedir_enlace(dueno, cedula.ref)
     (directorio_documentos / str(cedula.archivo)).unlink()
     caplog.set_level(logging.DEBUG)
 
     respuesta = dueno.get(url)
 
-    assert respuesta.status_code == 500
-    assert set(respuesta.json()) == {"mensaje", "errores"}
+    assert respuesta.status_code == 409
+    assert respuesta.json() == {"mensaje": MENSAJE_ILEGIBLE, "errores": {}}
+    assert "cargarlo de nuevo" in MENSAJE_ILEGIBLE
     assert sin_texto_prohibido(respuesta)
     assert str(cedula.archivo) not in respuesta.content.decode("utf-8")
     errores = [r for r in caplog.records if r.name == "expediente.vistas_documentos"]
@@ -540,12 +542,17 @@ def test_archivo_ilegible_responde_500_generico_y_registra_sin_datos(dueno, cedu
         assert prohibido not in texto
 
 
-def test_archivo_alterado_en_el_volumen_responde_500(dueno, cedula, directorio_documentos):
+def test_archivo_alterado_o_con_otra_clave_responde_409_sin_contenido(dueno, cedula, directorio_documentos, caplog):
     url = _pedir_enlace(dueno, cedula.ref)
     ruta = directorio_documentos / str(cedula.archivo)
-    ruta.write_bytes(ruta.read_bytes()[:-1] + b"\x00")
+    ruta.write_bytes(ruta.read_bytes()[:-1] + b"\x00")  # no descifra: como un archivo cifrado con otra clave
+    caplog.set_level(logging.DEBUG)
 
-    assert dueno.get(url).status_code == 500
+    respuesta = dueno.get(url)
+
+    assert respuesta.status_code == 409 and respuesta.json()["mensaje"] == MENSAJE_ILEGIBLE
+    assert FOTO_ANVERSO not in respuesta.content
+    assert not [r for r in caplog.records if r.name == "django.request"]
 
 
 def test_el_token_no_queda_en_los_registros_de_la_aplicacion(dueno, cedula, caplog):

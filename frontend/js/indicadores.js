@@ -69,7 +69,7 @@
 
     const r = datos.primera_respuesta;
     escribir("valor-primera-respuesta", r.mediana_minutos === null ? "Sin respuestas en el período" : duracion(r.mediana_minutos));
-    escribir("detalle-primera-respuesta", `Mediana de ${numero(r.cantidad)} pedidos respondidos.`);
+    escribir("detalle-primera-respuesta", `Mediana de ${numero(r.cantidad)} pedidos respondidos: la mitad se respondió en menos tiempo que este y la otra mitad en más.`);
     escribir("definicion-primera-respuesta", r.definicion);
 
     const v = datos.vigencia_documental;
@@ -137,6 +137,7 @@
     const aviso = form.querySelector(".aviso");
     aviso.className = "aviso aviso-exito";
     aviso.textContent = `Listo: se descargó ${nombre}.`;
+    aviso.focus();
   });
 
   consultar();

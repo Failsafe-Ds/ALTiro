@@ -27,6 +27,31 @@
   const refTicket = parametros.get("ticket") || "";
   const rutaTicket = `/api/tickets/${encodeURIComponent(refTicket)}`;
 
+  // Borradores en este teléfono (patrón altiro.<pantalla>.<ref>, como conversacion.js):
+  // se borran al enviar con éxito y al cerrar sesión (formulario.olvidarTodo).
+  const claveNotas = `altiro.evaluar.${refTicket}`;
+  const claveMotivo = `altiro.evaluar.${refTicket}.denuncia`;
+
+  function leerBorrador(clave) {
+    try {
+      return window.localStorage.getItem(clave);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function escribirBorrador(clave, valor) {
+    try {
+      if (valor) {
+        window.localStorage.setItem(clave, valor);
+      } else {
+        window.localStorage.removeItem(clave);
+      }
+    } catch (error) {
+      // Sin almacenamiento: lo escrito sigue en la pantalla.
+    }
+  }
+
   const cargando = document.getElementById("cargando");
   const avisoPagina = document.getElementById("aviso-pagina");
   const contenido = document.getElementById("contenido");
@@ -50,6 +75,7 @@
     cargando.hidden = true;
     contenido.hidden = true;
     avisoPagina.className = "aviso aviso-error";
+    avisoPagina.hidden = false;
     avisoPagina.replaceChildren(texto, " ", accion);
     avisoPagina.focus();
   }
@@ -63,7 +89,7 @@
   function noEncontrado() {
     const enlace = elemento("a", "boton", "Ir a mi cuenta");
     enlace.href = "cuenta.html";
-    errorPagina("No encontramos este trabajo. Ábrelo desde tus pedidos o tus trabajos.", enlace);
+    errorPagina("No encontramos este pedido. Ábrelo desde tus pedidos o tus trabajos.", enlace);
   }
 
   function errorCarga() {
@@ -84,7 +110,6 @@
         entrada.type = "radio";
         entrada.name = dimension;
         entrada.value = String(indice + 1);
-        entrada.setAttribute("aria-describedby", `error-${dimension}`);
         return elemento(
           "label",
           "nota",
@@ -94,6 +119,36 @@
         );
       });
       grupo.querySelector(".notas").replaceChildren(...opciones);
+    }
+  }
+
+  function guardarNotas() {
+    const valores = { comentario: document.getElementById("comentario").value };
+    for (const dimension of Object.keys(NOMBRES)) {
+      valores[dimension] = notaElegida(dimension);
+    }
+    const vacio = !valores.comentario && Object.keys(NOMBRES).every((d) => valores[d] === null);
+    escribirBorrador(claveNotas, vacio ? "" : JSON.stringify(valores));
+  }
+
+  function restaurarNotas() {
+    let valores = null;
+    try {
+      valores = JSON.parse(leerBorrador(claveNotas));
+    } catch (error) {
+      valores = null;
+    }
+    if (!valores || typeof valores !== "object") {
+      return;
+    }
+    for (const dimension of Object.keys(NOMBRES)) {
+      const entrada = formEvaluacion.querySelector(`input[name="${dimension}"][value="${Number(valores[dimension])}"]`);
+      if (entrada) {
+        entrada.checked = true;
+      }
+    }
+    if (typeof valores.comentario === "string") {
+      document.getElementById("comentario").value = valores.comentario;
     }
   }
 
@@ -128,6 +183,12 @@
       mia.replaceChildren(elemento("p", "", "Ya evaluaste este trabajo. Esta es tu evaluación:"), ...resumen(datos.mia));
     }
     formEvaluacion.hidden = !datos.puede_evaluar;
+    if (datos.puede_evaluar) {
+      restaurarNotas();
+    }
+    if (datos.recibida && datos.recibida.puede_denunciar && !document.getElementById("motivo").value) {
+      document.getElementById("motivo").value = leerBorrador(claveMotivo) || "";
+    }
     avisoEvaluar.hidden = !datos.aviso;
     avisoEvaluar.textContent = datos.aviso || "";
 
@@ -169,6 +230,7 @@
 
   async function cargar() {
     avisoPagina.className = "aviso";
+    avisoPagina.hidden = true;
     avisoPagina.replaceChildren();
     cargando.hidden = false;
     if (!refTicket) {
@@ -202,6 +264,8 @@
     contenido.hidden = false;
     if (window.location.hash === "#recibida") {
       document.getElementById("recibida").focus();
+    } else {
+      document.getElementById("titulo-pagina").focus();
     }
   }
 
@@ -213,6 +277,15 @@
   formEvaluacion.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     formulario.limpiarErrores(formEvaluacion);
+    // Ayuda de experiencia: avisa qué nota falta sin enviar; el servidor vuelve a validar todo.
+    const faltan = Object.keys(NOMBRES).filter((d) => notaElegida(d) === null);
+    if (faltan.length > 0) {
+      for (const dimension of faltan) {
+        document.getElementById(`error-${dimension}`).textContent = `Elige una nota de 1 a 5 para ${NOMBRES[dimension]}.`;
+      }
+      formEvaluacion.querySelector(`input[name="${faltan[0]}"]`).focus();
+      return;
+    }
     const cuerpo = {
       puntualidad: notaElegida("puntualidad"),
       trabajo: notaElegida("trabajo"),
@@ -227,18 +300,19 @@
       return;
     }
     if (estado === 201 || estado === 409) {
+      escribirBorrador(claveNotas, "");
       // 409: ya evaluaste o el trabajo no está terminado; se muestra lo que dice el servidor.
       await cargarEvaluaciones();
       if (estado === 409) {
         avisoEvaluar.hidden = false;
-        avisoEvaluar.textContent = datos.mensaje;
+        avisoEvaluar.textContent = datos.mensaje || "No pudimos guardar tu evaluación. Vuelve a abrir el pedido.";
       }
       document.getElementById("titulo-mia").focus();
       return;
     }
     const campo = formulario.mostrarErrores(formEvaluacion, datos);
     if (campo) {
-      campo.focus();
+      (campo.tagName === "FIELDSET" ? campo.querySelector("input") : campo).focus();
     }
   });
 
@@ -255,12 +329,13 @@
       return;
     }
     if (estado === 201) {
+      escribirBorrador(claveMotivo, "");
       await cargarEvaluaciones();
       document.getElementById("recibida").focus();
       return;
     }
     if (estado === 409) {
-      formulario.avisar(formDenuncia, datos.mensaje, "error");
+      formulario.avisar(formDenuncia, datos.mensaje || "No pudimos registrar tu denuncia. Vuelve a abrir el pedido.", "error");
       return;
     }
     const campo = formulario.mostrarErrores(formDenuncia, datos);
@@ -269,6 +344,9 @@
     }
   });
 
+  formEvaluacion.addEventListener("change", guardarNotas);
+  formEvaluacion.addEventListener("input", guardarNotas);
+  document.getElementById("motivo").addEventListener("input", (evento) => escribirBorrador(claveMotivo, evento.target.value));
   document.getElementById("titulo-mia").tabIndex = -1;
   cargar();
 })();

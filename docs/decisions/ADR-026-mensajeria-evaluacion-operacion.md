@@ -85,6 +85,11 @@ Se mantiene y se extiende a las rutas de precio final. Quien la recibe ya es par
    - el CSV va en UTF-8 con BOM; las medianas se redondean con la mitad hacia arriba;
    - cada exportación escribe la bitácora `exportacion_agregada` (autor, período, filas y filas suprimidas).
 
+5. **Enmienda (DEF-QA-014, 2026-09-30). Estado: Aceptada — PROVISIONAL** (decisión provisional del coordinador; se revisa con P-29 en la revisión del Sprint 5). La supresión de filas del punto 2 se mantiene: la fila no se publica si hay menos de 5 maestros o menos de 5 clientes distintos entre los tickets enviados. Además:
+   - `mediana_monto_final` solo se publica si la fila tiene 5 o más órdenes finalizadas con monto y, entre esas órdenes, 5 o más maestros distintos y 5 o más clientes distintos; si no, la celda queda vacía;
+   - con 1 a 4 órdenes finalizadas, `ordenes_finalizadas` se sigue publicando, porque es un conteo sin monto;
+   - motivo: con pocas órdenes la mediana revela el precio exacto de un trabajo (divulgación de atributos, R-08; CLAUDE.md §8).
+
 ### E-7. Respaldo y restauración (RNF-19, R-04)
 1. **Servicio `respaldo`.** Usa la misma imagen `postgres:16` y no agrega imágenes. Una vez al día, a la hora configurada (RNF-24), ejecuta:
    - `pg_dump -Fc`;
@@ -104,6 +109,8 @@ Se mantiene y se extiende a las rutas de precio final. Quien la recibe ya es par
 2. **A qué expedientes aplica.** A los que están en `rechazado` o `suspendido`, contando desde la fecha de ese estado. Se trata como "deja de estar activo" (V-04, P-07).
 3. **Sin plazo configurado no se elimina nada** y se registra una advertencia (P-30).
 4. **Tarea del planificador.** Autor Sistema. Borra el archivo cifrado, pone `eliminado_en` y `motivo_eliminacion` en la fila y escribe en la bitácora `documento_eliminado_retencion` con el tipo y el plazo aplicado.
+
+5. **Documento ilegible o eliminado (cierre del S5, provisional).** La descarga de un documento eliminado por retención o que no se puede descifrar responde 409 `{mensaje, errores}` con un mensaje accionable, en vez de 500. El registro de ERROR lleva solo la `ref` y la cara, sin nombre de archivo, ruta ni contenido. Observación: el enlace se abre por navegación directa y el navegador muestra el JSON; queda como OBS-S5-01.
 
 ### E-10. Revisión de dependencias (RNF-27)
 `pip-audit` se ejecuta en un contenedor efímero al inicio de cada sprint. No se agrega a `requirements*.txt`. El resultado queda en `docs/testing/revision-dependencias-s<N>.md`.

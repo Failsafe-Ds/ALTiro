@@ -62,7 +62,7 @@ P-21 queda con supuesto provisional: el cliente puede objetar el precio y el tic
 | P-26 | ¿Quién puede denunciar una evaluación? | Solo la parte evaluada, una vez | ADR-026 E-4.2 |
 | P-27 | ¿Desde cuándo se registra el precio final? | Desde el inicio del bloque | ADR-026 E-1.6 |
 | P-28 | ¿Qué pasa con una orden aceptada que nunca se finaliza? | Queda `aceptado`, sin cierre automático | ADR-026 E-1.9 |
-| P-29 | ¿Umbral y agregación de la exportación? | k=5 maestros y 5 clientes, por mes y comuna | ADR-026 E-6 |
+| P-29 | ¿Umbral y agregación de la exportación? | k=5 maestros y 5 clientes, por mes y comuna; la mediana del monto solo con 5 o más finalizadas de 5 o más maestros y 5 o más clientes distintos (si no, celda vacía; DEF-QA-014, provisional del coordinador) | ADR-026 E-6, E-6.5 |
 | P-30 | ¿Plazo de retención por tipo de documento? (V-04, P-07) | Configurable; sin valor no se elimina nada | ADR-026 E-9 |
 | P-31 | ¿Se puede escribir después de finalizar? | No, solo lectura | ADR-026 E-2.2 |
 | P-32 | Primera respuesta: ¿mediana o promedio? ¿cuenta `bloque_tomado`? | Mediana, sin `bloque_tomado` | ADR-026 E-6.1 |

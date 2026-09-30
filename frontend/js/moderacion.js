@@ -103,7 +103,7 @@
       ...dato("Estado", d.estado_texto),
       ...dato("Denunció", QUIEN[d.denunciante]),
       ...dato("Motivo de la denuncia", d.motivo),
-      ...dato("Trabajo", `${t.servicio} (${t.oficio}), ${t.comuna}`),
+      ...dato("Pedido", `${t.servicio} (${t.oficio}), ${t.comuna}`),
       ...dato("Horario", `${formato.fechaLarga(t.fecha)}, de ${t.inicio} a ${t.fin}`),
       ...dato("Precio", `${t.modalidad_texto}: publicado ${formato.monto(t.monto_publicado)}` +
         (t.monto_final ? `, final ${formato.monto(t.monto_final)}` : "")),
@@ -196,7 +196,7 @@
       return;
     }
     if (estado === 409) {
-      formulario.avisar(form, datos.mensaje, "error");
+      formulario.avisar(form, datos.mensaje || "No pudimos completar la acción. Revisa tu señal e inténtalo de nuevo.", "error");
       return;
     }
     tratarError(estado, datos);

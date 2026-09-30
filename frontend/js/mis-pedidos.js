@@ -127,6 +127,30 @@
     cargarTab(tabActual, true);
   }
 
+  // Paso de confirmación: aceptar u objetar el precio no se puede deshacer.
+  function pedirConfirmacion(ticket, accion, zona, acciones) {
+    const monto = formato.monto(ticket.precio.monto);
+    const pregunta = accion === "aceptacion"
+      ? `¿Aceptas ${monto}? Después no se puede cambiar.`
+      : `¿Confirmas que no estás de acuerdo con ${monto}? Le avisaremos al maestro.`;
+    const si = elemento("button", "", accion === "aceptacion" ? "Sí, aceptar" : "Sí, no estoy de acuerdo");
+    si.type = "button";
+    const volver = elemento("button", "boton-secundario", "Volver");
+    volver.type = "button";
+    const confirmacion = elemento("div", "", elemento("p", "", elemento("strong", "", pregunta)),
+      elemento("div", "acciones", si, volver));
+    confirmacion.tabIndex = -1;
+    acciones.hidden = true;
+    zona.append(confirmacion);
+    confirmacion.focus();
+    si.addEventListener("click", () => responderPrecio(ticket, accion, zona));
+    volver.addEventListener("click", () => {
+      confirmacion.remove();
+      acciones.hidden = false;
+      acciones.querySelector("button").focus();
+    });
+  }
+
   // Tarjeta «Precio por aceptar» (CA-16.2): dos botones con texto, sin depender del color.
   function tarjetaPrecio(ticket) {
     const zona = elemento("section", "confirmacion");
@@ -140,11 +164,12 @@
     const aceptar = elemento("button", "", "Aceptar");
     aceptar.type = "button";
     aceptar.setAttribute("aria-label", `Aceptar el precio final de ${formato.monto(ticket.precio.monto)}`);
-    aceptar.addEventListener("click", () => responderPrecio(ticket, "aceptacion", zona));
+    aceptar.addEventListener("click", () => pedirConfirmacion(ticket, "aceptacion", zona, acciones));
     const objetar = elemento("button", "boton-secundario", "No estoy de acuerdo");
     objetar.type = "button";
-    objetar.addEventListener("click", () => responderPrecio(ticket, "objecion", zona));
-    zona.append(titulo, texto, elemento("div", "acciones", aceptar, objetar));
+    objetar.addEventListener("click", () => pedirConfirmacion(ticket, "objecion", zona, acciones));
+    const acciones = elemento("div", "acciones", aceptar, objetar);
+    zona.append(titulo, texto, acciones);
     return zona;
   }
 

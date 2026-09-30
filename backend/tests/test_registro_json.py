@@ -82,3 +82,25 @@ def test_un_evento_fuera_de_una_peticion_lleva_usuario_sistema_y_mensaje():
     _, lineas = _lineas(lambda: logging.getLogger("expediente.planificador").info("Corrida: %s.", 3))
     assert lineas == [{**lineas[0], "nivel": "INFO", "usuario": "sistema",
                        "operacion": "expediente.planificador", "mensaje": "Corrida: 3."}]
+
+
+@pytest.mark.regla("O-04")
+@pytest.mark.django_db
+def test_un_evento_dentro_de_una_peticion_lleva_el_usuario_de_la_peticion_no_sistema():
+    """DEF-QA-015: el inicio de sesión de una persona no se atribuye al Sistema."""
+    usuario = crear_cliente()
+    cliente = Client()
+
+    def peticiones():
+        iniciar_sesion(cliente, CORREO)
+        cliente.get(URL_CUENTA)
+        logging.getLogger("expediente.planificador").info("Corrida suelta.")
+
+    _, lineas = _lineas(peticiones)
+    eventos = [linea for linea in lineas if "mensaje" in linea]
+    inicio = [e for e in eventos if e["mensaje"].startswith("Inicio de sesión correcto")]
+    assert len(inicio) == 1
+    assert inicio[0]["usuario"] in ("anonimo", str(usuario.pk))
+    assert inicio[0]["operacion"] == "identidad.vistas"
+    # Fuera de una petición se vuelve a "sistema": el contexto no queda pegado.
+    assert [e["usuario"] for e in eventos if e["mensaje"] == "Corrida suelta."] == ["sistema"]

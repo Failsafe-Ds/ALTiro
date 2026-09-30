@@ -224,6 +224,16 @@ const formulario = (() => {
     for (const clave of clavesPropias()) {
       olvidar(clave);
     }
+    // Borradores de conversación y evaluación (UX-S5-09): viven en localStorage.
+    try {
+      for (const clave of Object.keys(localStorage)) {
+        if (clave.startsWith("altiro.conversacion.") || clave.startsWith("altiro.evaluar.")) {
+          localStorage.removeItem(clave);
+        }
+      }
+    } catch (error) {
+      // Sin almacenamiento: nada que borrar.
+    }
   }
 
   // Al cargar cualquier página con formularios se descarta lo vencido, aunque

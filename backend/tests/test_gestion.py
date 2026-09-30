@@ -323,6 +323,35 @@ def test_supresion_con_menos_de_5_maestros_o_clientes(sesion_gestion, catalogo):
     assert len(filas) == 2 and filas[1][2] == "Hualpén"
 
 
+def _escenario_mediana(catalogo, finalizadas, maestros_fin=5, clientes_fin=5):
+    """Grupo que supera la supresión de fila (5 maestros y 5 clientes con pedidos pendientes) y
+    ``finalizadas`` órdenes con monto repartidas entre ``maestros_fin`` maestros y ``clientes_fin`` clientes."""
+    maestros = _maestros(catalogo, 5, desde=next(_personas))
+    clientes = _clientes(5, desde=next(_personas))
+    for i in range(5):
+        _ticket(clientes[i], maestros[i], enviado_en=BASE + datetime.timedelta(hours=i))
+    for i in range(finalizadas):
+        _ticket(clientes[i % clientes_fin], maestros[i % maestros_fin], EstadoTicket.FINALIZADO,
+                enviado_en=BASE + datetime.timedelta(hours=10 + i), monto_final=12000 + 1000 * i)
+
+
+@pytest.mark.regla("N-06")
+@pytest.mark.parametrize("finalizadas, maestros_fin, clientes_fin, mediana", [
+    (1, 1, 1, ""),  # una sola orden: la mediana sería su precio exacto
+    (5, 4, 5, ""),  # 5 órdenes, pero de 4 maestros distintos
+    (5, 5, 4, ""),  # 5 órdenes, pero de 4 clientes distintos
+    (5, 5, 5, "14000"),
+])
+def test_mediana_solo_con_5_finalizadas_de_5_maestros_y_5_clientes(sesion_gestion, catalogo, finalizadas,
+                                                                     maestros_fin, clientes_fin, mediana):
+    _escenario_mediana(catalogo, finalizadas, maestros_fin, clientes_fin)
+
+    filas = _csv(sesion_gestion.get(URL_EXP, PERIODO))
+
+    assert len(filas) == 2  # la fila se publica: 5 maestros y 5 clientes entre los enviados
+    assert filas[1][4:] == [str(5 + finalizadas), str(finalizadas), mediana]
+
+
 @pytest.mark.regla("N-03")
 def test_sin_totales_minimos_ni_maximos(sesion_gestion, catalogo):
     _escenario_exportable(catalogo)

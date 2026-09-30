@@ -20,7 +20,7 @@
     <h1 id="titulo-pagina" tabindex="-1">Evaluar el trabajo</h1>
     <p id="subtitulo" class="ayuda"></p>
     <p id="cargando" role="status">Cargando…</p>
-    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1" hidden></div>
 
     <div id="contenido" hidden>
       <section aria-labelledby="titulo-mia">
@@ -30,20 +30,20 @@
 
         <form id="formulario-evaluacion" class="tarjeta" novalidate hidden>
           <p class="ayuda">Elige una nota de 1 a 5 en cada pregunta. Solo puedes evaluar una vez y no se puede cambiar después.</p>
-          <fieldset class="campo" data-dimension="puntualidad">
+          <fieldset class="campo" data-dimension="puntualidad" aria-describedby="error-puntualidad">
             <legend class="legend-campo" id="leyenda-puntualidad"></legend>
             <div class="notas"></div>
-            <span class="error-campo" id="error-puntualidad"></span>
+            <span class="error-campo" id="error-puntualidad" aria-live="polite"></span>
           </fieldset>
-          <fieldset class="campo" data-dimension="trabajo">
+          <fieldset class="campo" data-dimension="trabajo" aria-describedby="error-trabajo">
             <legend class="legend-campo" id="leyenda-trabajo"></legend>
             <div class="notas"></div>
-            <span class="error-campo" id="error-trabajo"></span>
+            <span class="error-campo" id="error-trabajo" aria-live="polite"></span>
           </fieldset>
-          <fieldset class="campo" data-dimension="cordialidad">
+          <fieldset class="campo" data-dimension="cordialidad" aria-describedby="error-cordialidad">
             <legend class="legend-campo" id="leyenda-cordialidad"></legend>
             <div class="notas"></div>
-            <span class="error-campo" id="error-cordialidad"></span>
+            <span class="error-campo" id="error-cordialidad" aria-live="polite"></span>
           </fieldset>
           <div class="campo">
             <label for="comentario">Comentario (si quieres)</label>

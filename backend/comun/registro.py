@@ -3,8 +3,10 @@
 - ``FormatoJson``: formatter de ``logging`` (librería estándar, sin dependencias).
   Cada línea lleva ``nivel``, ``marca_tiempo`` (UTC, ISO 8601), ``usuario`` y
   ``operacion``; las de una petición, además, ``estado`` y ``duracion_ms``.
-  Los eventos que no vienen de una petición (planificador, arranque) llevan
-  ``usuario: "sistema"``, ``operacion`` con el nombre del logger y ``mensaje``.
+  Un evento escrito durante una petición lleva el usuario de esa petición (id
+  interno o ``anonimo`` si aún no hay sesión); solo los que no vienen de una
+  petición (planificador, arranque) llevan ``usuario: "sistema"`` (DEF-QA-015).
+  Los eventos sueltos llevan ``operacion`` con el nombre del logger y ``mensaje``.
 - ``RegistroOperacionMiddleware``: escribe una línea por petición en el logger
   ``altiro.operacion``. ``operacion`` es el nombre de la ruta (o su patrón, con
   ``<uuid:ref>`` sin el valor) y el método. Nunca la ruta real, el cuerpo, los
@@ -14,6 +16,7 @@
 
 Este módulo lo importa ``dictConfig`` antes de ``apps.populate()``: no importa modelos.
 """
+import contextvars
 import json
 import logging
 import time
@@ -28,6 +31,9 @@ USUARIO_SISTEMA = "sistema"
 RUTAS_SALUD = frozenset({"salud"})
 
 logger_operacion = logging.getLogger(LOGGER_OPERACION)
+
+# Petición en curso (una por hilo o tarea); ``None`` fuera de peticiones.
+_peticion_actual = contextvars.ContextVar("altiro_peticion_actual", default=None)
 
 
 def _marca_tiempo(record):
@@ -50,7 +56,7 @@ class FormatoJson(logging.Formatter):
         datos = {
             "nivel": record.levelname,
             "marca_tiempo": _marca_tiempo(record),
-            "usuario": getattr(record, "usuario", USUARIO_SISTEMA),
+            "usuario": getattr(record, "usuario", None) or _usuario_del_contexto(),
             "operacion": getattr(record, "operacion", record.name),
         }
         if hasattr(record, "estado"):
@@ -80,6 +86,11 @@ def _usuario(request):
     return str(usuario.pk) if usuario is not None and usuario.pk is not None else USUARIO_ANONIMO
 
 
+def _usuario_del_contexto():
+    request = _peticion_actual.get()
+    return USUARIO_SISTEMA if request is None else _usuario(request)
+
+
 def _nivel(estado):
     if estado >= 500:
         return logging.ERROR
@@ -96,7 +107,11 @@ class RegistroOperacionMiddleware:
 
     def __call__(self, request):
         inicio = time.monotonic()
-        respuesta = self.get_response(request)
+        marca = _peticion_actual.set(request)
+        try:
+            respuesta = self.get_response(request)
+        finally:
+            _peticion_actual.reset(marca)
         duracion_ms = round((time.monotonic() - inicio) * 1000, 1)
         coincidencia = getattr(request, "resolver_match", None)
         nivel = _nivel(respuesta.status_code)

@@ -6,6 +6,10 @@
   del pedido y oficio del servicio. Agregación en la base.
 - Se **suprime** la fila con menos de ``K`` maestros distintos o menos de ``K``
   clientes distintos (P-29). Sin totales, mínimos ni máximos.
+- ``mediana_monto_final`` solo se publica si la fila tiene ``K`` o más órdenes
+  finalizadas con monto y, entre ellas, ``K`` o más maestros y ``K`` o más
+  clientes distintos; si no, la celda queda vacía (DEF-QA-014; enmienda
+  E-6.5 de ADR-026, provisional). ``ordenes_finalizadas`` se publica igual.
 - Las celdas que empiezan con ``= + - @`` (y tabulador o retorno) se
   neutralizan con un apóstrofo inicial (inyección de fórmulas).
 """
@@ -45,9 +49,21 @@ def _grupos(inicio, fin):
             finalizadas=Count("id", filter=FILTRO_CONCRETADO),
             maestros=Count("perfil_maestro_id", distinct=True),
             clientes=Count("cliente_id", distinct=True),
+            maestros_finalizadas=Count("perfil_maestro_id", filter=FILTRO_CONCRETADO, distinct=True),
+            clientes_finalizadas=Count("cliente_id", filter=FILTRO_CONCRETADO, distinct=True),
             mediana=Mediana("monto_final", filter=FILTRO_CONCRETADO),
         )
         .order_by("mes", "region_nombre", "comuna_nombre", "oficio_nombre")
+    )
+
+
+def _mediana_publicable(grupo):
+    """La mediana no depende de menos de ``K`` órdenes, maestros ni clientes (E-6.5)."""
+    return (
+        grupo["mediana"] is not None
+        and grupo["finalizadas"] >= K
+        and grupo["maestros_finalizadas"] >= K
+        and grupo["clientes_finalizadas"] >= K
     )
 
 
@@ -61,7 +77,7 @@ def generar(inicio, fin):
         if grupo["maestros"] < K or grupo["clientes"] < K:
             suprimidas += 1
             continue
-        mediana = grupo["mediana"]
+        mediana = grupo["mediana"] if _mediana_publicable(grupo) else None
         escritor.writerow([
             neutralizar(valor)
             for valor in (
