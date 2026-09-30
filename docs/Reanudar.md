@@ -53,4 +53,4 @@ El costo de un agente crece con **lo que lee × los pasos que da**. Todo lo de a
 12. **Agrupar incrementos** que tocan los mismos archivos y ADR en un solo encargo (por ejemplo, los incrementos 5 y 6 del S4).
 
 ## Siguiente trabajo
-S4, incremento 7: bandejas, avisos y pantallas "mis pedidos" y "mis trabajos", con botones de aceptar, rechazar y cancelar y el `enlace` de `bloque_tomado` (backend + frontend en un encargo). Revisión pendiente de `architect`, sin bloquear: la excepción `ParteEquivocada` (propuesta del S4, §11, aclaración 20). Ver `docs/estado-actual.md` → "Pendientes".
+S4, incremento 8: RF-12, si hay capacidad; después el incremento 9 (mediciones RNF con 1.000 tickets y QA de cierre). Revisión pendiente de `architect`, sin bloquear: la excepción `ParteEquivocada` (propuesta del S4, §11, aclaración 20). Ver `docs/estado-actual.md` → "Pendientes".

@@ -16,6 +16,8 @@
     perfil: { pagina: "mi-perfil.html", rol: "maestro" },
     cobertura: { pagina: "mi-cobertura.html", rol: "maestro" },
     agenda: { pagina: "mi-agenda.html", rol: "maestro" },
+    pedidos: { pagina: "mis-pedidos.html", rol: "cliente" },
+    trabajos: { pagina: "mis-trabajos.html", rol: "maestro" },
   };
   const form = document.getElementById("ingresar");
   formulario.prepararBoton(form);

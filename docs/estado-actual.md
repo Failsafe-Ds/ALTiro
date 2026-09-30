@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S4, incrementos 1 a 6 hechos, commit siguiente a `1bcf954`; suite 1678).
+Última actualización: 2026-09-30 (S4, incrementos 1 a 7 hechos; suite 1679).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -11,7 +11,7 @@
 | S1 Identidad, roles y acceso | Cerrado | `sprint-1`, `docs/testing/cierre-sprint-1.md` |
 | S2 Expediente y curatoría | Cerrado | `sprint-2`, `cierre-sprint-2.md` |
 | S3 Catálogo, cobertura y agenda | Cerrado con observaciones | `sprint-3`, `cierre-sprint-3.md` |
-| S4 Búsqueda y ticket | En curso: incrementos 1 a 6 hechos; faltan 7 a 9 | propuesta §9 y §11 |
+| S4 Búsqueda y ticket | En curso: incrementos 1 a 7 hechos; faltan 8 y 9 | propuesta §9 y §11 (aclaraciones 27-28) |
 | S5 Mensajería, evaluación, bitácora e indicadores | No iniciado | — |
 
 ## Stack y cómo correr
@@ -57,6 +57,7 @@
   - la parte equivocada recibe 403 registrado con `ParteEquivocada` (middleware de `autorizacion`);
   - cierre por vencimiento: tarea `cerrar_vencidos` del planificador (`skip_locked`) y protección al actuar (cierra, guarda y responde 409), con autor Sistema;
   - `ticket_cerrado` va a ambas partes; con `bloque_tomado`, el aviso del cliente trae `enlace` a `buscar.html` (CA-23.5).
+  - bandejas: `GET /api/{clientes,maestros}/tickets?estado=` (un valor de los 4 estados; otro → 400 en `estado`). Pantallas `pedir-trabajo`, `mis-pedidos` (cliente) y `mis-trabajos` (maestro); borrador de pedido por clave `altiro.pedir-trabajo.<m>.<b>.<f>.<s>`.
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
 - **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso y cierre). Fechas con time-machine.
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
@@ -66,8 +67,7 @@ ADR-016 E-1 y ADR-018 a ADR-024 están en "Aceptada — PROVISIONAL" y se revisa
 
 ## Pendientes y riesgos vigentes
 - **S4:**
-  - incremento 7: bandejas, avisos y pantallas "mis pedidos" y "mis trabajos";
-  - incremento 7: los botones aceptar, rechazar y cancelar, y mostrar el `enlace` del aviso de `bloque_tomado`;
+  - incremento 7 hecho (QA en `docs/testing/qa-s4-incremento-7.md`, DEF-QA-001 a 004 corregidos). Queda para el representante: horarios alternativos del 409 (CA-06.2) como texto sin enlace directo, y "Ingresar" desde `pedir-trabajo` sin retorno a la página;
   - incremento 8: RF-12, si hay capacidad;
   - incremento 9: mediciones de RNF-01 a 04, RNF-21 y RNF-14 a 18 con 1.000 tickets en una pila aparte, más el QA.
 - **RNF-13** sin ejecutar (DA-17: antes de la revisión del S4; requiere personas).
@@ -80,3 +80,4 @@ ADR-016 E-1 y ADR-018 a ADR-024 están en "Aceptada — PROVISIONAL" y se revisa
 | 2026-09-29 | QA de cierre del S3 | qa (principal) | ~338 mil |
 | 2026-09-29 | S4 incremento 4 (tickets) | backend (principal) | ~341 mil |
 | 2026-09-30 | S4 incrementos 5 y 6 (transiciones y cierre) | backend (principal) | ~177 mil (69 pasos; dos incrementos juntos) |
+| 2026-09-30 | S4 incremento 7: QA y re-verificación (el código venía hecho; correcciones del coordinador) | qa (Sonnet) | ~331 mil (159 mil + 172 mil) |

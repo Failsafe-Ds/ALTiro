@@ -8,7 +8,7 @@
 
 const formulario = (() => {
   function campos(form) {
-    return Array.from(form.querySelectorAll("input[name], select[name]"));
+    return Array.from(form.querySelectorAll("input[name], select[name], textarea[name]"));
   }
 
   // Lee todos los campos, incluidos los de pasos ya completados (ocultos).

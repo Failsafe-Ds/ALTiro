@@ -28,6 +28,7 @@ from tests import tickets_ayudas as tk
 from tests.ayudas import CONTRASENA, TEL_A, TEXTO_PROHIBIDO, iniciar_sesion, post_json
 from tests.privacidad import assert_campos_ausentes
 from tickets import servicios
+from tickets.vistas import MENSAJE_ESTADO_INVALIDO
 from tickets.models import AvisoTicket, EstadoTicket, MotivoCierre, Ticket, TicketEvento, TipoAvisoTicket
 
 pytestmark = pytest.mark.django_db
@@ -683,6 +684,21 @@ def test_la_lista_se_pagina_de_a_20_y_valida_sus_parametros(sesion_cliente, clie
     assert sesion_cliente.get(tk.URL_CLIENTE, {"otra": "1"}).json() == {
         "mensaje": MENSAJE_CLAVE_DESCONOCIDA, "errores": {},
     }
+
+
+def test_las_bandejas_filtran_por_estado(sesion_cliente, sesion_maestro, cliente, maestro, catalogo):
+    pendiente = tk.ticket_directo(cliente, maestro, tk.HOY + D(days=2), "08:00", "12:00")
+    aceptado = tk.ticket_directo(cliente, maestro, tk.HOY + D(days=3), "08:00", "12:00",
+                                 estado=EstadoTicket.ACEPTADO)
+
+    for sesion, url in ((sesion_cliente, tk.URL_CLIENTE), (sesion_maestro, tk.URL_MAESTRO)):
+        solo_pendientes = sesion.get(url, {"estado": "pendiente"}).json()
+        solo_aceptados = sesion.get(url, {"estado": "aceptado", "pagina": "1"}).json()
+        assert [t["ref"] for t in solo_pendientes["tickets"]] == [str(pendiente.ref)]
+        assert [t["ref"] for t in solo_aceptados["tickets"]] == [str(aceptado.ref)]
+        assert sesion.get(url, {"estado": "cerrado"}).json()["total"] == 0
+        assert sesion.get(url, {"estado": "otro"}).json()["errores"] == {"estado": MENSAJE_ESTADO_INVALIDO}
+        assert sesion.get(url + "?estado=pendiente&estado=cerrado").status_code == 400
 
 
 @pytest.mark.parametrize(("url", "rol_faltante"), [(tk.URL_CLIENTE, "cliente"), (tk.URL_MAESTRO, "maestro")])

@@ -9,7 +9,9 @@
   (solo el cliente o el maestro de ese ticket). Cualquier otro recibe el 404
   idéntico con registro (CA-25.1; cierra DA-05).
 - ``GET /api/clientes/tickets`` (rol ``cliente``) y ``GET /api/maestros/tickets``
-  (rol ``maestro``): versión mínima, patrón "me", páginas de 20 (``pagina``).
+  (rol ``maestro``): patrón "me", páginas de 20 (``pagina``) y filtro opcional
+  ``estado`` (``pendiente``, ``aceptado``, ``finalizado`` o ``cerrado``) para las
+  bandejas (incremento 7).
 - ``GET /api/avisos`` y ``POST /api/avisos/vistos``: los avisos propios (ADR-024).
 - ``POST /api/tickets/<uuid:ref>/aceptacion`` y ``.../rechazo`` (el maestro del
   ticket) y ``.../cancelacion`` (el cliente del ticket): ``tickets.transiciones``.
@@ -48,7 +50,10 @@ TAMANO_PAGINA = 20
 PAGINA_MAXIMA = 9999
 MAXIMO_VISTOS = 100
 
+ESTADOS_FILTRO = ("pendiente", "aceptado", "finalizado", "cerrado")
+
 MENSAJE_PAGINA_INVALIDA = "Vuelve a la primera página."
+MENSAJE_ESTADO_INVALIDO = "Elige una de las pestañas de la lista."
 MENSAJE_AVISOS_INVALIDOS = "No pudimos marcar tus avisos como vistos. Vuelve a cargar la página e inténtalo de nuevo."
 
 _DIGITOS = re.compile(r"[0-9]{1,4}")
@@ -72,6 +77,17 @@ def _pagina(parametros):
     if not _DIGITOS.fullmatch(valores[0]) or not 1 <= int(valores[0]) <= PAGINA_MAXIMA:
         raise ErroresDeCampo({"pagina": MENSAJE_PAGINA_INVALIDA})
     return int(valores[0])
+
+
+def _lista_filtrada(parametros):
+    """``pagina`` y ``estado``, ambos opcionales. Otro parámetro: 400 general (ADR-013, E-2)."""
+    copia = parametros.copy()
+    valores = copia.pop("estado", [])
+    if len(valores) > 1:
+        raise ErroresDeCampo({"estado": MENSAJE_VALOR_REPETIDO})
+    if valores and valores[0] not in ESTADOS_FILTRO:
+        raise ErroresDeCampo({"estado": MENSAJE_ESTADO_INVALIDO})
+    return _pagina(copia), (valores[0] if valores else None)
 
 
 def _paginado(consulta, pagina, clave, serializar):
@@ -112,8 +128,10 @@ def detalle(request, ref):
 @requiere_rol("cliente")
 @manejar_errores
 def del_cliente(request):
-    pagina = _pagina(request.GET)
+    pagina, estado = _lista_filtrada(request.GET)
     consulta = serializacion.consulta().filter(cliente_id=request.usuario.pk).order_by("-enviado_en", "-id")
+    if estado:
+        consulta = consulta.filter(estado=estado)
     return _json(_paginado(consulta, pagina, "tickets", serializacion.para_cliente))
 
 
@@ -121,8 +139,10 @@ def del_cliente(request):
 @requiere_rol("maestro")
 @manejar_errores
 def del_maestro(request):
-    pagina = _pagina(request.GET)
+    pagina, estado = _lista_filtrada(request.GET)
     consulta = serializacion.consulta().filter(perfil_maestro_id=request.usuario.pk).order_by("-enviado_en", "-id")
+    if estado:
+        consulta = consulta.filter(estado=estado)
     return _json(_paginado(consulta, pagina, "tickets", serializacion.para_maestro))
 
 

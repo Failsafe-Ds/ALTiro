@@ -116,6 +116,8 @@
     // Accesos al expediente (HU-11, HU-17). Solo navegación: la API vuelve a
     // exigir el rol de maestro en cada consulta.
     mostrar(document.getElementById("accesos-maestro"), Boolean(maestro));
+    // Bandejas de tickets (incremento 7 del S4). Solo navegación: cada lista exige el rol.
+    mostrar(document.getElementById("accesos-cliente"), Boolean(cliente));
     // Acceso a curatoría (HU-19). Solo navegación: cada ruta de la API exige el rol.
     mostrar(document.getElementById("accesos-curatoria"), cuenta.roles.includes("curatoria"));
     // Acceso al catálogo (HU-20). Solo navegación: cada ruta /api/comercial/ exige el rol.
