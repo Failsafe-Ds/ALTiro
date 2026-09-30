@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "perfil",  # Perfil público, servicios del maestro y regla de publicación (ADR-019)
     "busqueda",  # Búsqueda de maestros, sin modelos (ADR-022)
     "tickets",  # Ticket y orden, historial y avisos (ADR-023, ADR-024)
+    "mensajeria",  # Conversación del ticket aceptado (ADR-026, E-2)
 ]
 
 # ADR-001: fijado desde la primera migración.
@@ -48,7 +49,8 @@ MIDDLEWARE = [
     # El primero: mide la petición completa y ve el estado final (RNF-22; ADR-026, E-8).
     "comun.registro.RegistroOperacionMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",  # ADR-005
+    # ADR-005; las consultas automáticas no renuevan el plazo (identidad.middleware).
+    "identidad.middleware.SesionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "identidad.middleware.UsuarioDeLaSesionMiddleware",
     # Antes que CSRF: una ruta privada sin sesión responde 401, no 403.

@@ -313,6 +313,7 @@ class TipoAvisoTicket(models.TextChoices):
     PRECIO_REGISTRADO = "precio_registrado", "Precio por aceptar"
     PRECIO_OBJETADO = "precio_objetado", "Precio no aceptado"
     ORDEN_FINALIZADA = "orden_finalizada", "Trabajo terminado"
+    MENSAJE_NUEVO = "mensaje_nuevo", "Mensaje nuevo"
 
 
 class AvisoTicket(models.Model):

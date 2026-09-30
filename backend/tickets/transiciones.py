@@ -53,6 +53,7 @@ from expediente.errores import ErrorEstado
 from catalogo.models import Modalidad
 from expediente.models import Expediente
 from perfil import publicacion
+from tickets import avisos
 from tickets.avisos import MOTIVOS_PARA_CLIENTE, MOTIVOS_PARA_MAESTRO
 from tickets.models import (
     ANTICIPACION_MINIMA,
@@ -282,12 +283,8 @@ def _evento_precio(ticket, accion, monto, autor_id, ahora):
 
 
 def _avisar(ticket, destinatario_id, tipo, ahora):
-    """Crea el aviso o, si ya existía (único por ticket, destinatario y tipo), lo reactiva."""
-    reactivados = AvisoTicket.objects.filter(ticket=ticket, destinatario_id=destinatario_id, tipo=tipo).update(
-        creado_en=ahora, visto_en=None
-    )
-    if not reactivados:
-        AvisoTicket.objects.create(ticket=ticket, destinatario_id=destinatario_id, tipo=tipo, creado_en=ahora)
+    """Crea el aviso o, si ya existía, lo reactiva (``tickets.avisos.emitir``)."""
+    avisos.emitir(ticket, destinatario_id, tipo, ahora)
 
 
 def _finalizar(ticket, ahora, autor_id, destinatario_id):

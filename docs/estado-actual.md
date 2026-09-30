@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 3 cerrados; siguiente: incremento 4, mensajería).
+Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 4 cerrados; siguiente: incremento 5, evaluaciones).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -17,12 +17,12 @@
 ## Stack y cómo correr
 - Docker Compose: `init`, `db` (PostgreSQL 16), `app` (Django 5.2 + gunicorn), `proxy` (Nginx, TLS autofirmado, gzip), `planificador` (cada 300 s) y `respaldo` (postgres:16, diario).
 - Frontend estático en HTML, CSS y JS, sin framework y con CSP estricta (sin inline).
-- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 8 min y hoy pasan 1746.
+- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 9 min y hoy pasan 1785.
 - **Durante el desarrollo**, solo pruebas dirigidas: el mismo comando con `tests/test_x.py -k nombre`.
 - Migrar: `docker compose exec app python manage.py migrate`. Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
 
 ## Apps del backend (`backend/`)
-`identidad` (usuario propio, sesión, Argon2id) · `autorizacion` (políticas, `obtener_autorizado`, enlaces firmados) · `bitacora` (solo inserción) · `territorio` · `catalogo` · `expediente` (documentos cifrados, curatoría, planificador) · `perfil` (servicios, cobertura, agenda, foto, publicación, ocurrencias, ocupación) · `busqueda` · `tickets` · `comun` (API, middleware, errores).
+`identidad` (usuario propio, sesión, Argon2id) · `autorizacion` (políticas, `obtener_autorizado`, enlaces firmados) · `bitacora` (solo inserción) · `territorio` · `catalogo` · `expediente` (documentos cifrados, curatoría, planificador) · `perfil` (servicios, cobertura, agenda, foto, publicación, ocurrencias, ocupación) · `busqueda` · `tickets` · `mensajeria` (conversación) · `comun` (API, middleware, errores).
 
 ## Invariantes transversales (resumen de ADR)
 - **Rutas privadas por defecto:** `@publica` para abrir una ruta. Verificar siempre identidad, rol, propiedad y estado en el servidor.
@@ -69,8 +69,14 @@
   - respaldo: `scripts/respaldo.sh` (dump, conteos, tar, sumas; 7 días) hacia `ALTIRO_RESPALDO_DIR` (`../altiro-respaldos`). `scripts/restaurar.sh` se niega si existe algún volumen del proyecto destino. El simulacro solo se hace en `-p altiro-restauracion` (`docs/testing/rnf-19-respaldo.md`: 19 s);
   - registro: JSON por línea (`comun/registro.py`: `nivel`, `marca_tiempo`, `usuario`, `operacion`, `estado`, `duracion_ms`), sin ruta real, cuerpo, parámetros, cookies ni cabeceras. `django.request` solo desde ERROR. `/api/health/` va en DEBUG;
   - retención: `expediente/retencion.py` en el planificador. Plazos `RETENCION_DIAS_<TIPO>` vacíos (pendiente V-04/P-07, `docs/alcance/plazos-retencion.md`): sin plazo no borra nada. Aplica a expedientes rechazados o suspendidos. Marca `eliminado_en`/`motivo_eliminacion` y escribe la bitácora `documento_eliminado_retencion` (Sistema). El documento eliminado no cuenta para aprobar; su enlace da 409 y curatoría no lo revisa (409).
+- **Conversación (ADR-026, E-2; S5 inc. 4):**
+  - tabla `mensaje` (solo inserción, triggers, `managed=False`, sin FK; CHECK `mensaje_texto_valido`, único `mensaje_envio_unico` (ticket, autor, clave_envio));
+  - `GET|POST /api/tickets/<ref>/mensajes` (`mensajeria/vistas.py`, reglas en `mensajeria/conversacion.py`): `PoliticaTicket` (tercero y administrativos → 404 registrado); escribir solo en `aceptado` (otro → 409); leer en `aceptado`/`finalizado`; `cerrado` → lista vacía y `aviso` "No hubo conversación"; `pendiente` → 409; misma `clave_envio` → 200 con el mismo mensaje; `autor` = `tu`/`cliente`/`maestro`;
+  - **ningún GET de mensajes renueva la sesión**: `identidad.middleware.SesionMiddleware` (reemplaza al `SessionMiddleware` de Django) respeta `request.sin_renovar_sesion`; abrir el pedido (`GET /api/tickets/<ref>`) y enviar sí renuevan;
+  - aviso `mensaje_nuevo` a la otra parte con `enlace` a `conversacion.html`, reactivado con `tickets.avisos.emitir` (también lo usan los avisos de precio);
+  - pantalla `conversacion.html?ticket=<ref>` (sondeo de 20 s solo visible, borrador `altiro.conversacion.<ref>`); "Ver conversación" en `mis-pedidos` y `mis-trabajos` (aceptado/finalizado). Reglas A-09 a A-15.
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
-- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre y operación; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
+- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre y operación; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04; conversación: A-09 a A-15). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
 
 ## Decisiones provisionales abiertas
@@ -95,3 +101,4 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 | 2026-09-30 | Propuesta S5 y ADR-026 | architect (principal) | ~109 mil (36 pasos) |
 | 2026-09-30 | S5 incrementos 1 y 2 (precio final, historial y pantallas) | backend (principal) | ~206 mil (69 pasos; dos incrementos juntos) |
 | 2026-09-30 | S5 incremento 3 (respaldo, registro JSON y retención) | backend (principal) | ~197 mil (107 pasos) |
+| 2026-09-30 | S5 incremento 4 (mensajería) | backend (principal) | ~177 mil (67 pasos) |

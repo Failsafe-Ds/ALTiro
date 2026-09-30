@@ -172,7 +172,15 @@
     boton.type = "button";
     boton.setAttribute("aria-label", `Ver detalle del pedido de ${ticket.servicio.nombre} con ${ticket.maestro.nombre}`);
     boton.addEventListener("click", () => abrirDetalle(ticket.ref, item));
-    item.append(elemento("div", "acciones", boton));
+    const acciones = elemento("div", "acciones", boton);
+    // Conversación (HU-07, CA-07.3): solo desde aceptado; en finalizado, para leerla.
+    if (ticket.estado === "aceptado" || ticket.estado === "finalizado") {
+      const conversacion = elemento("a", "boton boton-secundario", "Ver conversación");
+      conversacion.href = `conversacion.html?ticket=${encodeURIComponent(ticket.ref)}`;
+      conversacion.setAttribute("aria-label", `Ver conversación del pedido de ${ticket.servicio.nombre} con ${ticket.maestro.nombre}`);
+      acciones.append(conversacion);
+    }
+    item.append(acciones);
     return item;
   }
 
@@ -376,6 +384,11 @@
     const detalleTexto = elemento("span", "detalle-aviso", aviso.visto ? "" : "Nuevo: ", aviso.texto);
     if (aviso.enlace && aviso.enlace.startsWith("/buscar.html")) {
       const enlace = elemento("a", "boton boton-secundario", "Buscar otro maestro");
+      enlace.href = aviso.enlace;
+      detalleTexto.append(" ", enlace);
+    }
+    if (aviso.enlace && aviso.enlace.startsWith("/conversacion.html")) {
+      const enlace = elemento("a", "boton boton-secundario", "Ver conversación");
       enlace.href = aviso.enlace;
       detalleTexto.append(" ", enlace);
     }

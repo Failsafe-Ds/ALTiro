@@ -12,6 +12,7 @@ Vocabulario de pantalla: "pedido" y "horario" (ADR-024, punto 4; RNF-17).
 """
 from urllib.parse import urlencode
 
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from perfil import agenda, ocurrencias
@@ -84,6 +85,8 @@ def texto(aviso, ticket):
             f"El cliente no está de acuerdo con el precio final de {servicio} para {cuando(ticket)}. "
             "Coordínalo con él y vuelve a registrar el precio."
         )
+    if aviso.tipo == TipoAvisoTicket.MENSAJE_NUEVO:
+        return f"Tienes un mensaje nuevo sobre el pedido de {servicio} para {cuando(ticket)}. Abre la conversación para leerlo."
     if aviso.tipo == TipoAvisoTicket.ORDEN_FINALIZADA:
         return f"El trabajo de {servicio} de {cuando(ticket)} terminó con un precio final de {pesos(ticket.monto_final)}."
     motivos = MOTIVOS_PARA_MAESTRO if para_maestro else MOTIVOS_PARA_CLIENTE
@@ -96,8 +99,11 @@ def enlace(aviso, ticket):
     """CA-23.5: al cliente cuyo pedido se cerró por ``bloque_tomado``, la búsqueda con alternativas.
 
     Mismo oficio, comuna y horario del pedido, en la página de búsqueda
-    (parámetros de ``buscar.html``). En los demás avisos: ``None``.
+    (parámetros de ``buscar.html``). ``mensaje_nuevo``: la conversación del
+    ticket (ADR-026, E-2). En los demás avisos: ``None``.
     """
+    if aviso.tipo == TipoAvisoTicket.MENSAJE_NUEVO:
+        return f"/conversacion.html?{urlencode({'ticket': str(ticket.ref)})}"
     if (
         aviso.tipo != TipoAvisoTicket.TICKET_CERRADO
         or ticket.motivo_cierre != MotivoCierre.BLOQUE_TOMADO
@@ -136,6 +142,23 @@ def del_usuario(usuario_id):
         )
         .order_by("-creado_en", "-id")
     )
+
+
+def emitir(ticket, destinatario_id, tipo, ahora):
+    """Crea el aviso o, si ya existía (único por ticket, destinatario y tipo), lo reactiva.
+
+    Reactivar = ``visto_en=NULL`` con otro ``creado_en`` (ADR-026, E-2.6). Si
+    otra petición lo crea al mismo tiempo, el único de la base lo resuelve y se
+    reactiva la fila que quedó.
+    """
+    filas = AvisoTicket.objects.filter(ticket=ticket, destinatario_id=destinatario_id, tipo=tipo)
+    if filas.update(creado_en=ahora, visto_en=None):
+        return
+    try:
+        with transaction.atomic():
+            AvisoTicket.objects.create(ticket=ticket, destinatario_id=destinatario_id, tipo=tipo, creado_en=ahora)
+    except IntegrityError:
+        filas.update(creado_en=ahora, visto_en=None)
 
 
 def sin_ver(usuario_id):

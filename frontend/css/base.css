@@ -1274,3 +1274,40 @@ button.boton-quitar {
   font-weight: 600;
   margin: 0 0 1rem;
 }
+
+/* --- Conversación del pedido (HU-07, RF-25; ADR-026, E-2) --- */
+/* Quién escribe va siempre en texto ("Tú", "Cliente", "Maestro"); el borde
+   lateral y el fondo solo refuerzan (RNF-16). */
+
+.lista-mensajes {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mensaje {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--borde);
+  border-left-width: 6px;
+  border-radius: var(--radio);
+  background: var(--fondo);
+}
+
+.mensaje-propio {
+  background: var(--fondo-suave);
+  border-left-color: var(--primario);
+}
+
+.mensaje-cabeza {
+  margin: 0 0 0.25rem;
+  color: var(--texto-suave);
+  font-size: 0.95rem;
+}
+
+.mensaje-texto {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

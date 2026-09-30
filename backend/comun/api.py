@@ -26,7 +26,8 @@ MENSAJE_ARCHIVO_ESPERADO = "Aquí va una foto. Elige la foto de nuevo e inténta
 # Todos los campos que aparecen en alguna lista de campos permitidos (E-2),
 # incluidos los del formulario de documentos (multipart), los de curatoría, los
 # del catálogo de comercial (ADR-018), los de servicios y cobertura del maestro
-# (ADR-019), los de su agenda (ADR-020) y los del pedido y sus avisos (ADR-023, ADR-024).
+# (ADR-019), los de su agenda (ADR-020), los del pedido y sus avisos (ADR-023, ADR-024)
+# y los de la conversación (ADR-026, E-2).
 CAMPOS_CONOCIDOS = frozenset(
     {"nombre", "telefono", "correo", "contrasena", "comuna", "rut", "identificador", "oficios",
      "tipo", "oficio", "fecha_emision", "fecha_vencimiento", "archivo", "archivo_reverso",
@@ -34,7 +35,8 @@ CAMPOS_CONOCIDOS = frozenset(
      "regulado", "orden", "activo", "version", "modalidades",
      "servicio", "modalidad", "monto",
      "comunas", "dia_semana", "inicio", "fin",
-     "maestro", "fecha", "direccion", "descripcion", "materiales", "avisos"}
+     "maestro", "fecha", "direccion", "descripcion", "materiales", "avisos",
+     "texto", "clave_envio"}
 )
 
 

@@ -11,7 +11,8 @@ en el incremento 4 (A-01, A-03, A-04 y A-05) y A-02 con las acciones del
 incremento 5. ``cierre`` entra en el incremento 6 (C-01 a C-08; C-08, fórmula de
 ``vence_en``, ya se cubría en el 4). La meta del sprint es el 100 %. En el S5,
 incremento 1, el precio final agrega C-09 a C-15 y A-06 a A-08; en el
-incremento 3, la operación agrega el grupo ``operacion`` (O-01 a O-04).
+incremento 3, la operación agrega el grupo ``operacion`` (O-01 a O-04); en el
+incremento 4, la conversación agrega A-09 a A-15.
 """
 
 REGLAS = {
@@ -70,6 +71,13 @@ REGLAS = {
         "A-06": "ADR-026, E-5: la parte equivocada de una ruta de precio final recibe 403 registrado",
         "A-07": "CA-25.1: un tercero recibe el 404 idéntico con registro en las rutas de precio final",
         "A-08": "RF-28: el cliente y el maestro ven el mismo precio final",
+        "A-09": "ADR-026, E-2: en un pedido pendiente no hay conversación (leer o escribir, 409)",
+        "A-10": "ADR-026, E-2: solo se escribe en aceptado; en finalizado o cerrado, 409",
+        "A-11": "CA-07.3: la conversación se lee en finalizado; en cerrado, lista vacía y 'no hubo conversación'",
+        "A-12": "CA-25.1 / R-05: un tercero o un rol administrativo recibe el 404 idéntico con registro en la conversación",
+        "A-13": "ADR-026, E-2.4: un reenvío con la misma clave_envio devuelve el mismo mensaje sin duplicarlo",
+        "A-14": "RNF-11: los mensajes no se editan ni se borran (aplicación y triggers)",
+        "A-15": "ADR-005: la consulta periódica de la conversación no renueva la sesión",
     },
     # S5, incremento 3 (ADR-026, E-8 y E-9).
     "operacion": {
