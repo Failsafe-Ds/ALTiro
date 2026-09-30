@@ -529,7 +529,7 @@ def test_rf17_el_maestro_no_recibe_direccion_telefono_ni_nombre_del_cliente_mien
     assert set(ticket) == {
         "ref", "numero", "estado", "motivo_cierre", "servicio", "comuna", "bloque", "descripcion", "materiales",
         "modalidad", "modalidad_texto", "monto_publicado", "enviado_en", "vence_en", "aceptado_en",
-        "finalizado_en", "cerrado_en",
+        "finalizado_en", "cerrado_en", "precio", "motivo_cierre_texto", "precio_registrable",
     }
 
 

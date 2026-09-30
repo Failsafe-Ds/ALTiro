@@ -33,11 +33,11 @@
         </div>
       </section>
 
-      <!-- Pestañas por estado (CA-06.3, CA-08.2). -->
+      <!-- Pestañas por estado (CA-06.3) e historial completo con el estado en texto (HU-08, CA-08.1, CA-08.2). -->
       <div class="filtros" role="group" aria-label="Filtrar por estado" id="pestanas">
         <button type="button" class="filtro" data-tab="pendiente" aria-pressed="true">Pendientes</button>
         <button type="button" class="filtro" data-tab="aceptado" aria-pressed="false">Aceptados</button>
-        <button type="button" class="filtro" data-tab="cerrado" aria-pressed="false">Cerrados y terminados</button>
+        <button type="button" class="filtro" data-tab="historial" aria-pressed="false">Historial</button>
       </div>
 
       <section id="tab-pendiente" aria-labelledby="titulo-pendiente">
@@ -62,24 +62,14 @@
         </div>
       </section>
 
-      <section id="tab-cerrado" class="oculto" aria-labelledby="titulo-cerrado">
-        <h2 id="titulo-cerrado">Cerrados y terminados</h2>
-
-        <h3>Terminados</h3>
-        <p id="sin-finalizado" hidden>Todavía no tienes trabajos terminados.</p>
-        <ul id="lista-finalizado" class="lista-simple lista-pedidos"></ul>
-        <div class="acciones" id="paginacion-finalizado" hidden>
+      <section id="tab-historial" class="oculto" aria-labelledby="titulo-historial">
+        <h2 id="titulo-historial">Historial</h2>
+        <p class="ayuda">Todos tus pedidos, del más nuevo al más antiguo, con el precio acordado o el motivo de cierre.</p>
+        <p id="sin-historial" hidden>Todavía no tienes pedidos.</p>
+        <ul id="lista-historial" class="lista-simple lista-pedidos"></ul>
+        <div class="acciones" id="paginacion-historial" hidden>
           <button type="button" class="boton-secundario" data-anterior>Página anterior</button>
-          <span id="texto-pagina-finalizado"></span>
-          <button type="button" class="boton-secundario" data-siguiente>Página siguiente</button>
-        </div>
-
-        <h3>Cerrados</h3>
-        <p id="sin-cerrado" hidden>No tienes pedidos cerrados.</p>
-        <ul id="lista-cerrado" class="lista-simple lista-pedidos"></ul>
-        <div class="acciones" id="paginacion-cerrado" hidden>
-          <button type="button" class="boton-secundario" data-anterior>Página anterior</button>
-          <span id="texto-pagina-cerrado"></span>
+          <span id="texto-pagina-historial"></span>
           <button type="button" class="boton-secundario" data-siguiente>Página siguiente</button>
         </div>
       </section>

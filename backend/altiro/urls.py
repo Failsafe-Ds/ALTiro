@@ -58,6 +58,11 @@ urlpatterns = [
     path("api/tickets/<uuid:ref>/aceptacion", tickets.aceptacion, name="ticket_aceptacion"),
     path("api/tickets/<uuid:ref>/rechazo", tickets.rechazo, name="ticket_rechazo"),
     path("api/tickets/<uuid:ref>/cancelacion", tickets.cancelacion, name="ticket_cancelacion"),
+    # Precio final y finalización (RF-26 a RF-28; ADR-026, E-1).
+    path("api/tickets/<uuid:ref>/precio-final", tickets.precio_final, name="ticket_precio_final"),
+    path("api/tickets/<uuid:ref>/precio-final/aceptacion", tickets.precio_aceptacion,
+         name="ticket_precio_aceptacion"),
+    path("api/tickets/<uuid:ref>/precio-final/objecion", tickets.precio_objecion, name="ticket_precio_objecion"),
     path("api/clientes/tickets", tickets.del_cliente, name="tickets_del_cliente"),
     path("api/maestros/tickets", tickets.del_maestro, name="tickets_del_maestro"),
     path("api/avisos", tickets.avisos, name="avisos"),

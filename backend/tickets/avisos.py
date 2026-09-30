@@ -40,6 +40,20 @@ MOTIVOS_PARA_MAESTRO = {
 }
 
 
+def pesos(monto):
+    """"$45.000" (separador de miles chileno)."""
+    return f"${monto:,}".replace(",", ".")
+
+
+def motivo_cierre_texto(ticket, para_maestro):
+    """El motivo de cierre en palabras de quien lee (CA-08.2, CA-23.7). ``None`` si no está cerrado."""
+    if not ticket.motivo_cierre:
+        return None
+    motivos = MOTIVOS_PARA_MAESTRO if para_maestro else MOTIVOS_PARA_CLIENTE
+    texto_motivo = motivos[ticket.motivo_cierre]
+    return texto_motivo[0].upper() + texto_motivo[1:]
+
+
 def cuando(ticket):
     """"el jueves 8 de octubre, de 08:00 a 12:00" (formato de 24 horas, CA-14.1)."""
     fecha = ticket.fecha
@@ -58,6 +72,20 @@ def texto(aviso, ticket):
     if aviso.tipo == TipoAvisoTicket.TICKET_ACEPTADO:
         nombre = ticket.perfil_maestro.usuario.nombre
         return f"{nombre} aceptó tu pedido de {servicio} para {cuando(ticket)}."
+    if aviso.tipo == TipoAvisoTicket.PRECIO_REGISTRADO:
+        if ticket.monto_final is None or ticket.estado != "aceptado":
+            return f"El maestro registró el precio final de {servicio} para {cuando(ticket)}. Revisa tu pedido."
+        return (
+            f"El maestro registró el precio final de {servicio} para {cuando(ticket)}: {pesos(ticket.monto_final)}. "
+            "Revísalo y acéptalo, o avísale si no estás de acuerdo."
+        )
+    if aviso.tipo == TipoAvisoTicket.PRECIO_OBJETADO:
+        return (
+            f"El cliente no está de acuerdo con el precio final de {servicio} para {cuando(ticket)}. "
+            "Coordínalo con él y vuelve a registrar el precio."
+        )
+    if aviso.tipo == TipoAvisoTicket.ORDEN_FINALIZADA:
+        return f"El trabajo de {servicio} de {cuando(ticket)} terminó con un precio final de {pesos(ticket.monto_final)}."
     motivos = MOTIVOS_PARA_MAESTRO if para_maestro else MOTIVOS_PARA_CLIENTE
     motivo = motivos.get(ticket.motivo_cierre, "")
     dueno = "El pedido" if para_maestro else "Tu pedido"

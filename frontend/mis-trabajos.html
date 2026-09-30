@@ -33,11 +33,11 @@
         </div>
       </section>
 
-      <!-- Pestañas por estado (CA-15.1, CA-08.2). -->
+      <!-- Pestañas por estado (CA-15.1) e historial completo con el estado en texto (HU-08, CA-08.1, CA-08.2). -->
       <div class="filtros" role="group" aria-label="Filtrar por estado" id="pestanas">
         <button type="button" class="filtro" data-tab="pendiente" aria-pressed="true">Nuevos</button>
         <button type="button" class="filtro" data-tab="aceptado" aria-pressed="false">Aceptados</button>
-        <button type="button" class="filtro" data-tab="cerrado" aria-pressed="false">Cerrados</button>
+        <button type="button" class="filtro" data-tab="historial" aria-pressed="false">Historial</button>
       </div>
 
       <section id="tab-pendiente" aria-labelledby="titulo-pendiente">
@@ -62,13 +62,14 @@
         </div>
       </section>
 
-      <section id="tab-cerrado" class="oculto" aria-labelledby="titulo-cerrado">
-        <h2 id="titulo-cerrado">Cerrados</h2>
-        <p id="sin-cerrado" hidden>No tienes pedidos cerrados.</p>
-        <ul id="lista-cerrado" class="lista-simple lista-pedidos"></ul>
-        <div class="acciones" id="paginacion-cerrado" hidden>
+      <section id="tab-historial" class="oculto" aria-labelledby="titulo-historial">
+        <h2 id="titulo-historial">Historial</h2>
+        <p class="ayuda">Todos tus pedidos y trabajos, del más nuevo al más antiguo, con su precio final o el motivo de cierre.</p>
+        <p id="sin-historial" hidden>Todavía no tienes pedidos.</p>
+        <ul id="lista-historial" class="lista-simple lista-pedidos"></ul>
+        <div class="acciones" id="paginacion-historial" hidden>
           <button type="button" class="boton-secundario" data-anterior>Página anterior</button>
-          <span id="texto-pagina-cerrado"></span>
+          <span id="texto-pagina-historial"></span>
           <button type="button" class="boton-secundario" data-siguiente>Página siguiente</button>
         </div>
       </section>
@@ -79,6 +80,26 @@
       <h3 id="titulo-detalle" tabindex="-1"></h3>
       <div id="aviso-detalle" class="aviso" role="alert" tabindex="-1"></div>
       <dl class="datos" id="datos-detalle"></dl>
+
+      <!-- Precio final de un trabajo aceptado (HU-16, RF-26, RF-27, CA-16.1). -->
+      <section id="bloque-precio" hidden aria-labelledby="titulo-precio">
+        <h4 id="titulo-precio">Registrar precio final</h4>
+        <p id="precio-estado"></p>
+        <form id="form-precio" novalidate>
+          <div class="campo">
+            <label for="monto-final">Precio final en pesos</label>
+            <span class="ayuda" id="precio-publicado"></span>
+            <input id="monto-final" name="monto" inputmode="numeric" autocomplete="off"
+                   aria-describedby="precio-publicado explicacion-precio">
+            <span class="ayuda" id="explicacion-precio" aria-live="polite"></span>
+          </div>
+          <div id="aviso-precio" class="aviso" role="alert" tabindex="-1"></div>
+          <div class="acciones">
+            <button type="submit" id="registrar-precio">Registrar precio final</button>
+          </div>
+        </form>
+      </section>
+
       <div class="acciones">
         <button type="button" id="aceptar-pedido" hidden>Aceptar este pedido</button>
         <button type="button" id="rechazar-pedido" class="boton-peligro" hidden>Rechazar este pedido</button>

@@ -23,6 +23,23 @@ y después los tickets por id ascendente. Cada cambio escribe su
 ``ticket_evento`` y sus avisos (``ticket_aceptado`` al cliente;
 ``ticket_cerrado`` a ambas partes, CA-23.7) en la misma transacción.
 
+Precio final (S5, incremento 1; RF-26 a RF-28, CA-16.1 a CA-16.3; ADR-026, E-1;
+propuesta del S5, §3.2):
+
+- ``registrar_precio`` (el maestro): en ``aceptado`` y con ``ahora ≥ inicio_en``.
+  Si se exige aceptación (por hora, o por trabajo con un monto distinto del
+  publicado) queda "por aceptar" y se avisa al cliente (``precio_registrado``);
+  si no, la orden pasa a ``finalizado`` (``orden_finalizada`` al cliente).
+- ``aceptar_precio`` (el cliente): envía el monto que acepta; si no es el
+  vigente → 409. La orden pasa a ``finalizado`` (``orden_finalizada`` al maestro).
+- ``objetar_precio`` (el cliente): vacía el precio vigente y avisa al maestro
+  (``precio_objetado``).
+- Una orden ``finalizado`` no cambia de precio (CA-16.3). Repetir lo mismo → 200 (D-10).
+
+Cada acción escribe su ``precio_final_evento``; el paso a ``finalizado``, su
+``ticket_evento`` con el autor. Los avisos de precio se **reactivan** si ya
+existían (el único ``aviso_ticket_una_vez``), como ``mensaje_nuevo`` (ADR-026, E-2).
+
 La parte que actúa ya la verificaron la política y la vista (ADR-023, punto 6).
 """
 from django.db import transaction
@@ -33,6 +50,7 @@ from django.utils import timezone
 
 from expediente import vigencia
 from expediente.errores import ErrorEstado
+from catalogo.models import Modalidad
 from expediente.models import Expediente
 from perfil import publicacion
 from tickets.avisos import MOTIVOS_PARA_CLIENTE, MOTIVOS_PARA_MAESTRO
@@ -41,9 +59,11 @@ from tickets.models import (
     ESTADOS_QUE_OCUPAN,
     PLAZO_RESPUESTA,
     AutorTipo,
+    AccionPrecio,
     AvisoTicket,
     EstadoTicket,
     MotivoCierre,
+    PrecioFinalEvento,
     Ticket,
     TicketEvento,
     TipoAvisoTicket,
@@ -70,6 +90,18 @@ MENSAJE_CERRADO_MAESTRO = "Este pedido se cerró: {motivo}. Ya no se puede respo
 MENSAJE_CERRADO_CLIENTE = (
     "Tu pedido se cerró: {motivo}. Si todavía necesitas el trabajo, busca otro horario o maestro."
 )
+
+# Precio final (CA-16.x). Vocabulario del oficio: "pedido", "trabajo", "horario".
+MENSAJE_PRECIO_ANTES_DEL_HORARIO = (
+    "Todavía no empieza el horario de este trabajo. Podrás registrar el precio final cuando empiece."
+)
+MENSAJE_PRECIO_SIN_ACEPTAR = "Primero acepta el pedido. El precio final se registra en un trabajo aceptado."
+MENSAJE_PRECIO_FINALIZADO = "Este trabajo ya terminó y su precio no se puede cambiar."
+MENSAJE_SIN_PRECIO_POR_ACEPTAR = (
+    "Este trabajo no tiene un precio por aceptar. Cuando el maestro registre el precio final, te avisaremos."
+)
+MENSAJE_MONTO_CAMBIO = "El maestro cambió el monto, revísalo antes de aceptarlo."
+MENSAJE_PEDIDO_SIN_PRECIO = "El maestro todavía no acepta este pedido, así que no tiene precio final."
 
 
 class PedidoVencido(ErrorEstado):
@@ -235,6 +267,116 @@ def cerrar_si_vencido(ticket, ahora):
     _cerrar(actual, motivo_vencimiento(actual), ahora, None)
     ticket.estado, ticket.motivo_cierre, ticket.cerrado_en = actual.estado, actual.motivo_cierre, actual.cerrado_en
     return True
+
+
+# --- Precio final (S5, incremento 1; ADR-026, E-1) ---
+
+
+def exige_aceptacion(ticket, monto):
+    """ADR-026, E-1.2: por hora siempre; por trabajo si el monto final difiere del publicado (RF-27)."""
+    return ticket.modalidad == Modalidad.POR_HORA or monto != ticket.monto_publicado
+
+
+def _evento_precio(ticket, accion, monto, autor_id, ahora):
+    PrecioFinalEvento.objects.create(ticket_id=ticket.pk, accion=accion, monto=monto, autor_id=autor_id, fecha=ahora)
+
+
+def _avisar(ticket, destinatario_id, tipo, ahora):
+    """Crea el aviso o, si ya existía (único por ticket, destinatario y tipo), lo reactiva."""
+    reactivados = AvisoTicket.objects.filter(ticket=ticket, destinatario_id=destinatario_id, tipo=tipo).update(
+        creado_en=ahora, visto_en=None
+    )
+    if not reactivados:
+        AvisoTicket.objects.create(ticket=ticket, destinatario_id=destinatario_id, tipo=tipo, creado_en=ahora)
+
+
+def _finalizar(ticket, ahora, autor_id, destinatario_id):
+    ticket.estado = EstadoTicket.FINALIZADO
+    ticket.finalizado_en = ahora
+    ticket.save(update_fields=["estado", "finalizado_en", "monto_final", "monto_final_en", "monto_final_autor",
+                               "precio_aceptado_en"])
+    _evento(ticket, EstadoTicket.ACEPTADO, ahora, autor_id)
+    _avisar(ticket, destinatario_id, TipoAvisoTicket.ORDEN_FINALIZADA, ahora)
+
+
+def _sin_precio_posible(actual, para_maestro):
+    """409 de los estados en que no hay precio: pendiente o cerrado."""
+    if actual.estado == EstadoTicket.CERRADO:
+        return ErrorEstado(mensaje_cerrado(actual, para_maestro))
+    return ErrorEstado(MENSAJE_PRECIO_SIN_ACEPTAR if para_maestro else MENSAJE_PEDIDO_SIN_PRECIO)
+
+
+def registrar_precio(ticket, usuario, monto, ahora=None):
+    """RF-26, CA-16.1. ``monto`` ya validado (entero de 1 a ``MONTO_MAXIMO``)."""
+    ahora = ahora or timezone.now()
+
+    def aplicar(actual, _otros):
+        if actual.estado == EstadoTicket.FINALIZADO:
+            if actual.monto_final == monto:
+                return actual
+            raise ErrorEstado(MENSAJE_PRECIO_FINALIZADO)
+        if actual.estado != EstadoTicket.ACEPTADO:
+            raise _sin_precio_posible(actual, para_maestro=True)
+        if actual.monto_final == monto:
+            return actual
+        if ahora < actual.inicio_en:
+            raise ErrorEstado(MENSAJE_PRECIO_ANTES_DEL_HORARIO)
+        actual.monto_final, actual.monto_final_en, actual.monto_final_autor_id = monto, ahora, usuario.pk
+        _evento_precio(actual, AccionPrecio.REGISTRADO, monto, usuario.pk, ahora)
+        if exige_aceptacion(actual, monto):
+            actual.save(update_fields=["monto_final", "monto_final_en", "monto_final_autor"])
+            _avisar(actual, actual.cliente_id, TipoAvisoTicket.PRECIO_REGISTRADO, ahora)
+        else:
+            _finalizar(actual, ahora, usuario.pk, actual.cliente_id)
+        return actual
+
+    return _actuar(ticket, ahora, True, aplicar)
+
+
+def aceptar_precio(ticket, usuario, monto, ahora=None):
+    """RF-27, CA-16.2. El cliente envía el monto que acepta (ADR-026, E-1.4)."""
+    ahora = ahora or timezone.now()
+
+    def aplicar(actual, _otros):
+        if actual.estado == EstadoTicket.FINALIZADO:
+            if actual.monto_final == monto:
+                return actual
+            raise ErrorEstado(MENSAJE_PRECIO_FINALIZADO)
+        if actual.estado != EstadoTicket.ACEPTADO:
+            raise _sin_precio_posible(actual, para_maestro=False)
+        if actual.monto_final is None:
+            raise ErrorEstado(MENSAJE_SIN_PRECIO_POR_ACEPTAR)
+        if actual.monto_final != monto:
+            raise ErrorEstado(MENSAJE_MONTO_CAMBIO)
+        actual.precio_aceptado_en = ahora
+        _evento_precio(actual, AccionPrecio.ACEPTADO, monto, usuario.pk, ahora)
+        _finalizar(actual, ahora, usuario.pk, actual.perfil_maestro_id)
+        return actual
+
+    return _actuar(ticket, ahora, False, aplicar)
+
+
+def objetar_precio(ticket, usuario, ahora=None):
+    """ADR-026, E-1.5. Repetir la objeción (el último evento ya es una objeción) → 200."""
+    ahora = ahora or timezone.now()
+
+    def aplicar(actual, _otros):
+        if actual.estado == EstadoTicket.FINALIZADO:
+            raise ErrorEstado(MENSAJE_PRECIO_FINALIZADO)
+        if actual.estado != EstadoTicket.ACEPTADO:
+            raise _sin_precio_posible(actual, para_maestro=False)
+        if actual.monto_final is None:
+            ultimo = PrecioFinalEvento.objects.filter(ticket_id=actual.pk).order_by("-fecha", "-id").first()
+            if ultimo is not None and ultimo.accion == AccionPrecio.OBJETADO:
+                return actual
+            raise ErrorEstado(MENSAJE_SIN_PRECIO_POR_ACEPTAR)
+        _evento_precio(actual, AccionPrecio.OBJETADO, actual.monto_final, usuario.pk, ahora)
+        actual.monto_final = actual.monto_final_en = actual.monto_final_autor_id = None
+        actual.save(update_fields=["monto_final", "monto_final_en", "monto_final_autor"])
+        _avisar(actual, actual.perfil_maestro_id, TipoAvisoTicket.PRECIO_OBJETADO, ahora)
+        return actual
+
+    return _actuar(ticket, ahora, False, aplicar)
 
 
 # --- Tarea del Sistema (RF-21, RF-22; ADR-016 E-1) ---

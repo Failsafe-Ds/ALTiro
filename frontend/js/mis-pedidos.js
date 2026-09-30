@@ -5,6 +5,12 @@
 //   (protección al actuar: el estado pudo cambiar desde que se pintó la lista).
 // - GET /api/avisos y POST /api/avisos/vistos: sin consultas periódicas (D-16);
 //   se marcan vistos apenas se muestran.
+// - Historial (HU-08, CA-08.1): GET sin «estado» trae todos los pedidos, con
+//   «precio» y «motivo_cierre_texto» del servidor.
+// - Precio por aceptar (HU-16, RF-27, CA-16.2): «Aceptar» envía el monto que se
+//   muestra (POST …/precio-final/aceptacion {monto}); si el maestro lo cambió,
+//   el servidor responde 409 y la lista se recarga. «No estoy de acuerdo»:
+//   POST …/precio-final/objecion.
 // RNF-16: cada estado lleva ícono y texto. RNF-17: "pedido" y "horario".
 "use strict";
 
@@ -25,8 +31,8 @@
   const avisoCancelar = document.getElementById("aviso-cancelar");
   const botonCancelar = document.getElementById("cancelar-pedido");
 
-  const ESTADOS_TAB = { pendiente: ["pendiente"], aceptado: ["aceptado"], cerrado: ["finalizado", "cerrado"] };
-  const paginas = { pendiente: 1, aceptado: 1, finalizado: 1, cerrado: 1 };
+  const ESTADOS_TAB = { pendiente: ["pendiente"], aceptado: ["aceptado"], historial: ["historial"] };
+  const paginas = { pendiente: 1, aceptado: 1, historial: 1 };
   let tabActual = "pendiente";
   let refAbierto = null;
 
@@ -81,6 +87,67 @@
     return `${formato.fechaConReferencia(ticket.bloque.fecha)}, de ${ticket.bloque.inicio} a ${ticket.bloque.fin}`;
   }
 
+  // --- Precio final (el mismo monto que ve el maestro, RF-28) ---
+
+  function textoPrecio(ticket) {
+    if (!ticket.precio) {
+      return "";
+    }
+    const monto = formato.monto(ticket.precio.monto);
+    return ticket.precio.estado === "acordado" ? `Precio final acordado: ${monto}.` : `Precio final por aceptar: ${monto}.`;
+  }
+
+  async function responderPrecio(ticket, accion, zona) {
+    const ruta = `/api/tickets/${encodeURIComponent(ticket.ref)}/precio-final/${accion}`;
+    const cuerpo = accion === "aceptacion" ? { monto: ticket.precio.monto } : undefined;
+    for (const boton of zona.querySelectorAll("button")) {
+      boton.disabled = true;
+    }
+    const { estado, datos } = await api.enviar(ruta, cuerpo);
+    for (const boton of zona.querySelectorAll("button")) {
+      boton.disabled = false;
+    }
+    if (estado === 401) {
+      sesionTerminada();
+      return;
+    }
+    if (estado !== 200) {
+      // 409: el maestro cambió el monto o el trabajo ya terminó. Se avisa y se recarga.
+      avisoResultado.className = "aviso aviso-error";
+      avisoResultado.textContent = datos.mensaje || "No pudimos enviar tu respuesta. Vuelve a intentarlo.";
+      avisoResultado.focus();
+      cargarTab(tabActual, true);
+      return;
+    }
+    avisoResultado.className = "aviso aviso-exito";
+    avisoResultado.textContent = accion === "aceptacion"
+      ? "Aceptaste el precio final. El trabajo quedó terminado."
+      : "Le avisamos al maestro que no estás de acuerdo con el precio. Coordínalo con él.";
+    avisoResultado.focus();
+    cargarTab(tabActual, true);
+  }
+
+  // Tarjeta «Precio por aceptar» (CA-16.2): dos botones con texto, sin depender del color.
+  function tarjetaPrecio(ticket) {
+    const zona = elemento("section", "confirmacion");
+    const titulo = elemento("h4", "", "Precio por aceptar");
+    const publicado = `${formato.monto(ticket.monto_publicado)} ${(ticket.modalidad_texto || "").toLowerCase()}`.trim();
+    const texto = elemento(
+      "p", "",
+      `${ticket.maestro.nombre} registró un precio final de ${formato.monto(ticket.precio.monto)}. ` +
+      `El precio publicado era ${publicado}. Si lo aceptas, el trabajo queda terminado.`
+    );
+    const aceptar = elemento("button", "", "Aceptar");
+    aceptar.type = "button";
+    aceptar.setAttribute("aria-label", `Aceptar el precio final de ${formato.monto(ticket.precio.monto)}`);
+    aceptar.addEventListener("click", () => responderPrecio(ticket, "aceptacion", zona));
+    const objetar = elemento("button", "boton-secundario", "No estoy de acuerdo");
+    objetar.type = "button";
+    objetar.addEventListener("click", () => responderPrecio(ticket, "objecion", zona));
+    zona.append(titulo, texto, elemento("div", "acciones", aceptar, objetar));
+    return zona;
+  }
+
   function tarjeta(ticket) {
     const item = elemento("li", "tarjeta");
     item.dataset.ref = ticket.ref;
@@ -92,8 +159,14 @@
       elemento("dt", "", "Estado"), elemento("dd", "", estadoPedido.etiqueta(ticket.estado))
     );
     item.append(titulo, info);
-    if (ticket.estado === "cerrado" && ticket.motivo_cierre) {
-      item.append(elemento("p", "", `Se cerró: ${estadoPedido.motivo(ticket.motivo_cierre, false)}.`));
+    const precio = textoPrecio(ticket);
+    if (ticket.estado === "aceptado" && ticket.precio && ticket.precio.estado === "por_aceptar") {
+      item.append(tarjetaPrecio(ticket));
+    } else if (precio) {
+      item.append(elemento("p", "", precio));
+    }
+    if (ticket.motivo_cierre_texto) {
+      item.append(elemento("p", "", `Se cerró: ${ticket.motivo_cierre_texto}.`));
     }
     const boton = elemento("button", "boton-secundario", "Ver detalle");
     boton.type = "button";
@@ -124,8 +197,11 @@
     if (ticket.contacto) {
       filas.push(["Teléfono del maestro", ticket.contacto.telefono]);
     }
-    if (ticket.estado === "cerrado" && ticket.motivo_cierre) {
-      filas.push(["Por qué se cerró", estadoPedido.motivo(ticket.motivo_cierre, false)]);
+    if (ticket.precio) {
+      filas.push(["Precio final", textoPrecio(ticket)]);
+    }
+    if (ticket.motivo_cierre_texto) {
+      filas.push(["Por qué se cerró", ticket.motivo_cierre_texto]);
     }
     const datosDetalle = document.getElementById("datos-detalle");
     datosDetalle.replaceChildren();
@@ -231,7 +307,9 @@
   }
 
   async function cargarListaEstado(estado) {
-    const { estado: cod, datos } = await api.obtener(`${RUTA}?estado=${estado}&pagina=${paginas[estado]}`);
+    // Historial: sin «estado», el servidor devuelve todos los pedidos (CA-08.1).
+    const filtro = estado === "historial" ? "" : `estado=${estado}&`;
+    const { estado: cod, datos } = await api.obtener(`${RUTA}?${filtro}pagina=${paginas[estado]}`);
     if (cod === 401) {
       sesionTerminada();
       return false;

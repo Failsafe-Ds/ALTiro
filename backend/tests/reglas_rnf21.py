@@ -9,7 +9,8 @@ y **por grupo**: una regla está cubierta si al menos una prueba de
 ``GRUPOS_ACTIVOS``: grupos que la prueba de control ya exige. ``acceso`` entra
 en el incremento 4 (A-01, A-03, A-04 y A-05) y A-02 con las acciones del
 incremento 5. ``cierre`` entra en el incremento 6 (C-01 a C-08; C-08, fórmula de
-``vence_en``, ya se cubría en el 4). La meta del sprint es el 100 %.
+``vence_en``, ya se cubría en el 4). La meta del sprint es el 100 %. En el S5,
+incremento 1, el precio final agrega C-09 a C-15 y A-06 a A-08.
 """
 
 REGLAS = {
@@ -51,6 +52,13 @@ REGLAS = {
         "C-06": "RF-19: aceptar cierra los pendientes que se cruzan (bloque_tomado)",
         "C-07": "RF-24: los cinco motivos de cierre se registran de forma distinguible",
         "C-08": "ADR-023, punto 1: vence_en = LEAST(enviado + 24 h, inicio - 4 h), también a las 28 horas exactas",
+        "C-09": "RF-27: por trabajo con el monto publicado, el precio final finaliza la orden sin aceptación",
+        "C-10": "CA-16.2: por trabajo con otro monto, la orden no finaliza hasta que el cliente acepta",
+        "C-11": "RF-27: por hora, el precio final siempre exige la aceptación del cliente",
+        "C-12": "ADR-026, E-1.4: aceptar un monto distinto del vigente da 409",
+        "C-13": "CA-16.3: una orden finalizada no cambia de precio",
+        "C-14": "ADR-026, E-1.8: la base rechaza un finalizado sin precio o sin la aceptación exigida",
+        "C-15": "ADR-026, E-1.6 (P-27): el precio final no se registra antes del inicio del horario",
     },
     "acceso": {
         "A-01": "CA-25.1: un tercero recibe el 404 idéntico con registro al abrir un ticket",
@@ -58,6 +66,9 @@ REGLAS = {
         "A-03": "RF-17 / RNF-08: el maestro no recibe dirección ni teléfono con el ticket pendiente",
         "A-04": "ADR-013 E-9: nadie puede pedirse un trabajo a sí mismo",
         "A-05": "ADR-023: solo el rol cliente crea tickets",
+        "A-06": "ADR-026, E-5: la parte equivocada de una ruta de precio final recibe 403 registrado",
+        "A-07": "CA-25.1: un tercero recibe el 404 idéntico con registro en las rutas de precio final",
+        "A-08": "RF-28: el cliente y el maestro ven el mismo precio final",
     },
 }
 

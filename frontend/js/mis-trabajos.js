@@ -8,6 +8,11 @@
 //   (protección al actuar: el estado pudo cambiar desde que se pintó la lista).
 // - GET /api/avisos y POST /api/avisos/vistos: sin consultas periódicas (D-16);
 //   se marcan vistos apenas se muestran.
+// - Historial (HU-08, CA-08.1): GET sin «estado» trae todos los pedidos, con
+//   «precio» y «motivo_cierre_texto» del servidor.
+// - Precio final (HU-16, RF-26, RF-27): POST /api/tickets/<ref>/precio-final
+//   {monto}. La página solo explica si el cliente tendrá que aceptarlo; quien
+//   decide si el trabajo termina es el servidor.
 // RNF-16: cada estado lleva ícono y texto. RNF-17: "pedido" y "horario".
 "use strict";
 
@@ -29,8 +34,14 @@
   const botonAceptar = document.getElementById("aceptar-pedido");
   const botonRechazar = document.getElementById("rechazar-pedido");
 
-  const ESTADOS_TAB = { pendiente: "pendiente", aceptado: "aceptado", cerrado: "cerrado" };
-  const paginas = { pendiente: 1, aceptado: 1, cerrado: 1 };
+  const ESTADOS_TAB = { pendiente: "pendiente", aceptado: "aceptado", historial: "historial" };
+  const paginas = { pendiente: 1, aceptado: 1, historial: 1 };
+
+  const bloquePrecio = document.getElementById("bloque-precio");
+  const formPrecio = document.getElementById("form-precio");
+  const campoMonto = document.getElementById("monto-final");
+  const avisoPrecio = document.getElementById("aviso-precio");
+  let ticketAbierto = null;
   let tabActual = "pendiente";
   let refAbierto = null;
   let accionPendiente = null; // "aceptacion" | "rechazo"
@@ -80,6 +91,106 @@
     avisoPagina.focus();
   }
 
+  // --- Precio final (texto del servidor: el mismo monto para ambas partes, RF-28) ---
+
+  function textoPrecio(ticket) {
+    if (!ticket.precio) {
+      return "";
+    }
+    const monto = formato.monto(ticket.precio.monto);
+    return ticket.precio.estado === "acordado"
+      ? `Precio final acordado: ${monto}.`
+      : `Precio final: ${monto}, esperando que el cliente lo acepte.`;
+  }
+
+  // Solo explica; si el trabajo termina o no, lo decide el servidor (RF-27).
+  function explicarPrecio() {
+    const ticket = ticketAbierto;
+    if (!ticket) {
+      return;
+    }
+    const explicacion = document.getElementById("explicacion-precio");
+    const escrito = formato.leerMonto(campoMonto.value);
+    const publicado = formato.monto(ticket.monto_publicado);
+    if (ticket.modalidad === "por_hora") {
+      explicacion.textContent = "Como cobras por hora, el cliente tendrá que aceptar este precio. " +
+        "El trabajo queda terminado cuando lo acepte.";
+    } else if (!/^\d+$/.test(escrito)) {
+      explicacion.textContent = `Si es el mismo precio publicado (${publicado}), el trabajo queda terminado al ` +
+        "registrarlo. Si es distinto, el cliente tendrá que aceptarlo.";
+    } else if (Number(escrito) === ticket.monto_publicado) {
+      explicacion.textContent = "Es el mismo precio publicado: al registrarlo, el trabajo queda terminado.";
+    } else {
+      explicacion.textContent = `Es distinto del precio publicado (${publicado}): el cliente tendrá que ` +
+        "aceptarlo antes de que el trabajo quede terminado.";
+    }
+  }
+
+  function pintarPrecio(ticket) {
+    ticketAbierto = ticket;
+    bloquePrecio.hidden = ticket.estado !== "aceptado";
+    if (bloquePrecio.hidden) {
+      return;
+    }
+    const estadoPrecio = document.getElementById("precio-estado");
+    formPrecio.hidden = !ticket.precio_registrable;
+    if (!ticket.precio_registrable) {
+      estadoPrecio.textContent = "Podrás registrar el precio final cuando empiece el horario del trabajo.";
+      return;
+    }
+    estadoPrecio.textContent = ticket.precio
+      ? `Registraste ${formato.monto(ticket.precio.monto)}. Esperando que el cliente lo acepte. ` +
+        "Si te equivocaste, registra el monto correcto."
+      : "Cuando termines el trabajo, escribe cuánto cobraste en total.";
+    document.getElementById("precio-publicado").textContent =
+      `Precio publicado: ${formato.monto(ticket.monto_publicado)} ${(ticket.modalidad_texto || "").toLowerCase()}`.trim() + ".";
+    campoMonto.value = "";
+    campoMonto.removeAttribute("aria-invalid");
+    avisoPrecio.className = "aviso";
+    avisoPrecio.replaceChildren();
+    explicarPrecio();
+  }
+
+  campoMonto.addEventListener("input", explicarPrecio);
+
+  formPrecio.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    if (!refAbierto) {
+      return;
+    }
+    const boton = document.getElementById("registrar-precio");
+    boton.disabled = true;
+    const { estado, datos } = await api.enviar(
+      `/api/tickets/${encodeURIComponent(refAbierto)}/precio-final`,
+      { monto: formato.leerEntero(campoMonto.value) }
+    );
+    boton.disabled = false;
+    if (estado === 401) {
+      sesionTerminada();
+      return;
+    }
+    if (estado === 400) {
+      campoMonto.setAttribute("aria-invalid", "true");
+      avisoPrecio.className = "aviso aviso-error";
+      avisoPrecio.textContent = (datos.errores && datos.errores.monto) || datos.mensaje;
+      campoMonto.focus();
+      return;
+    }
+    if (estado !== 200) {
+      avisoPrecio.className = "aviso aviso-error";
+      avisoPrecio.textContent = datos.mensaje || "No pudimos registrar el precio. Vuelve a intentarlo.";
+      avisoPrecio.focus();
+      return;
+    }
+    avisoResultado.className = "aviso aviso-exito";
+    avisoResultado.textContent = datos.ticket.estado === "finalizado"
+      ? "Registraste el precio final. El trabajo quedó terminado."
+      : "Registraste el precio final. Le avisamos al cliente para que lo acepte.";
+    guardarDetalleFlotante();
+    refAbierto = null;
+    cargarTab(tabActual);
+  });
+
   // --- Tarjeta resumen de un pedido ---
 
   function lineaFecha(ticket) {
@@ -97,8 +208,12 @@
       elemento("dt", "", "Estado"), elemento("dd", "", estadoPedido.etiqueta(ticket.estado))
     );
     item.append(titulo, info);
-    if (ticket.estado === "cerrado" && ticket.motivo_cierre) {
-      item.append(elemento("p", "", `Se cerró: ${estadoPedido.motivo(ticket.motivo_cierre, true)}.`));
+    const precio = textoPrecio(ticket);
+    if (precio) {
+      item.append(elemento("p", "", precio));
+    }
+    if (ticket.motivo_cierre_texto) {
+      item.append(elemento("p", "", `Se cerró: ${ticket.motivo_cierre_texto}.`));
     }
     const boton = elemento("button", "boton-secundario", "Ver detalle");
     boton.type = "button";
@@ -112,6 +227,8 @@
 
   function guardarDetalleFlotante() {
     detalle.hidden = true;
+    bloquePrecio.hidden = true;
+    ticketAbierto = null;
     confirmarAccion.hidden = true;
     document.querySelector("main").append(detalle, confirmarAccion);
   }
@@ -132,8 +249,11 @@
         ["Teléfono del cliente", ticket.contacto.telefono]
       );
     }
-    if (ticket.estado === "cerrado" && ticket.motivo_cierre) {
-      filas.push(["Por qué se cerró", estadoPedido.motivo(ticket.motivo_cierre, true)]);
+    if (ticket.precio) {
+      filas.push(["Precio final", textoPrecio(ticket)]);
+    }
+    if (ticket.motivo_cierre_texto) {
+      filas.push(["Por qué se cerró", ticket.motivo_cierre_texto]);
     }
     const datosDetalle = document.getElementById("datos-detalle");
     datosDetalle.replaceChildren();
@@ -146,6 +266,7 @@
     botonRechazar.hidden = !esNuevo;
     avisoDetalle.className = "aviso";
     avisoDetalle.replaceChildren();
+    pintarPrecio(ticket);
   }
 
   async function abrirDetalle(ref, item) {
@@ -270,7 +391,9 @@
   }
 
   async function cargarListaEstado(estado) {
-    const { estado: cod, datos } = await api.obtener(`${RUTA}?estado=${estado}&pagina=${paginas[estado]}`);
+    // Historial: sin «estado», el servidor devuelve todos los pedidos (CA-08.1).
+    const filtro = estado === "historial" ? "" : `estado=${estado}&`;
+    const { estado: cod, datos } = await api.obtener(`${RUTA}?${filtro}pagina=${paginas[estado]}`);
     if (cod === 401) {
       sesionTerminada();
       return false;

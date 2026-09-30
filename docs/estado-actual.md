@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S4 cerrado, etiqueta `sprint-4`; suite 1680; siguiente: S5).
+Última actualización: 2026-09-30 (S5 en curso: incrementos 0, 1 y 2 cerrados; siguiente: incremento 3).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -58,8 +58,15 @@
   - cierre por vencimiento: tarea `cerrar_vencidos` del planificador (`skip_locked`) y protección al actuar (cierra, guarda y responde 409), con autor Sistema;
   - `ticket_cerrado` va a ambas partes; con `bloque_tomado`, el aviso del cliente trae `enlace` a `buscar.html` (CA-23.5).
   - bandejas: `GET /api/{clientes,maestros}/tickets?estado=` (un valor de los 4 estados; otro → 400 en `estado`). Pantallas `pedir-trabajo`, `mis-pedidos` (cliente) y `mis-trabajos` (maestro); borrador de pedido por clave `altiro.pedir-trabajo.<m>.<b>.<f>.<s>`.
+- **Precio final (ADR-026, E-1 y E-5; S5 inc. 1-2):**
+  - vigente en `ticket` (`monto_final`, `monto_final_en`, `monto_final_autor_id`, `precio_aceptado_en`); historial en `precio_final_evento` (solo inserción, triggers, `managed=False`);
+  - CHECK: `finalizado` exige `monto_final` y (por trabajo con monto igual al publicado o `precio_aceptado_en`); monto, fecha y autor van juntos; sin precio fuera de `aceptado`/`finalizado`;
+  - `POST /api/tickets/<ref>/precio-final {monto}` (maestro, con `ahora ≥ inicio_en`), `…/aceptacion {monto}` y `…/objecion` (cliente); `transiciones.registrar_precio/aceptar_precio/objetar_precio`; repetir → 200; aceptar un monto distinto del vigente → 409; finalizado no cambia de precio (409);
+  - la otra parte → `ParteEquivocada` (403 registrado); tercero → 404 registrado;
+  - avisos `precio_registrado` (al cliente), `precio_objetado` (al maestro), `orden_finalizada` (a la parte que no actuó); se reactivan si ya existían;
+  - bandejas: sin `estado` → historial completo; cada ticket trae `precio` (`por_aceptar`/`acordado`) y `motivo_cierre_texto`; el maestro, además, `precio_registrable`. Pestaña «Historial» en `mis-pedidos` y `mis-trabajos`.
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
-- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso y cierre). Fechas con time-machine.
+- **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso y cierre; precio final: C-09 a C-15, A-06 a A-08). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
 
 ## Decisiones provisionales abiertas
@@ -81,3 +88,5 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 | 2026-09-30 | S4 incrementos 5 y 6 (transiciones y cierre) | backend (principal) | ~177 mil (69 pasos; dos incrementos juntos) |
 | 2026-09-30 | QA de cierre del S4 (incremento 9) | qa (Sonnet) | ~195 mil (83 pasos) |
 | 2026-09-30 | S4 incremento 7: QA y re-verificación (el código venía hecho; correcciones del coordinador) | qa (Sonnet) | ~331 mil (159 mil + 172 mil) |
+| 2026-09-30 | Propuesta S5 y ADR-026 | architect (principal) | ~109 mil (36 pasos) |
+| 2026-09-30 | S5 incrementos 1 y 2 (precio final, historial y pantallas) | backend (principal) | ~206 mil (69 pasos; dos incrementos juntos) |

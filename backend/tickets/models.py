@@ -14,6 +14,9 @@
   UPDATE, DELETE y TRUNCATE, y sin FK (ni de autor ni de ticket: una FK
   impediría el vaciado de las pruebas ``transaction=True``, igual que en
   ``bitacora``). No es la bitácora administrativa (RF-37, M-03).
+- Precio final (RF-26 a RF-28; ADR-026, E-1): el valor vigente en ``ticket``
+  (``monto_final``, su fecha y autor, y ``precio_aceptado_en``) y cada acción
+  en ``PrecioFinalEvento``, de solo inserción con el mismo patrón de ADR-010.
 - ``AvisoTicket``: avisos dentro de la aplicación (ADR-024). No guarda datos
   personales: el texto se arma al mostrarlo, con la serialización de quien lo lee.
 
@@ -117,6 +120,14 @@ class Ticket(models.Model):
     aceptado_en = models.DateTimeField(null=True, blank=True)
     finalizado_en = models.DateTimeField(null=True, blank=True)
     cerrado_en = models.DateTimeField(null=True, blank=True)
+    # Precio final vigente (RF-26, RF-27; ADR-026, E-1). El historial va en ``precio_final_evento``.
+    monto_final = models.PositiveIntegerField(null=True, blank=True)
+    monto_final_en = models.DateTimeField(null=True, blank=True)
+    monto_final_autor = models.ForeignKey(
+        Usuario, on_delete=models.PROTECT, related_name="+", db_column="monto_final_autor_id",
+        null=True, blank=True, db_index=False,
+    )
+    precio_aceptado_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "ticket"
@@ -197,6 +208,37 @@ class Ticket(models.Model):
                 condition=Q(finalizado_en__isnull=True) | Q(finalizado_en__gte=F("aceptado_en")),
                 name="ticket_finalizado_despues_de_aceptado",
             ),
+            # Precio final (ADR-026, E-1; propuesta del S5, §3.1).
+            models.CheckConstraint(
+                condition=Q(monto_final__isnull=True) | (Q(monto_final__gt=0) & Q(monto_final__lte=MONTO_MAXIMO)),
+                name="ticket_monto_final_valido",
+            ),
+            # Monto, fecha y autor se registran juntos.
+            models.CheckConstraint(
+                condition=Q(monto_final__isnull=True, monto_final_en__isnull=True, monto_final_autor__isnull=True)
+                | Q(monto_final__isnull=False, monto_final_en__isnull=False, monto_final_autor__isnull=False),
+                name="ticket_monto_final_con_fecha_y_autor",
+            ),
+            models.CheckConstraint(
+                condition=Q(precio_aceptado_en__isnull=True) | Q(monto_final__isnull=False),
+                name="ticket_aceptacion_exige_monto_final",
+            ),
+            models.CheckConstraint(
+                condition=Q(monto_final__isnull=True) | Q(estado__in=ESTADOS_QUE_OCUPAN),
+                name="ticket_monto_final_solo_aceptado_o_finalizado",
+            ),
+            # RF-27, CA-16.2: finalizado exige monto final y, si no es el mismo monto por trabajo, la aceptación.
+            models.CheckConstraint(
+                condition=~Q(estado=EstadoTicket.FINALIZADO)
+                | (
+                    Q(monto_final__isnull=False)
+                    & (
+                        Q(modalidad=Modalidad.POR_TRABAJO, monto_final=F("monto_publicado"))
+                        | Q(precio_aceptado_en__isnull=False)
+                    )
+                ),
+                name="ticket_finalizado_con_precio",
+            ),
             # D-9: un bloque aceptado o finalizado por maestro e inicio (el cruce de rangos lo
             # protege el bloqueo por maestro, ADR-023, punto 4; sin EXCLUDE gist).
             models.UniqueConstraint(
@@ -238,12 +280,39 @@ class TicketEvento(ModeloSoloInsercion):
         return f"Evento de ticket {self.pk}"
 
 
+class AccionPrecio(models.TextChoices):
+    REGISTRADO = "registrado", "Registrado por el maestro"
+    ACEPTADO = "aceptado", "Aceptado por el cliente"
+    OBJETADO = "objetado", "Objetado por el cliente"
+
+
+class PrecioFinalEvento(ModeloSoloInsercion):
+    """Cada acción sobre el precio final de un ticket (CA-16.1; ADR-026, E-1). Sin FK (patrón de ADR-010)."""
+
+    id = models.BigAutoField(primary_key=True)
+    ticket_id = models.BigIntegerField()
+    accion = models.CharField(max_length=12, choices=AccionPrecio.choices)
+    monto = models.PositiveIntegerField()
+    autor_id = models.BigIntegerField()
+    fecha = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = "precio_final_evento"
+
+    def __str__(self):
+        return f"Evento de precio {self.pk}"
+
+
 class TipoAvisoTicket(models.TextChoices):
-    """ADR-024, punto 2."""
+    """ADR-024, punto 2; propuesta del S5, §3.1."""
 
     TICKET_NUEVO = "ticket_nuevo", "Pedido nuevo"
     TICKET_CERRADO = "ticket_cerrado", "Pedido cerrado"
     TICKET_ACEPTADO = "ticket_aceptado", "Pedido aceptado"
+    PRECIO_REGISTRADO = "precio_registrado", "Precio por aceptar"
+    PRECIO_OBJETADO = "precio_objetado", "Precio no aceptado"
+    ORDEN_FINALIZADA = "orden_finalizada", "Trabajo terminado"
 
 
 class AvisoTicket(models.Model):

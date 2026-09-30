@@ -55,7 +55,7 @@ from django.utils import timezone
 from PIL import Image
 
 from catalogo.management.commands.cargar_datos_demo import cargar_datos_demo
-from catalogo.models import Servicio, ServicioModalidad
+from catalogo.models import Modalidad, Servicio, ServicioModalidad
 from expediente import vigencia
 from expediente.models import EstadoExpediente, Expediente, OficioMaestro
 from identidad import servicios as identidad
@@ -310,6 +310,11 @@ def _tickets_de(azar, perfil, clientes, ahora, hoy):
             ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.FINALIZADO, enviado)
             ticket.aceptado_en = _entre(azar, enviado, ticket.vence_en)
             ticket.finalizado_en = una.fin_en + datetime.timedelta(hours=1)
+            # Precio final coherente con el CHECK de ADR-026, E-1: el monto publicado, aceptado si es por hora.
+            ticket.monto_final, ticket.monto_final_en = ticket.monto_publicado, ticket.finalizado_en
+            ticket.monto_final_autor_id = perfil.pk
+            if ticket.modalidad == Modalidad.POR_HORA:
+                ticket.precio_aceptado_en = ticket.finalizado_en
             pasos = [
                 (ticket.aceptado_en, EstadoTicket.PENDIENTE, EstadoTicket.ACEPTADO, perfil.pk, None),
                 (ticket.finalizado_en, EstadoTicket.ACEPTADO, EstadoTicket.FINALIZADO, perfil.pk, None),

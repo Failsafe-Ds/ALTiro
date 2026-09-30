@@ -11,6 +11,11 @@ Dos listas explícitas de campos, nunca el modelo completo:
   bloque ``contacto`` (nombre, teléfono y dirección) solo existe si el ticket
   fue aceptado; un ticket cerrado desde pendiente nunca la revela.
 
+Ambas agregan ``precio`` (el precio final vigente, el mismo monto para las dos
+partes; ``None`` si no hay) y ``motivo_cierre_texto`` en palabras de quien lee
+(historial, CA-08.2). ``para_maestro`` agrega ``precio_registrable`` (RF-26:
+aceptado y con el horario ya empezado).
+
 Nunca: ids internos (salvo ``numero``, el número visible de ADR-023, punto 1),
 RUT, correo, la comuna del perfil del cliente ni datos del expediente.
 ``consulta()`` carga en una sola consulta todo lo que usan las dos listas.
@@ -19,7 +24,8 @@ from django.utils import timezone
 
 from catalogo.models import Modalidad
 from perfil import agenda, ocurrencias
-from tickets.models import ESTADOS_QUE_OCUPAN, Ticket
+from tickets import avisos
+from tickets.models import ESTADOS_QUE_OCUPAN, EstadoTicket, Ticket
 
 
 def consulta():
@@ -67,6 +73,24 @@ def _comunes(ticket):
     }
 
 
+def _precio(ticket):
+    """Precio final vigente (RF-26, RF-28): "por_aceptar" mientras está aceptado, "acordado" al finalizar."""
+    if ticket.monto_final is None:
+        return None
+    return {
+        "monto": ticket.monto_final,
+        "estado": "acordado" if ticket.estado == EstadoTicket.FINALIZADO else "por_aceptar",
+        "registrado_en": _instante(ticket.monto_final_en),
+        "aceptado_en": _instante(ticket.precio_aceptado_en),
+    }
+
+
+def _con_historial(datos, ticket, para_maestro):
+    datos["precio"] = _precio(ticket)
+    datos["motivo_cierre_texto"] = avisos.motivo_cierre_texto(ticket, para_maestro)
+    return datos
+
+
 def fue_aceptado(ticket):
     """El contacto solo existe si el ticket fue aceptado (aceptado o finalizado; ADR-023, punto 5)."""
     return ticket.estado in ESTADOS_QUE_OCUPAN
@@ -79,7 +103,7 @@ def para_cliente(ticket):
     datos["maestro"] = {"ref": str(maestro.perfil_publico.ref), "nombre": maestro.usuario.nombre}
     if fue_aceptado(ticket):
         datos["contacto"] = {"telefono": maestro.usuario.telefono}
-    return datos
+    return _con_historial(datos, ticket, para_maestro=False)
 
 
 def para_maestro(ticket):
@@ -87,7 +111,8 @@ def para_maestro(ticket):
     if fue_aceptado(ticket):
         cliente = ticket.cliente.usuario
         datos["contacto"] = {"nombre": cliente.nombre, "telefono": cliente.telefono, "direccion": ticket.direccion}
-    return datos
+    datos["precio_registrable"] = ticket.estado == EstadoTicket.ACEPTADO and timezone.now() >= ticket.inicio_en
+    return _con_historial(datos, ticket, para_maestro=True)
 
 
 def para(ticket, usuario):

@@ -110,7 +110,11 @@ def ticket_directo(cliente_usuario, maestro, fecha, inicio, fin, estado=EstadoTi
     if estado in (EstadoTicket.ACEPTADO, EstadoTicket.FINALIZADO):
         campos["aceptado_en"] = enviado_en
     if estado == EstadoTicket.FINALIZADO:
-        campos["finalizado_en"] = enviado_en
+        # CHECK de finalización (ADR-026, E-1): el monto publicado y, si es por hora, aceptado.
+        campos.update(finalizado_en=enviado_en, monto_final=servicio_maestro.monto, monto_final_en=enviado_en,
+                      monto_final_autor_id=maestro.pk)
+        if servicio_maestro.modalidad == "por_hora":
+            campos["precio_aceptado_en"] = enviado_en
     if estado == EstadoTicket.CERRADO:
         campos["cerrado_en"] = enviado_en
         campos["motivo_cierre"] = motivo or MotivoCierre.RECHAZADO_MAESTRO

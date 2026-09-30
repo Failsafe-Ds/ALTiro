@@ -17,6 +17,11 @@
   ticket) y ``.../cancelacion`` (el cliente del ticket): ``tickets.transiciones``.
   Un tercero recibe el 404 idéntico con registro; la otra parte, 403 registrado
   (ADR-023, punto 6). 200 con el ticket; 409 accionable si el estado no lo permite.
+- ``POST /api/tickets/<uuid:ref>/precio-final`` ``{monto}`` (el maestro del
+  ticket), ``.../precio-final/aceptacion`` ``{monto}`` y ``.../precio-final/objecion``
+  (sin cuerpo; el cliente del ticket): RF-26 a RF-28, CA-16.x; ADR-026, E-1 y E-5.
+  Mismas políticas que las acciones anteriores (``ParteEquivocada`` para la otra parte).
+  Sin ``estado``, las bandejas devuelven el historial completo (CA-08.1).
 
 La respuesta depende de la relación con **ese** ticket (``tickets.serializacion``).
 Todas con ``Cache-Control: no-store``.
@@ -40,6 +45,7 @@ from comun.api import (
     respuesta_error,
 )
 from expediente.errores import ErrorEstado
+from perfil.servicios import _monto as validar_monto
 from tickets import avisos as avisos_ticket
 from tickets import serializacion, servicios, transiciones
 from tickets.politicas import PoliticaTicket
@@ -184,22 +190,45 @@ MENSAJE_SOLO_MAESTRO = "Solo el maestro que recibió este pedido puede aceptarlo
 MENSAJE_SOLO_CLIENTE = "Solo el cliente que envió este pedido puede cancelarlo. Si no puedes tomarlo, recházalo."
 
 
+MENSAJE_SOLO_MAESTRO_PRECIO = "Solo el maestro que hizo este trabajo puede registrar su precio final."
+MENSAJE_SOLO_CLIENTE_PRECIO = (
+    "Solo el cliente que pidió este trabajo puede aceptar o rechazar su precio final. "
+    "Si cobraste otro monto, regístralo de nuevo."
+)
+CAMPOS_PRECIO = {"monto"}
+
+
 def _sin_cuerpo(request):
     """Estas acciones no reciben datos: un cuerpo con claves se rechaza como en ADR-013, E-2."""
     if request.body:
         leer_json(request, set())
 
 
-def _accion(request, ref, del_maestro, hacer):
+def _monto(request):
+    """``{monto}``: entero en pesos de 1 a 10.000.000 (mismas reglas que el monto publicado, ADR-019)."""
+    errores = {}
+    monto = validar_monto(leer_json(request, CAMPOS_PRECIO), errores)
+    if errores:
+        raise ErroresDeCampo(errores)
+    return (monto,)
+
+
+def _sin_datos(request):
     _sin_cuerpo(request)
+    return ()
+
+
+def _accion(request, ref, del_maestro, hacer, leer=_sin_datos, mensajes=(MENSAJE_SOLO_MAESTRO, MENSAJE_SOLO_CLIENTE)):
+    """Acción de una parte del ticket: ``hacer(ticket, usuario, *leer(request))``. El cuerpo se valida primero."""
+    datos = leer(request)
     # Un tercero (incluidos los roles administrativos) recibe el 404 idéntico con registro (CA-25.1).
     ticket = obtener_autorizado(serializacion.consulta(), ref, request.usuario, PoliticaTicket())
     duena = ticket.perfil_maestro_id if del_maestro else ticket.cliente_id
     if request.usuario.pk != duena:
-        mensaje = MENSAJE_SOLO_MAESTRO if del_maestro else MENSAJE_SOLO_CLIENTE
+        mensaje = mensajes[0] if del_maestro else mensajes[1]
         raise ParteEquivocada(PoliticaTicket.entidad, ticket.ref, mensaje)
     try:
-        hacer(ticket, request.usuario)
+        hacer(ticket, request.usuario, *datos)
     except ErrorEstado as error:
         return respuesta_error(409, error.mensaje)
     ticket = serializacion.consulta().get(pk=ticket.pk)
@@ -222,3 +251,26 @@ def rechazo(request, ref):
 @manejar_errores
 def cancelacion(request, ref):
     return _accion(request, ref, False, transiciones.cancelar)
+
+
+# --- Precio final (S5, incremento 1; ADR-026, E-1 y E-5) ---
+
+MENSAJES_PRECIO = (MENSAJE_SOLO_MAESTRO_PRECIO, MENSAJE_SOLO_CLIENTE_PRECIO)
+
+
+@metodos("POST")
+@manejar_errores
+def precio_final(request, ref):
+    return _accion(request, ref, True, transiciones.registrar_precio, _monto, MENSAJES_PRECIO)
+
+
+@metodos("POST")
+@manejar_errores
+def precio_aceptacion(request, ref):
+    return _accion(request, ref, False, transiciones.aceptar_precio, _monto, MENSAJES_PRECIO)
+
+
+@metodos("POST")
+@manejar_errores
+def precio_objecion(request, ref):
+    return _accion(request, ref, False, transiciones.objetar_precio, _sin_datos, MENSAJES_PRECIO)
