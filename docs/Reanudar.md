@@ -53,4 +53,4 @@ El costo de un agente crece con **lo que lee × los pasos que da**. Todo lo de a
 12. **Agrupar incrementos** que tocan los mismos archivos y ADR en un solo encargo (por ejemplo, los incrementos 5 y 6 del S4).
 
 ## Siguiente trabajo
-S4, incremento 9 (mediciones RNF con 1.000 tickets y QA de cierre). Revisión pendiente de `architect`, sin bloquear: la excepción `ParteEquivocada` (propuesta del S4, §11, aclaración 20). Ver `docs/estado-actual.md` → "Pendientes".
+S5 (mensajería, evaluación, bitácora e indicadores), en una **sesión nueva** (regla 11). Primer paso: `architect` escribe la propuesta corta del S5 y un ADR, incluyendo la revisión pendiente de la excepción `ParteEquivocada` (propuesta del S4, §11, aclaración 20) y los pasos al S5 de DA-22 a DA-26. Ver `docs/estado-actual.md` → "Pendientes".

@@ -27,6 +27,8 @@ La parte que actúa ya la verificaron la política y la vista (ADR-023, punto 6)
 """
 from django.db import transaction
 from django.db.models import Q
+import datetime
+
 from django.utils import timezone
 
 from expediente import vigencia
@@ -76,7 +78,8 @@ class PedidoVencido(ErrorEstado):
 
 def motivo_vencimiento(ticket):
     """CA-23.6: a las 28 horas exactas (o menos) gana la proximidad del horario."""
-    if ticket.inicio_en - ANTICIPACION_MINIMA <= ticket.enviado_en + PLAZO_RESPUESTA:
+    # En UTC, como calcular_vence_en (DEF-QA-005).
+    if ticket.inicio_en.astimezone(datetime.timezone.utc) - ANTICIPACION_MINIMA <= ticket.enviado_en + PLAZO_RESPUESTA:
         return MotivoCierre.VENCIDO_PROXIMIDAD
     return MotivoCierre.VENCIDO_PLAZO
 

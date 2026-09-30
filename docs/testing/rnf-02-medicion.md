@@ -90,3 +90,17 @@ Con 16 tarjetas el navegador pidió solo 8 fotos: `loading="lazy"` deja las dem�
 - **Presupuesto de JS de la propuesta (30 KB): no se cumple.** La página carga 51,4 KB de JS sin comprimir (buscar.js 20,7 KB, más los módulos compartidos `formulario.js`, `api.js`, `formato.js`, `territorio.js` y `hora24.js`, que no se duplican). Ese presupuesto es una meta de diseño de la propuesta, no el umbral del informe, que se cumple con holgura. Opciones para el arquitecto: activar `gzip` en el proxy (el JS quedaría cerca de 15 KB transferidos) o aceptar el presupuesto como "30 KB comprimidos". **No se cambió `infra/`**: queda para `architect` o `backend`.
 - **Chromium de Playwright, no un teléfono.** La emulación de red de CDP no reproduce la CPU lenta de un teléfono de gama baja ni la pérdida de paquetes. El pase manual de RNF-18 en Chrome de Android (con la red limitada del navegador) sirve de contraste.
 - **Firefox no se midió:** Playwright no ofrece emulación de red en Firefox. RNF-02 no nombra un navegador; se usó el mismo motor que Chrome en Android.
+
+## 4. Medición de cierre S4 (volumen completo: 100 maestros, 1.000 tickets)
+
+Preparado por: agente `qa`, 2026-09-30. Commit `f3e4fed`. Pila `altiro-volumen` con los 1.000 tickets de `rnf-01-medicion.md`.
+
+- Método: el de D-19 / §1 de este documento. Playwright 1.63.0 con Chromium 153.0.8010.12 (imagen `mcr.microsoft.com/playwright/python:v1.63.0-noble`), 390 × 800 móvil, sin caché, contexto nuevo por corrida, CDP a 4 Mbps de bajada, 1 Mbps de subida y 150 ms. 1 corrida de calentamiento y 5 medidas. Script: `scripts/qa-s4/rnf02.py`. "Utilizable": buscar = tarjetas pintadas (`resultados-listos` equivalente, dos cuadros después de ver el enlace «Ver perfil»); ficha = perfil visible y al menos un horario listado.
+- Cambio respecto de §2: el proxy ahora comprime con gzip, por lo que los bytes bajan.
+
+| Pantalla | Utilizable (mediana / máximo) | Primera pantalla (`transferSize`) | Peticiones | Umbral |
+|---|---|---|---|---|
+| `buscar.html?oficio=cerrajeria&region=8&comuna=8111` (16 tarjetas) | 0,554 s / 0,567 s | 35,8 KiB (36.687 B; CDP 38.836 B) | 20 | 3 s y 1,5 MB |
+| `perfil-maestro.html?m=<ref>` (ficha con horarios libres y ocupados) | 0,530 s / 0,535 s | 17,8 KiB (18.240 B; CDP 18.758 B) | 7 | 3 s y 1,5 MB |
+
+**Veredicto RNF-02: cumple** con el volumen completo (peor caso 0,567 s frente a 3 s; 35,8 KiB frente a 1,5 MB). Las limitaciones de §3 siguen vigentes (servidor local, Chromium y no un teléfono, fotos sintéticas). Con gzip, el presupuesto de JS de 30 KB de la propuesta se cumple como "comprimido": toda la primera pantalla de buscar pesa 35,8 KiB.

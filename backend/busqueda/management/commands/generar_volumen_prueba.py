@@ -265,7 +265,7 @@ def _cerrar(azar, ticket):
     motivo = azar.choice(["vencido", MotivoCierre.CANCELADO_CLIENTE, MotivoCierre.RECHAZADO_MAESTRO,
                           MotivoCierre.BLOQUE_TOMADO])
     if motivo == "vencido":
-        proximidad = ticket.inicio_en - ANTICIPACION_MINIMA <= ticket.enviado_en + PLAZO_RESPUESTA
+        proximidad = ticket.inicio_en.astimezone(datetime.timezone.utc) - ANTICIPACION_MINIMA <= ticket.enviado_en + PLAZO_RESPUESTA
         motivo = MotivoCierre.VENCIDO_PROXIMIDAD if proximidad else MotivoCierre.VENCIDO_PLAZO
         ticket.cerrado_en, autor = ticket.vence_en, None
     else:

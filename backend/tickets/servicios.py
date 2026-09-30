@@ -112,7 +112,14 @@ class HorarioNoDisponible(Exception):
 
 
 def calcular_vence_en(enviado_en, inicio_en):
-    """ADR-023, punto 1: ``LEAST(enviado_en + 24 h, inicio_en - 4 h)`` (RF-21, RF-22)."""
+    """ADR-023, punto 1: ``LEAST(enviado_en + 24 h, inicio_en - 4 h)`` (RF-21, RF-22).
+
+    Se calcula en UTC: sumar o restar horas a una fecha con zona America/Santiago
+    es aritmética de reloj de pared y se desvía una hora al cruzar el cambio de
+    horario (DEF-QA-005). ADR-020: los plazos se miden en tiempo real.
+    """
+    enviado_en = enviado_en.astimezone(datetime.timezone.utc)
+    inicio_en = inicio_en.astimezone(datetime.timezone.utc)
     return min(enviado_en + PLAZO_RESPUESTA, inicio_en - ANTICIPACION_MINIMA)
 
 

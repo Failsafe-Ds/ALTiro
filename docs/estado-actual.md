@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S4, incrementos 1 a 8 hechos; suite 1679).
+Última actualización: 2026-09-30 (S4 cerrado, etiqueta `sprint-4`; suite 1680; siguiente: S5).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -11,7 +11,7 @@
 | S1 Identidad, roles y acceso | Cerrado | `sprint-1`, `docs/testing/cierre-sprint-1.md` |
 | S2 Expediente y curatoría | Cerrado | `sprint-2`, `cierre-sprint-2.md` |
 | S3 Catálogo, cobertura y agenda | Cerrado con observaciones | `sprint-3`, `cierre-sprint-3.md` |
-| S4 Búsqueda y ticket | En curso: incrementos 1 a 8 hechos; falta el 9 (cierre) | propuesta §9 y §11 (aclaraciones 27-29) |
+| S4 Búsqueda y ticket | Cerrado con observaciones | `sprint-4`, `cierre-sprint-4.md` |
 | S5 Mensajería, evaluación, bitácora e indicadores | No iniciado | — |
 
 ## Stack y cómo correr
@@ -66,11 +66,10 @@
 ADR-016 E-1 y ADR-018 a ADR-024 están en "Aceptada — PROVISIONAL" y se revisan en la revisión del sprint. Las preguntas al representante P-01 a P-23 (`docs/alcance/preguntas-representante-s2.md`) siguen sin respuesta.
 
 ## Pendientes y riesgos vigentes
-- **S4:**
-  - incremento 7 hecho (QA en `docs/testing/qa-s4-incremento-7.md`, DEF-QA-001 a 004 corregidos). Queda para el representante: horarios alternativos del 409 (CA-06.2) como texto sin enlace directo, y "Ingresar" desde `pedir-trabajo` sin retorno a la página;
-  - incremento 8: RF-12 ya estaba construido desde los incrementos 1-2 (aclaración 29); su evidencia en navegador va en el QA de cierre;
-  - incremento 9: mediciones de RNF-01 a 04, RNF-21 y RNF-14 a 18 con 1.000 tickets en una pila aparte, más el QA.
-- **RNF-13** sin ejecutar (DA-17: antes de la revisión del S4; requiere personas).
+- **Pasan al S5 (DA-22 a DA-26):** RF-28 completo (precio acordado), evidencia de RF-11/CA-03.3 y calificación de RF-13/RF-14/CA-05.1, conversación de CA-15.2, RNF-03 con 5.000 mensajes (y nueva medición de RNF-01).
+- **Para el representante (S4):** horarios alternativos del 409 (CA-06.2) como texto sin enlace; "Ingresar" desde `pedir-trabajo` sin retorno; sugerencias limitadas a 5.
+- **Plazos:** `calcular_vence_en` y la proximidad se calculan en UTC (DEF-QA-005); toda aritmética de horas sobre fechas con zona Santiago debe pasar por UTC.
+- **RNF-13** sin ejecutar (DA-26: antes de la revisión del S5; requiere personas). Riesgo más alto pendiente del equipo.
 - **RNF-18:** falta el pase manual en navegadores de marca y en Android.
 - **Observaciones del S3:** OBS-S3-02 (precios de referencia sin pantalla pública), OBS-S3-04 (scripts de Playwright sin el campo `bloques`) y OBS-S3-05 (contrastes del S3).
 
@@ -80,4 +79,5 @@ ADR-016 E-1 y ADR-018 a ADR-024 están en "Aceptada — PROVISIONAL" y se revisa
 | 2026-09-29 | QA de cierre del S3 | qa (principal) | ~338 mil |
 | 2026-09-29 | S4 incremento 4 (tickets) | backend (principal) | ~341 mil |
 | 2026-09-30 | S4 incrementos 5 y 6 (transiciones y cierre) | backend (principal) | ~177 mil (69 pasos; dos incrementos juntos) |
+| 2026-09-30 | QA de cierre del S4 (incremento 9) | qa (Sonnet) | ~195 mil (83 pasos) |
 | 2026-09-30 | S4 incremento 7: QA y re-verificación (el código venía hecho; correcciones del coordinador) | qa (Sonnet) | ~331 mil (159 mil + 172 mil) |

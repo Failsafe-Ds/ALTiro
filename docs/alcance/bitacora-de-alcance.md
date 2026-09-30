@@ -24,15 +24,20 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | DA-10 | Uso de la bitácora desde S2 | S2 | Adelanto (definitivo) |
 | DA-11 | RNF-23 sin medir en equipo limpio | Medido el 2026-09-28 (47 s); confirmar en el laboratorio | Temporal (cerrado) |
 | DA-12 | RF-34, CA-24.1 y CA-24.3 (servicios) pasan a S3 | S3 (cerrado el 2026-09-29) | Temporal (cerrado) |
-| DA-13 | CA-24.4 pasa a S4 | S4 | Temporal |
-| DA-14 | Evidencia de RNF-25 pasa a S3 y S4 | S3 (parte S3 cerrada el 2026-09-29) y S4 | Temporal |
+| DA-13 | CA-24.4 pasa a S4 | S4 (cerrado el 2026-09-30, regla F-07) | Temporal (cerrado) |
+| DA-14 | Evidencia de RNF-25 pasa a S3 y S4 | S3 (parte S3 cerrada el 2026-09-29) y S4 (parte búsqueda cerrada el 2026-09-30) | Temporal (cerrado) |
 | DA-15 | Adelanto: catálogo mínimo de oficios (S3 → S2) | S2; RF-36 cerrado en S3 el 2026-09-29 | Adelanto (cerrado) |
 | DA-16 | Adelanto: planificador (S4 → S2) | S2 (implementado el 2026-09-28) | Adelanto |
-| DA-17 | Ejecución de RNF-13 al inicio del S3 (vencido; pasa a antes de la revisión del S4) | S4, antes de la revisión | Temporal |
+| DA-17 | Ejecución de RNF-13 al inicio del S3 (vencido dos veces; pasa a antes de la revisión del S5) | S5, antes de la revisión | Temporal (vencido; ver DA-26) |
 | DA-18 | Adelanto: perfil público parcial (RF-14) de S4 a S3 | S3 | Adelanto |
 | DA-19 | Adelanto: foto del maestro (dato de RF-13) de S4 a S3 | S3 | Adelanto |
-| DA-20 | Evidencia de RF-06 en "resultados", CA-13.2 y CA-14.3 pasan a S4 | S4 | Temporal |
+| DA-20 | Evidencia de RF-06 en "resultados", CA-13.2 y CA-14.3 pasan a S4 | S4 (cerrado el 2026-09-30) | Temporal (cerrado) |
 | DA-21 | RNF-18 se aplica retroactivamente a las pantallas de S1 y S2 | S3 | Ampliación de verificación |
+| DA-22 | Adelanto parcial de RF-28: lista de pedidos del cliente (S5 → S4) | S4 | Adelanto |
+| DA-23 | Evidencia de RF-11 y CA-03.3, y calificación de RF-13, RF-14 y CA-05.1 pasan a S5 | S5 | Temporal |
+| DA-24 | Conversación de CA-15.2 pasa a S5 | S5 | Temporal |
+| DA-25 | RNF-03 con 5.000 mensajes (y nueva medición de RNF-01) pasa a S5 | S5 | Temporal |
+| DA-26 | RNF-13 vence de nuevo: la ejecución pasa a antes de la revisión del S5 | S5 | Temporal |
 
 ## Registros
 
@@ -244,3 +249,52 @@ Origen: `docs/decisions/sprint-3-propuesta-arquitectura.md`, §7, y las decision
 - **Impacto:** más trabajo de verificación en S3; si una pantalla de S1 o S2 no cumple, su corrección entra al S3.
 - **Autorización:** equipo de desarrollo (decisión provisional).
 - **Relacionado:** RNF-18, NTI-11.
+
+## Sprint 4
+
+Registros previstos en la propuesta del S4 (§10) y detectados en el QA de cierre (`docs/testing/cierre-sprint-4.md`, DEF-QA-006). Cierres del S4: DA-13 (CA-24.4, regla F-07), DA-14 en su parte de búsqueda (RNF-25, `test_rnf25_*`) y DA-20 (RF-06 en resultados, CA-13.2 y CA-14.3), todos con evidencia en el cierre del S4.
+
+### DA-22 — Adelanto parcial de RF-28: lista de pedidos del cliente
+- **Fecha:** 2026-09-30 (propuesta del S4, §10; incremento 7).
+- **Alcance original:** RF-28 (historial de tickets del cliente con estado, fecha y precio acordado) es del S5.
+- **Cambio:** en el S4 se entrega la lista de pedidos del cliente por estado (`GET /api/clientes/tickets?estado=`, `mis-pedidos.html`), sin precio acordado.
+- **Motivo:** sin la bandeja no se puede demostrar el flujo de ticket del S4 (aceptar, rechazar, cancelar, avisos).
+- **Impacto:** RF-28 queda parcial; el precio acordado y el cierre completo del historial siguen en S5 (con RF-26 y RF-27, D-22).
+- **Autorización:** equipo de desarrollo (decisión provisional).
+- **Relacionado:** RF-28, HU-08; ADR-023, ADR-024.
+
+### DA-23 — RF-11 y CA-03.3, y la calificación de RF-13, RF-14 y CA-05.1 pasan a S5
+- **Fecha:** 2026-09-30 (propuesta del S4, §10; cierre del S4).
+- **Alcance original:** RF-11, RF-13 y RF-14 están en S4.
+- **Cambio:** el mecanismo de ordenamiento y desempate y la ficha quedan construidos, pero su evidencia con calificaciones (desempate de CA-03.3; calificación en la ficha de CA-05.1) se verifica en S5.
+- **Motivo:** las evaluaciones (HU-09, HU-10) son del S5; sin ellas no hay calificación que mostrar ni que desempatar.
+- **Impacto:** RF-11, RF-13 y RF-14 no se cierran completos en S4.
+- **Autorización:** equipo de desarrollo (decisión provisional).
+- **Relacionado:** RF-11, RF-13, RF-14, CA-03.3, CA-05.1; ADR-022.
+
+### DA-24 — La conversación de CA-15.2 pasa a S5
+- **Fecha:** 2026-09-30 (propuesta del S4, §10).
+- **Alcance original:** CA-15.2 (al aceptar, se ocupa el bloque, se revela la dirección y se habilita la conversación) se verifica en S4.
+- **Cambio:** en S4 se verifican la ocupación del bloque y la revelación de la dirección; la habilitación de la conversación, en S5.
+- **Motivo:** la mensajería es del S5 (CLAUDE.md §12).
+- **Impacto:** CA-15.2 queda parcial en S4.
+- **Autorización:** equipo de desarrollo (decisión provisional).
+- **Relacionado:** CA-15.2, RF-19; ADR-023.
+
+### DA-25 — RNF-03 con 5.000 mensajes pasa a S5
+- **Fecha:** 2026-09-30 (propuesta del S4, §10; cierre del S4).
+- **Alcance original:** RNF-03 (100 maestros, 1.000 tickets y 5.000 mensajes sin degradar RNF-01).
+- **Cambio:** en S4 se mide con 100 maestros, 300 servicios y 1.000 tickets (RNF-01 cumple: 100 % en 2 s o menos). Los 5.000 mensajes y la nueva medición de RNF-01 van en S5.
+- **Motivo:** los mensajes no existen hasta el S5.
+- **Impacto:** RNF-03 queda "infraestructura preparada / evidencia final pendiente".
+- **Autorización:** equipo de desarrollo (decisión provisional).
+- **Relacionado:** RNF-03, RNF-01; `docs/testing/rnf-01-medicion.md`.
+
+### DA-26 — La ejecución de RNF-13 vence de nuevo y pasa a antes de la revisión del S5
+- **Fecha:** 2026-09-30 (cierre del S4; DEF-QA-012 del S3 sigue abierto).
+- **Alcance original:** DA-17 la fijó antes de la revisión del S4.
+- **Cambio:** la sesión con tres personas externas y un teléfono real pasa a antes de la revisión del S5. RNF-13 sigue **sin evidencia y no se declara cumplido**.
+- **Motivo:** el trabajo automatizado no puede producirla; requiere que el equipo convoque a las personas.
+- **Impacto:** si no se ejecuta en el S5, RNF-13 queda sin evidencia al final del proyecto. Es la acción de riesgo más alta pendiente del equipo.
+- **Autorización:** pendiente de confirmación del equipo (registrada como provisional según `docs/Reanudar.md`).
+- **Relacionado:** RNF-13, DA-17; `docs/testing/rnf-13-protocolo.md`.
