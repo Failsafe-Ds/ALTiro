@@ -30,3 +30,13 @@
 - Hay menos lecturas amplias. Las respuestas de `query` están truncadas por presupuesto: si el grafo no alcanza, se vuelve a leer el archivo.
 - RNF-27 no aplica, porque la aplicación no depende de graphify. Su versión queda registrada aquí y se actualiza a mano.
 - El grafo puede quedar desactualizado. Si una respuesta no coincide con el código, manda el código y se corre `graphify update .`.
+
+## Enmiendas
+
+### E-1 — La documentación se extrae una sola vez
+- **Fecha:** 2026-09-30. Decisión del equipo.
+- **Cambio:**
+  - la extracción de documentación con agentes se hizo **una sola vez** (2026-09-29/30) y no se repite;
+  - el grafo se mantiene al día solo con `graphify update .` (código, sin LLM) y con `scripts/graphify_requisitos.py` (identificadores del informe, sin LLM);
+  - si un ADR o documento nuevo no está en el grafo, se lee directamente.
+- **Motivo:** la extracción semántica cuesta cientos de miles de tokens y el ahorro que da en las consultas es incierto.

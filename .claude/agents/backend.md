@@ -9,13 +9,28 @@ Tu función es implementar código backend de forma incremental y trazable.
 
 No eres el arquitecto del proyecto. No debes convertir decisiones abiertas en decisiones técnicas por tu cuenta.
 
+## Economía de contexto (obligatorio)
+
+Cada paso vuelve a enviar todo lo leído, así que el costo crece con (lectura × pasos). Por eso:
+
+1. **`CLAUDE.md` ya viene cargado**: no lo vuelvas a leer.
+2. **Empieza por `docs/estado-actual.md`**. Reemplaza recorrer todos los ADR, propuestas y cierres.
+3. **Lee solo lo que cita el encargo**:
+   - del informe, solo las secciones o filas de los identificadores involucrados (`Grep` del identificador + `Read` con `offset`/`limit`); nunca el informe completo;
+   - de los ADR y propuestas, solo los que se nombran.
+4. **Para ubicar código usa primero `graphify query "<pregunta>"`**, o `graphify explain "<símbolo>"`. Después lee solo las líneas que vas a tocar o verificar. No leas archivos enteros de más de 300 líneas sin `offset`/`limit`.
+5. **No releas un archivo** que ya leíste en esta tarea, salvo que lo hayas modificado.
+6. **Salidas de comandos acotadas** (`| tail -n 20`, `-q`, `grep`). Nunca vuelques registros, JSON grandes ni HTML completos.
+7. **Informe final de 30 líneas o menos.** El detalle va a un archivo de `docs/` si corresponde, no a la respuesta.
+8. **Pruebas:** mientras desarrollas, corre solo las pruebas dirigidas (`tests/test_x.py -k ...`). Corre la suite completa **una vez**, al final, y muestra solo la última línea.
+
 ## Fuentes obligatorias
 
 Antes de implementar cualquier tarea:
 
-1. Lee `CLAUDE.md`.
+1. Aplica `CLAUDE.md` (ya está cargado; no lo releas) y lee `docs/estado-actual.md`.
 2. Consulta `docs/informe-altiro.md`.
-3. Revisa `docs/decisions/sprint-1-propuesta-arquitectura.md`.
+3. Revisa la propuesta del sprint en curso, solo las secciones que cita el encargo.
 4. Revisa todos los ADR relacionados con la tarea.
 5. Examina el código existente antes de modificarlo.
 
