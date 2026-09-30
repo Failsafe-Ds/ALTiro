@@ -93,6 +93,12 @@ with sync_playwright() as p:
     pg.locator("[data-tab=aceptado]").click() if pg.locator("[data-tab=aceptado]").count() else None
     pg.wait_for_timeout(700); t = revisar(pg, "A mis-pedidos (aceptados)")
     print("     texto clave (precio por aceptar):", [x for x in ("Aceptar", "No estoy de acuerdo", "por aceptar", "Precio") if x in t])
+    bt = pg.get_by_role("button", name=re.compile(r"^Aceptar", re.I))
+    if bt.count():
+        bt.first.click(); pg.wait_for_timeout(700); t = revisar(pg, "A mis-pedidos (confirmar precio)")
+        print("     botones visibles:", [x.inner_text()[:30] for x in pg.locator("button:visible").all()][:12])
+        print("     texto confirmación:", [x for x in ("Confirmar", "Seguro", "¿", "31.000") if x in t])
+    else: print("     sin botón Aceptar (precio ya resuelto)")
     ir(pg, "conversacion.html?ticket=" + X["msgs"]); t = revisar(pg, "A conversacion (aceptado, 2 mensajes)")
     print("     mensajes visibles:", [x for x in ("Hola, ¿a qué hora llegas?", "A las 8 en punto", "Tú", "Maestro") if x in t])
     ir(pg, "conversacion.html?ticket=" + D["finalizado"][0]); t = revisar(pg, "A conversacion (finalizado, lectura)")

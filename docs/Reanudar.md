@@ -53,4 +53,9 @@ El costo de un agente crece con **lo que lee × los pasos que da**. Todo lo de a
 12. **Agrupar incrementos** que tocan los mismos archivos y ADR en un solo encargo (por ejemplo, los incrementos 5 y 6 del S4).
 
 ## Siguiente trabajo
-S5 (mensajería, evaluación, bitácora e indicadores), en una **sesión nueva** (regla 11). Primer paso: `architect` escribe la propuesta corta del S5 y un ADR, incluyendo la revisión pendiente de la excepción `ParteEquivocada` (propuesta del S4, §11, aclaración 20) y los pasos al S5 de DA-22 a DA-26. Ver `docs/estado-actual.md` → "Pendientes".
+S5 cerrado (etiqueta `sprint-5`). Los cinco sprints del informe están construidos. Lo que queda es trabajo del equipo y de la revisión, en una **sesión nueva** (regla 11):
+- RNF-13 con personas (DA-26) y RNF-18 manual en navegadores de marca y Android;
+- revisar el primer respaldo automático del 2026-10-01 y definir dónde se guarda la copia de la clave;
+- responder P-01 a P-33 y revisar los ADR en "Aceptada — PROVISIONAL";
+- material de defensa (fila S5 de §5.3.5).
+Ver `docs/estado-actual.md` → "Pendientes" y `docs/testing/cierre-sprint-5.md`.

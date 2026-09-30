@@ -20,3 +20,6 @@ st, raw = req("GET", "/api/gestion/indicadores" + q); print("INDICADORES", st, r
 fin = [int(l.split(",")[5]) for l in ls[1:]]
 print("filas:", len(fin), "finalizadas<5:", sum(1 for x in fin if x < 5), "finalizadas==1:", sum(1 for x in fin if x == 1), "finalizadas==0:", sum(1 for x in fin if x == 0))
 print([l for l in ls[1:] if int(l.split(",")[5]) == 1][:3])
+bajo = [l for l in ls[1:] if int(l.split(",")[5]) < 5]
+print("filas con finalizadas<5:", len(bajo), "con mediana publicada:", [l for l in bajo if l.split(",")[6] != ""][:3])
+print("ejemplo suprimida:", bajo[:2])

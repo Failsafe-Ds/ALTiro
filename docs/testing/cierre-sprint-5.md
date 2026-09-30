@@ -5,7 +5,7 @@
 - Fuentes: `docs/estado-actual.md`; propuesta del S5 §1, §5, §6; ADR-026 (provisional); informe (HU-05, 07, 08, 09, 16, 18, 21, 22, 25; RF-25 a RF-31, RF-37, RF-38; RNF-19, 22, 26, 27; CA-03.3, 15.2, 25.x). Datos ficticios (`qa.s5.*@example.com`, RUT sintéticos).
 - Suite completa: **1883 pasan en 10 min** (`pytest -q`, comando de `estado-actual.md`; la hoja dice 1882, hay una más).
 
-**Veredicto: listo con observaciones.** Todos los CA y RF del S5 se cumplen de extremo a extremo en la pila normal (precio final, conversación, evaluación, denuncia, moderación, indicadores y exportación), con 404 idéntico y registro en `acceso_denegado` en cada ruta nueva. Hay tres defectos (DEF-QA-013 y 014 medios, DEF-QA-015 bajo) y evidencia que solo puede cerrar el equipo (RNF-13, RNF-18 de marca/Android, primer respaldo automático de las 03:00, P-24 a P-33). Ningún defecto es crítico ni alto.
+**Veredicto final (tras la re-verificación del commit `7f8c626`, §10): listo para el cierre del sprint, con observaciones y evidencia pendiente del equipo.** Veredicto de la primera pasada: listo con observaciones. Todos los CA y RF del S5 se cumplen de extremo a extremo en la pila normal (precio final, conversación, evaluación, denuncia, moderación, indicadores y exportación), con 404 idéntico y registro en `acceso_denegado` en cada ruta nueva. Hay tres defectos (DEF-QA-013 y 014 medios, DEF-QA-015 bajo) y evidencia que solo puede cerrar el equipo (RNF-13, RNF-18 de marca/Android, primer respaldo automático de las 03:00, P-24 a P-33). Ningún defecto es crítico ni alto.
 
 ## 1. Trazabilidad CA / RF → evidencia → resultado
 
@@ -128,3 +128,18 @@ Numeración: continúa desde DEF-QA-012 (S3), el último que hay en `docs/`.
 ## 9. Cómo repetir
 
 `scripts/qa-s5/`: `preparar_datos.py` (en `app`: `manage.py shell < …`), `seguridad.py` y `seguridad2.py` (desde el equipo, usando `127.0.0.1:443` con `Host: localhost`), `ui5.py` (imagen de Playwright, red `altiro_frontal`, `python3 ui5.py proxy datos.json datos3.json chromium|firefox`) y `exportacion_volumen.py` (en `altiro-volumen-app-1`). Los JSON de datos contienen cuentas y refs de la corrida y no se guardaron.
+
+## 10. Re-verificación de las correcciones (commit `7f8c626`, 2026-09-30, pila principal reconstruida, `app` healthy)
+
+No se corrió la suite completa (el coordinador informa 1888 pasan). QA recreó solo el contenedor `app` de la pila `altiro-volumen` con la imagen nueva.
+
+| Defecto | Método | Resultado | Estado |
+|---|---|---|---|
+| DEF-QA-013 | `ui5.py` a 360 px, Chromium 153 y Firefox 155, con red limitada en Chromium; 23 estados, incluidos `conversacion` (aceptado, finalizado, cerrado; cliente y maestro) y `evaluar`, más `mis-pedidos`, `mis-trabajos` e `indicadores` | axe-core 0 violaciones en todos (antes `listitem:2` en `conversacion`); 0 errores de JS o CSP; 0 objetivos menores de 44 px; sin desborde lateral | **Corregido y verificado** |
+| DEF-QA-014 | `exportacion_volumen.py` (volumen: 100 maestros, 1.000 tickets), 56 filas | las 43 filas con menos de 5 finalizadas (incluidas las 6 con una sola) salen con `mediana_monto_final` vacía; 0 filas con mediana publicada bajo el umbral; sin datos personales. No se comprobó por separado el caso de menos de 5 maestros o 5 clientes con 5 finalizadas (lo cubre `test_gestion.py`) | **Corregido y verificado** |
+| DEF-QA-015 | Inicio de sesión real y `docker compose logs app` | `{"usuario": "376", "operacion": "identidad.vistas", "mensaje": "Inicio de sesión correcto…"}`; ya no aparece `sistema` | **Corregido y verificado** |
+| 62 documentos ilegibles | Documento `d91acbad-…` (uno de los 62): curatoría pide el enlace (200) y abre `/api/documentos/<ref>/archivo` | **409** `application/json` con "No pudimos abrir el archivo de este documento. Hay que cargarlo de nuevo para poder revisarlo." (antes 500) | **Corregido y verificado** |
+
+- **UX-S5 corregidos** (conversación, evaluación, precio y moderación): verificado el paso de confirmación al aceptar un precio en `mis-pedidos` ("Sí, aceptar" / "Volver", con el monto 31.000), sin violaciones axe y con el formulario del precio final de `mis-trabajos` explicando si el cliente deberá aceptar. Los borradores y los avisos de conexión limitada no se ejercitaron en el navegador (solo código y pruebas del commit).
+- **OBS-S5-06 (nueva, baja; corresponde al OBS-S5-01 del coordinador):** el 409 del enlace de documento responde JSON y el enlace se abre por navegación directa, de modo que la persona ve el JSON en el navegador en vez de una pantalla. Verificado con HTTP; no se abrió en un navegador. Conviene que el frontend abra el documento con `fetch` y muestre el mensaje en la página.
+- Pendientes del equipo sin cambios: RNF-13, RNF-18 en navegadores de marca y Android, primer respaldo automático de las 03:00 del 2026-10-01, plazos de retención (RNF-26) y P-24 a P-33.
