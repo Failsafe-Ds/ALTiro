@@ -50,3 +50,20 @@ El informe solo nombra al "gasfíter" y al "eléctrico" (§1) y confirma como re
 | P-21 | ¿Qué pasa si el cliente no acepta el precio final? | No definido (S5) | Propuesta del S4, §3.7 |
 | P-22 | ¿Qué pasa con un trabajo aceptado que nunca registra precio final? | No definido; no se inventa un cierre | Propuesta del S4 |
 | P-23 | ¿Qué pasa con los trabajos aceptados de un maestro que después es suspendido? | No definido | Propuesta del S4 |
+
+## Sprint 5 (ADR-026, propuesta del S5 §8)
+
+P-21 queda con supuesto provisional: el cliente puede objetar el precio y el ticket vuelve a `aceptado` sin precio (ADR-026 E-1.5). P-22 se reformula como P-28.
+
+| # | Pregunta | Supuesto vigente (provisional) | Origen |
+|---|---|---|---|
+| P-24 | ¿Escala de evaluación? | Enteros de 1 a 5 por dimensión | ADR-026 E-3 |
+| P-25 | La evaluación del maestro al cliente (HU-18), ¿quién la ve? | Las partes y moderación; no otros maestros | ADR-026 E-3.6 |
+| P-26 | ¿Quién puede denunciar una evaluación? | Solo la parte evaluada, una vez | ADR-026 E-4.2 |
+| P-27 | ¿Desde cuándo se registra el precio final? | Desde el inicio del bloque | ADR-026 E-1.6 |
+| P-28 | ¿Qué pasa con una orden aceptada que nunca se finaliza? | Queda `aceptado`, sin cierre automático | ADR-026 E-1.9 |
+| P-29 | ¿Umbral y agregación de la exportación? | k=5 maestros y 5 clientes, por mes y comuna | ADR-026 E-6 |
+| P-30 | ¿Plazo de retención por tipo de documento? (V-04, P-07) | Configurable; sin valor no se elimina nada | ADR-026 E-9 |
+| P-31 | ¿Se puede escribir después de finalizar? | No, solo lectura | ADR-026 E-2.2 |
+| P-32 | Primera respuesta: ¿mediana o promedio? ¿cuenta `bloque_tomado`? | Mediana, sin `bloque_tomado` | ADR-026 E-6.1 |
+| P-33 | ¿Basta un aviso en la aplicación de que moderación leyó la conversación? | Sí, `conversacion_revisada` | ADR-026 E-4.4 |

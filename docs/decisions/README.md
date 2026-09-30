@@ -49,6 +49,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | [ADR-023](ADR-023-ticket.md) | Ticket y orden: modelo, transiciones, privacidad y doble reserva | Aceptada — provisional (2026-09-29) |
 | [ADR-024](ADR-024-avisos-tickets-sesion.md) | Avisos de tickets, vocabulario y sesión | Aceptada — provisional (2026-09-29) |
 | [ADR-025](ADR-025-graphify-herramienta-equipo.md) | graphify como herramienta del equipo | Aceptada (2026-09-29) |
+| [ADR-026](ADR-026-mensajeria-evaluacion-operacion.md) | Precio final, mensajería, evaluación, moderación, indicadores y operación | Aceptada — provisional (2026-09-30) |
 
 ## Plantilla
 

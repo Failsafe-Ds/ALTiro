@@ -12,7 +12,7 @@
 | S2 Expediente y curatoría | Cerrado | `sprint-2`, `cierre-sprint-2.md` |
 | S3 Catálogo, cobertura y agenda | Cerrado con observaciones | `sprint-3`, `cierre-sprint-3.md` |
 | S4 Búsqueda y ticket | Cerrado con observaciones | `sprint-4`, `cierre-sprint-4.md` |
-| S5 Mensajería, evaluación, bitácora e indicadores | No iniciado | — |
+| S5 Mensajería, evaluación, bitácora e indicadores | En curso | propuesta `sprint-5-propuesta-arquitectura.md`, ADR-026 |
 
 ## Stack y cómo correr
 - Docker Compose: `init`, `db` (PostgreSQL 16), `app` (Django 5.2 + gunicorn), `proxy` (Nginx, TLS autofirmado, gzip) y `planificador` (cada 300 s).
@@ -63,7 +63,7 @@
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
 
 ## Decisiones provisionales abiertas
-ADR-016 E-1 y ADR-018 a ADR-024 están en "Aceptada — PROVISIONAL" y se revisan en la revisión del sprint. Las preguntas al representante P-01 a P-23 (`docs/alcance/preguntas-representante-s2.md`) siguen sin respuesta.
+ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y se revisan en la revisión del sprint. Las preguntas al representante P-01 a P-33 (`docs/alcance/preguntas-representante-s2.md`) siguen sin respuesta.
 
 ## Pendientes y riesgos vigentes
 - **Pasan al S5 (DA-22 a DA-26):** RF-28 completo (precio acordado), evidencia de RF-11/CA-03.3 y calificación de RF-13/RF-14/CA-05.1, conversación de CA-15.2, RNF-03 con 5.000 mensajes (y nueva medición de RNF-01).
