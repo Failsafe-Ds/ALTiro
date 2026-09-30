@@ -180,6 +180,17 @@
       conversacion.setAttribute("aria-label", `Ver conversación del pedido de ${ticket.servicio.nombre} con ${ticket.maestro.nombre}`);
       acciones.append(conversacion);
     }
+    // Evaluación (HU-09, HU-18, RF-29, RF-31): solo en una orden finalizada. En evaluar.html
+    // se ve la evaluación propia, la recibida y el botón "Denunciar".
+    if (ticket.estado === "finalizado") {
+      const evaluar = elemento("a", "boton boton-secundario", "Evaluar al maestro");
+      evaluar.href = `evaluar.html?ticket=${encodeURIComponent(ticket.ref)}`;
+      evaluar.setAttribute("aria-label", `Evaluar al maestro: evaluación del pedido de ${ticket.servicio.nombre} con ${ticket.maestro.nombre}`);
+      const recibida = elemento("a", "boton boton-secundario", "Ver evaluación recibida o denunciar");
+      recibida.href = `evaluar.html?ticket=${encodeURIComponent(ticket.ref)}#recibida`;
+      recibida.setAttribute("aria-label", `Ver la evaluación que recibiste del pedido de ${ticket.servicio.nombre} con ${ticket.maestro.nombre}, o denunciarla`);
+      acciones.append(evaluar, recibida);
+    }
     item.append(acciones);
     return item;
   }

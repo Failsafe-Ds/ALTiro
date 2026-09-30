@@ -103,7 +103,7 @@
 
   function sesionTerminada() {
     const enlace = elemento("a", "boton", "Ingresar de nuevo");
-    enlace.href = "ingresar.html?aviso=sesion";
+    enlace.href = `ingresar.html?aviso=sesion&siguiente=conversacion&ticket=${encodeURIComponent(refTicket)}`;
     errorPagina("Tu sesión terminó. Lo que escribiste quedó guardado en este teléfono. Vuelve a ingresar y abre de nuevo la conversación.", enlace);
   }
 

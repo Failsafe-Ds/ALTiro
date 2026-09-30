@@ -36,7 +36,8 @@ CAMPOS_CONOCIDOS = frozenset(
      "servicio", "modalidad", "monto",
      "comunas", "dia_semana", "inicio", "fin",
      "maestro", "fecha", "direccion", "descripcion", "materiales", "avisos",
-     "texto", "clave_envio"}
+     "texto", "clave_envio",
+     "puntualidad", "trabajo", "cordialidad", "comentario", "decision"}
 )
 
 

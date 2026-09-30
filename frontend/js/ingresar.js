@@ -18,7 +18,12 @@
     agenda: { pagina: "mi-agenda.html", rol: "maestro" },
     pedidos: { pagina: "mis-pedidos.html", rol: "cliente" },
     trabajos: { pagina: "mis-trabajos.html", rol: "maestro" },
+    // Pantallas de un pedido: vuelven con ?ticket=<ref> (solo si es un UUID).
+    conversacion: { pagina: "conversacion.html", rol: ["cliente", "maestro"], ticket: true },
+    evaluar: { pagina: "evaluar.html", rol: ["cliente", "maestro"], ticket: true },
+    moderacion: { pagina: "moderacion.html", rol: "moderacion" },
   };
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const form = document.getElementById("ingresar");
   formulario.prepararBoton(form);
 
@@ -26,6 +31,21 @@
   const aviso = parametros.get("aviso");
   const siguiente = parametros.get("siguiente");
   const destino = Object.prototype.hasOwnProperty.call(DESTINOS, siguiente || "") ? DESTINOS[siguiente] : null;
+  const refTicket = parametros.get("ticket") || "";
+
+  function paginaDestino(roles) {
+    if (!destino) {
+      return null;
+    }
+    const permitidos = [].concat(destino.rol);
+    if (!permitidos.some((rol) => roles.includes(rol))) {
+      return null;
+    }
+    if (!destino.ticket) {
+      return destino.pagina;
+    }
+    return UUID.test(refTicket) ? `${destino.pagina}?ticket=${encodeURIComponent(refTicket)}` : null;
+  }
 
   if (aviso === "registrado") {
     formulario.avisar(
@@ -48,7 +68,7 @@
     formulario.ocupado(form, false);
     if (estado === 200) {
       const roles = datos.cuenta && Array.isArray(datos.cuenta.roles) ? datos.cuenta.roles : [];
-      location.assign(destino && roles.includes(destino.rol) ? destino.pagina : "cuenta.html");
+      location.assign(paginaDestino(roles) || "cuenta.html");
       return;
     }
     // Nunca se conserva la contraseña escrita tras un error.

@@ -12,7 +12,8 @@ incremento 5. ``cierre`` entra en el incremento 6 (C-01 a C-08; C-08, fórmula d
 ``vence_en``, ya se cubría en el 4). La meta del sprint es el 100 %. En el S5,
 incremento 1, el precio final agrega C-09 a C-15 y A-06 a A-08; en el
 incremento 3, la operación agrega el grupo ``operacion`` (O-01 a O-04); en el
-incremento 4, la conversación agrega A-09 a A-15.
+incremento 4, la conversación agrega A-09 a A-15; en los incrementos 5 y 6,
+la evaluación y la moderación agregan P-12 a P-14, C-16, C-17 y A-16 a A-24.
 """
 
 REGLAS = {
@@ -44,6 +45,9 @@ REGLAS = {
         "P-09": "CA-03.3 / RF-11: empate por calificación promedio y luego por cantidad de evaluaciones",
         "P-10": "ADR-022, punto 3: el desempate final es un sorteo diario determinista",
         "P-11": "ADR-022, punto 2: el puntaje y sus componentes no van en la respuesta",
+        "P-12": "RF-30: el promedio mostrado coincide con el cálculo sobre las evaluaciones publicadas del cliente",
+        "P-13": "ADR-026, E-4.6: una evaluación retirada queda excluida del promedio sin borrarse",
+        "P-14": "CA-05.2: sin evaluaciones, la ficha dice 'Todavía no tiene evaluaciones' en lugar de un cero",
     },
     "cierre": {
         "C-01": "RF-21: cierre a las 24 horas desde el envío (vencido_plazo)",
@@ -61,6 +65,8 @@ REGLAS = {
         "C-13": "CA-16.3: una orden finalizada no cambia de precio",
         "C-14": "ADR-026, E-1.8: la base rechaza un finalizado sin precio o sin la aceptación exigida",
         "C-15": "ADR-026, E-1.6 (P-27): el precio final no se registra antes del inicio del horario",
+        "C-16": "CA-09.1 / CA-18.1: solo se evalúa una orden finalizada; ambas partes pueden hacerlo",
+        "C-17": "CA-09.2 / RF-29: la segunda evaluación de la misma parte da 409 y la base lo impide",
     },
     "acceso": {
         "A-01": "CA-25.1: un tercero recibe el 404 idéntico con registro al abrir un ticket",
@@ -78,6 +84,15 @@ REGLAS = {
         "A-13": "ADR-026, E-2.4: un reenvío con la misma clave_envio devuelve el mismo mensaje sin duplicarlo",
         "A-14": "RNF-11: los mensajes no se editan ni se borran (aplicación y triggers)",
         "A-15": "ADR-005: la consulta periódica de la conversación no renueva la sesión",
+        "A-16": "CA-25.1: un tercero o un rol administrativo recibe el 404 idéntico con registro al evaluar o denunciar",
+        "A-17": "ADR-026, E-3.5: la ficha muestra los últimos 10 comentarios sin nombre ni ref del autor",
+        "A-18": "ADR-026, E-4.2 (P-26): solo la parte evaluada denuncia, y una sola vez",
+        "A-19": "HU-25 / CA-25.3: quien no tiene el rol moderación recibe 403 registrado",
+        "A-20": "ADR-026, E-4.3: el moderador que es parte del ticket recibe ConflictoDeInteres (403 registrado)",
+        "A-21": "ADR-026, E-4.5: el detalle de moderación no trae dirección ni teléfono",
+        "A-22": "M-04 / E-4.4: cada consulta de la conversación escribe la bitácora y avisa a ambas partes",
+        "A-23": "E-4.1 / E-4.3: sin denuncia abierta, la conversación da el 404 idéntico con registro",
+        "A-24": "CA-21.2 / RF-37: la resolución exige motivo y registra decisión, autor, estado anterior y nuevo",
     },
     # S5, incremento 3 (ADR-026, E-8 y E-9).
     "operacion": {

@@ -37,12 +37,17 @@ class RolRequerido(Exception):
 
 
 class ConflictoDeInteres(Exception):
-    """El usuario tiene el rol, pero el recurso es suyo y la política declara conflicto de interés."""
+    """El usuario tiene el rol, pero el recurso es suyo y la política declara conflicto de interés.
 
-    def __init__(self, entidad, ref):
+    ``mensaje`` (opcional) lo define la política (``Politica.mensaje_conflicto``);
+    sin él, el middleware usa el mensaje del expediente (HU-19, CA-19.4).
+    """
+
+    def __init__(self, entidad, ref, mensaje=None):
         super().__init__(entidad)
         self.entidad = entidad
         self.ref = ref
+        self.mensaje = mensaje
 
 
 class ParteEquivocada(Exception):

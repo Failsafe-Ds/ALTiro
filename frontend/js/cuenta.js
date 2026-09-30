@@ -122,6 +122,8 @@
     mostrar(document.getElementById("accesos-curatoria"), cuenta.roles.includes("curatoria"));
     // Acceso al catálogo (HU-20). Solo navegación: cada ruta /api/comercial/ exige el rol.
     mostrar(document.getElementById("accesos-comercial"), cuenta.roles.includes("comercial"));
+    // Denuncias (HU-21). Solo navegación: cada ruta /api/moderacion/ exige el rol.
+    mostrar(document.getElementById("accesos-moderacion"), cuenta.roles.includes("moderacion"));
 
     // Agregar perfil: correo y teléfono solo se piden si la cuenta no los tiene (ADR-013, E-1 y E-2).
     mostrar(document.getElementById("seccion-cliente"), !cliente);

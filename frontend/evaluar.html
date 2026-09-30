@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Evaluar el trabajo — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formato.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/evaluar.js" defer></script>
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" id="volver" href="cuenta.html">Volver</a>
+  </header>
+  <main>
+    <!-- Evaluación de una orden finalizada y evaluación recibida (HU-09, HU-18, HU-21; RF-29, RF-31; ADR-026, E-3 y E-4). -->
+    <h1 id="titulo-pagina" tabindex="-1">Evaluar el trabajo</h1>
+    <p id="subtitulo" class="ayuda"></p>
+    <p id="cargando" role="status">Cargando…</p>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+
+    <div id="contenido" hidden>
+      <section aria-labelledby="titulo-mia">
+        <h2 id="titulo-mia">Tu evaluación</h2>
+        <p id="aviso-evaluar" class="aviso" hidden></p>
+        <div id="mia" class="tarjeta" hidden></div>
+
+        <form id="formulario-evaluacion" class="tarjeta" novalidate hidden>
+          <p class="ayuda">Elige una nota de 1 a 5 en cada pregunta. Solo puedes evaluar una vez y no se puede cambiar después.</p>
+          <fieldset class="campo" data-dimension="puntualidad">
+            <legend class="legend-campo" id="leyenda-puntualidad"></legend>
+            <div class="notas"></div>
+            <span class="error-campo" id="error-puntualidad"></span>
+          </fieldset>
+          <fieldset class="campo" data-dimension="trabajo">
+            <legend class="legend-campo" id="leyenda-trabajo"></legend>
+            <div class="notas"></div>
+            <span class="error-campo" id="error-trabajo"></span>
+          </fieldset>
+          <fieldset class="campo" data-dimension="cordialidad">
+            <legend class="legend-campo" id="leyenda-cordialidad"></legend>
+            <div class="notas"></div>
+            <span class="error-campo" id="error-cordialidad"></span>
+          </fieldset>
+          <div class="campo">
+            <label for="comentario">Comentario (si quieres)</label>
+            <textarea id="comentario" name="comentario" maxlength="500" rows="3" aria-describedby="ayuda-comentario error-comentario"></textarea>
+            <span class="ayuda" id="ayuda-comentario">Hasta 500 caracteres. Se publica sin tu nombre.</span>
+            <span class="error-campo" id="error-comentario"></span>
+          </div>
+          <div class="aviso" role="alert" tabindex="-1"></div>
+          <div class="acciones">
+            <button type="submit">Enviar evaluación</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="recibida" aria-labelledby="titulo-recibida" tabindex="-1">
+        <h2 id="titulo-recibida">Evaluación que recibiste</h2>
+        <p id="sin-recibida" hidden>Todavía no recibes una evaluación de este trabajo.</p>
+        <div id="recibida-datos" class="tarjeta" hidden></div>
+
+        <form id="formulario-denuncia" class="tarjeta" novalidate hidden>
+          <p class="ayuda">Si la evaluación que recibiste es injusta u ofensiva, cuéntale a moderación por qué. Solo puedes denunciarla una vez.</p>
+          <div class="campo">
+            <label for="motivo">¿Por qué la denuncias?</label>
+            <textarea id="motivo" name="motivo" maxlength="500" rows="3" aria-describedby="error-motivo"></textarea>
+            <span class="error-campo" id="error-motivo"></span>
+          </div>
+          <div class="aviso" role="alert" tabindex="-1"></div>
+          <div class="acciones">
+            <button type="submit" class="boton-peligro">Denunciar evaluación</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

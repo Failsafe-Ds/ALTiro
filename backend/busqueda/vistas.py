@@ -5,8 +5,8 @@ Parámetros: ``oficio`` (código), ``comuna`` (código CUT), opcionalmente
 ``pagina``. Desconocidos: 400 general; inválidos: 400 en el campo.
 
 Respuesta con lista explícita de campos. Cada tarjeta (RF-13): ref pública,
-nombre, foto de 160 px, oficio y calificación (``null`` y "Todavía no tiene
-evaluaciones" hasta el S5). **Nunca** el puntaje ni sus componentes, la comuna
+nombre, foto de 160 px, oficio y calificación (``{promedio, cantidad}``, o
+``null`` y "Todavía no tiene evaluaciones"; calculada en lote por ``ordenar``). **Nunca** el puntaje ni sus componentes, la comuna
 base, el RUT ni el contacto (ADR-022, puntos 2 y 5). Las sugerencias van en
 una lista aparte y cada una indica qué criterio incumple (RF-12, CA-04.2,
 CA-04.3). ``Cache-Control: no-store`` (una licencia que vence o una
@@ -16,12 +16,13 @@ from django.http import JsonResponse
 from django.utils import timezone
 
 from busqueda import servicios, sugerencias
+from evaluaciones import calificacion
 from comun.api import manejar_errores, metodos, publica
 from expediente import vigencia
 from perfil.vistas_publicas import url_foto
 
 TAMANO_FOTO = 160
-SIN_EVALUACIONES = "Todavía no tiene evaluaciones"
+SIN_EVALUACIONES = calificacion.SIN_EVALUACIONES
 MENSAJE_SIN_RESULTADOS = (
     "No encontramos maestros con esos criterios. Prueba con otro horario, otro día o una comuna cercana."
 )
@@ -34,8 +35,8 @@ def tarjeta(candidato, oficio):
         "nombre": perfil.perfil_maestro.usuario.nombre,
         "foto": url_foto(perfil, TAMANO_FOTO),
         "oficio": {"codigo": oficio.codigo, "nombre": oficio.nombre},
-        "calificacion": None,
-        "calificacion_texto": SIN_EVALUACIONES,
+        "calificacion": calificacion.datos_tarjeta(candidato.calificacion),
+        "calificacion_texto": calificacion.texto(candidato.calificacion),
     }
 
 

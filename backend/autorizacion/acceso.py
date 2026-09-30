@@ -24,7 +24,7 @@ def obtener_autorizado(consulta_base, ref, usuario, politica):
     except (ObjectDoesNotExist, ValidationError, ValueError):
         raise RecursoNoEncontrado() from None
     if politica.conflicto(usuario, objeto):
-        raise ConflictoDeInteres(politica.entidad, ref)
+        raise ConflictoDeInteres(politica.entidad, ref, politica.mensaje_conflicto)
     if not politica.permite(usuario, objeto):
         raise AccesoDenegado(politica.entidad, ref)
     return objeto

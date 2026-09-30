@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Moderación — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formato.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/moderacion.js" defer></script>
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" href="cuenta.html">Mi cuenta</a>
+  </header>
+  <main>
+    <!-- Denuncias y moderación (HU-21, RF-31, RF-37, CA-21.1, CA-21.2; ADR-026, E-4; M-04). -->
+    <h1 id="titulo-pagina" tabindex="-1">Denuncias de evaluaciones</h1>
+    <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
+
+    <section id="seccion-lista" aria-labelledby="titulo-lista">
+      <h2 id="titulo-lista">Lista</h2>
+      <div class="campo">
+        <label for="filtro-estado">Mostrar</label>
+        <select id="filtro-estado">
+          <option value="abierta">En revisión</option>
+          <option value="resuelta">Resueltas</option>
+        </select>
+      </div>
+      <p id="cargando" role="status">Cargando…</p>
+      <ul id="lista-denuncias" class="lista-simple"></ul>
+      <p id="sin-denuncias" hidden>No hay denuncias en esta lista.</p>
+    </section>
+
+    <section id="detalle" class="tarjeta" aria-labelledby="titulo-detalle" tabindex="-1" hidden>
+      <h2 id="titulo-detalle">Detalle de la denuncia</h2>
+      <div id="detalle-datos"></div>
+
+      <div id="bloque-conversacion" hidden>
+        <p class="advertencia-registro" id="advertencia-conversacion">Atención: cada vez que abres la conversación queda registrado con tu nombre, y el cliente y el maestro reciben un aviso.</p>
+        <div class="acciones">
+          <button type="button" id="ver-conversacion" class="boton-secundario" aria-describedby="advertencia-conversacion">Ver conversación</button>
+        </div>
+        <ol id="lista-mensajes" class="lista-mensajes" aria-label="Mensajes del pedido" hidden></ol>
+        <p id="sin-mensajes" hidden>En este pedido no hubo mensajes.</p>
+      </div>
+
+      <form id="formulario-resolucion" novalidate hidden>
+        <fieldset class="campo">
+          <legend class="legend-campo">Decisión</legend>
+          <label class="casilla"><input type="radio" name="decision" value="mantener" aria-describedby="error-decision"> Mantener la evaluación</label>
+          <label class="casilla"><input type="radio" name="decision" value="retirar" aria-describedby="error-decision"> Retirar la evaluación (deja de contar en la calificación)</label>
+          <span class="error-campo" id="error-decision"></span>
+        </fieldset>
+        <div class="campo">
+          <label for="motivo">Motivo de la decisión (obligatorio)</label>
+          <textarea id="motivo" name="motivo" maxlength="500" rows="3" aria-describedby="ayuda-motivo error-motivo"></textarea>
+          <span class="ayuda" id="ayuda-motivo">Queda registrado con tu nombre y la fecha.</span>
+          <span class="error-campo" id="error-motivo"></span>
+        </div>
+        <div class="aviso" role="alert" tabindex="-1"></div>
+        <div class="acciones">
+          <button type="submit">Registrar decisión</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

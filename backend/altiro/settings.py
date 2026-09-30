@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "busqueda",  # Búsqueda de maestros, sin modelos (ADR-022)
     "tickets",  # Ticket y orden, historial y avisos (ADR-023, ADR-024)
     "mensajeria",  # Conversación del ticket aceptado (ADR-026, E-2)
+    "evaluaciones",  # Evaluación, calificación, denuncia y moderación (ADR-026, E-3 y E-4)
 ]
 
 # ADR-001: fijado desde la primera migración.

@@ -10,7 +10,8 @@
 Lista explícita de campos (D-14): nombre registrado, foto, servicios visibles (con la ref del catálogo, ADR-022),
 (oficio, servicio, modalidad y monto), comunas atendidas **sin indicar cuál es
 la base** (por nombre, así el orden tampoco la revela) y agenda semanal en
-"HH:MM" y ``bloques`` de los próximos 14 días, libres u ocupados (RF-14; ADR-022, punto 4). Nunca RUT, teléfono, correo, documentos, estado o motivos del
+"HH:MM", ``bloques`` de los próximos 14 días, libres u ocupados (RF-14; ADR-022, punto 4), y la
+calificación con los últimos comentarios, sin autor (CA-05.1; ADR-026, E-3). Nunca RUT, teléfono, correo, documentos, estado o motivos del
 expediente, fechas de licencia, ids internos ni la ref del expediente.
 
 Caché:
@@ -31,6 +32,7 @@ from django.utils import timezone
 
 from catalogo.models import Modalidad
 from comun.api import metodos, publica, respuesta_no_encontrado
+from evaluaciones import calificacion
 from expediente import vigencia
 from perfil import agenda, cobertura, fotos, ocupacion, ocurrencias, publicacion
 from perfil.models import PerfilPublico
@@ -90,6 +92,7 @@ def datos_publicos(perfil, ahora):
     hoy = vigencia.hoy_negocio(ahora)
     maestro_id = perfil.perfil_maestro_id
     servicios = publicacion.servicios_visibles(maestro_id, hoy)
+    nota = calificacion.de_maestro(maestro_id)
     return {
         "ref": str(perfil.ref),
         "nombre": perfil.perfil_maestro.usuario.nombre,
@@ -120,6 +123,11 @@ def datos_publicos(perfil, ahora):
             for b in agenda.bloques_activos(maestro_id)
         ],
         "bloques": bloques_de_ficha(maestro_id, ahora, hoy),
+        # RF-14, CA-05.1, CA-05.2 (ADR-026, E-3.3 y E-3.5): por dimensión, promedio, cantidad y
+        # los últimos 10 comentarios con mes y año, sin autor. Sin evaluaciones: null y el texto.
+        "calificacion": calificacion.datos_ficha(nota),
+        "calificacion_texto": calificacion.texto(nota),
+        "comentarios": calificacion.comentarios(maestro_id),
     }
 
 

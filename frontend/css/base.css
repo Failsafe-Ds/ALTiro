@@ -1311,3 +1311,77 @@ button.boton-quitar {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* --- Evaluación y calificación (S5, incrementos 5 y 6; RF-29, RF-30, RNF-16) --- */
+
+/* Cinco opciones de 1 a 5, cada una de 44 px o más, con número y palabra
+   (el estado elegido se ve por el borde grueso y por el texto, no solo por color). */
+.notas {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.nota {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 0.35rem 0.15rem;
+  border: 2px solid var(--borde);
+  border-radius: var(--radio);
+  font-weight: 400;
+  text-align: center;
+  cursor: pointer;
+}
+
+.nota input {
+  width: 1.5rem;
+  min-height: 1.5rem;
+  margin: 0 0 0.2rem;
+}
+
+.nota-numero {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.nota-palabra {
+  font-size: 0.85rem;
+}
+
+.nota:has(input:checked) {
+  border: 4px solid var(--primario);
+  background: var(--fondo-suave);
+  font-weight: 700;
+}
+
+.calificacion {
+  margin: 0.5rem 0;
+}
+
+.lista-comentarios {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comentario {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--borde);
+  border-left-width: 6px;
+  border-radius: var(--radio);
+}
+
+.comentario p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.advertencia-registro {
+  font-weight: 700;
+}

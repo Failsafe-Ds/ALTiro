@@ -28,6 +28,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from busqueda import puntaje
+from evaluaciones import calificacion
 from catalogo.models import Oficio
 from comun.api import MENSAJE_CLAVE_DESCONOCIDA, MENSAJE_VALOR_REPETIDO, ErroresDeCampo, ErrorSolicitud
 from expediente import vigencia
@@ -200,6 +201,7 @@ class Candidato:
     servicio_visible: bool = False
     comunas: dict = field(default_factory=dict)  # codigo -> es_base
     ofrecibles: list = field(default_factory=list)  # Ocurrencia
+    calificacion: object = None  # evaluaciones.calificacion.Calificacion, la fija ``ordenar``
 
 
 def cargar_candidatos(oficio, comunas, ahora, hoy):
@@ -277,8 +279,8 @@ def cumple(candidato, comuna_codigo, bloque):
 
 
 def calificaciones_en_lote(maestro_ids):
-    """``{maestro_id: (promedio, cantidad)}``. Las evaluaciones llegan en el S5: hoy, vacío."""
-    return {}
+    """``{maestro_id: Calificacion}`` en una sola consulta (RF-11, RF-13; ADR-026, E-3.4)."""
+    return calificacion.de_maestros(maestro_ids)
 
 
 def ordenar(candidatos, comuna_codigo, bloque, hoy, en_cobertura=True):
@@ -288,7 +290,10 @@ def ordenar(candidatos, comuna_codigo, bloque, hoy, en_cobertura=True):
     def clave(candidato):
         d = puntaje.disponibilidad({u.fecha for u in candidato.ofrecibles}, hoy, bloque is not None)
         c = puntaje.cercania(candidato.comunas.get(comuna_codigo, False), en_cobertura)
-        promedio, cantidad = calificaciones.get(candidato.maestro_id, (None, 0))
+        # E-3.4: el desempate usa el promedio redondeado que se muestra y después la cantidad.
+        candidato.calificacion = calificaciones.get(candidato.maestro_id)
+        promedio = candidato.calificacion.promedio if candidato.calificacion else None
+        cantidad = candidato.calificacion.cantidad if candidato.calificacion else 0
         return puntaje.clave_orden(puntaje.puntaje(d, c), promedio, cantidad, candidato.perfil.ref, hoy)
 
     return sorted(candidatos, key=clave)

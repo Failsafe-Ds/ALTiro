@@ -31,7 +31,7 @@ MENSAJE_SIN_ROL = (
     "No tienes permiso para esta sección. Vuelve al inicio o ingresa con una cuenta que tenga acceso."
 )
 
-# Único conflicto de interés definido (HU-19, CA-19.4; ADR-011, E-2).
+# Conflicto de interés del expediente (HU-19, CA-19.4; ADR-011, E-2); otras políticas traen su mensaje.
 MENSAJE_CONFLICTO = (
     "No puedes revisar ni resolver tu propio expediente. Otra persona de curatoría debe hacerlo."
 )
@@ -68,7 +68,7 @@ class AutorizacionMiddleware:
         if isinstance(excepcion, ConflictoDeInteres):
             if usuario is not None:
                 acceso_denegado.registrar(usuario, _recurso(request), excepcion.entidad, excepcion.ref)
-            return respuesta_error(403, MENSAJE_CONFLICTO)
+            return respuesta_error(403, excepcion.mensaje or MENSAJE_CONFLICTO)
         if isinstance(excepcion, ParteEquivocada):
             if usuario is not None:
                 acceso_denegado.registrar(usuario, _recurso(request), excepcion.entidad, excepcion.ref)

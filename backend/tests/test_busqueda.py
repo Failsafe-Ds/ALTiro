@@ -435,7 +435,8 @@ def test_paginas_de_veinte_y_consultas_constantes(catalogo, django_assert_max_nu
         primera = buscar().json()
     print("consultas por búsqueda:", len(con_cinco.captured_queries))
     # 14: la consulta de rangos ocupados sobre ``ticket`` se suma desde el incremento 4 (ADR-023, punto 4).
-    assert len(con_cinco.captured_queries) <= 14
+    # 15: la calificación en lote sobre ``evaluacion`` (S5, incremento 5; una sola consulta, sin N+1).
+    assert len(con_cinco.captured_queries) <= 15
     assert primera["total"] == 50 and primera["paginas"] == 3 and len(primera["resultados"]) == 20
     tercera = buscar(pagina="3").json()
     assert len(tercera["resultados"]) == 10

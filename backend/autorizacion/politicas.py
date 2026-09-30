@@ -33,6 +33,8 @@ class Politica:
     """
 
     entidad = None
+    # Mensaje accionable del 403 por conflicto de interés; ``None`` usa el del expediente.
+    mensaje_conflicto = None
 
     def conflicto(self, usuario, objeto):
         return False

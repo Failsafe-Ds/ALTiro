@@ -314,6 +314,7 @@ class TipoAvisoTicket(models.TextChoices):
     PRECIO_OBJETADO = "precio_objetado", "Precio no aceptado"
     ORDEN_FINALIZADA = "orden_finalizada", "Trabajo terminado"
     MENSAJE_NUEVO = "mensaje_nuevo", "Mensaje nuevo"
+    CONVERSACION_REVISADA = "conversacion_revisada", "Conversación revisada por moderación"
 
 
 class AvisoTicket(models.Model):
@@ -325,7 +326,7 @@ class AvisoTicket(models.Model):
     destinatario = models.ForeignKey(
         Usuario, on_delete=models.PROTECT, related_name="+", db_column="destinatario_id", db_index=False
     )
-    tipo = models.CharField(max_length=20, choices=TipoAvisoTicket.choices)
+    tipo = models.CharField(max_length=30, choices=TipoAvisoTicket.choices)
     creado_en = models.DateTimeField(default=timezone.now)
     visto_en = models.DateTimeField(null=True, blank=True)
 

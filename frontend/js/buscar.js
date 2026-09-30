@@ -309,7 +309,9 @@
       "tarjeta-texto",
       elemento("h3", "nombre-tarjeta", maestro.nombre),
       elemento("p", "oficio-tarjeta", maestro.oficio ? maestro.oficio.nombre : ""),
-      elemento("p", "calificacion-tarjeta", maestro.calificacion_texto || "")
+      // RF-13: promedio y cantidad; sin evaluaciones, el texto (CA-05.2).
+      elemento("p", "calificacion-tarjeta",
+        maestro.calificacion ? `Calificación: ${maestro.calificacion_texto}` : maestro.calificacion_texto || "")
     );
     item.append(foto, texto);
     if (conIncumple) {

@@ -227,6 +227,17 @@
       conversacion.setAttribute("aria-label", `Ver conversación del trabajo de ${ticket.servicio.nombre} en ${ticket.comuna.nombre}`);
       acciones.append(conversacion);
     }
+    // Evaluación (HU-09, HU-18, RF-29, RF-31): solo en una orden finalizada. En evaluar.html
+    // se ve la evaluación propia, la recibida y el botón "Denunciar".
+    if (ticket.estado === "finalizado") {
+      const evaluar = elemento("a", "boton boton-secundario", "Evaluar al cliente");
+      evaluar.href = `evaluar.html?ticket=${encodeURIComponent(ticket.ref)}`;
+      evaluar.setAttribute("aria-label", `Evaluar al cliente: evaluación del trabajo de ${ticket.servicio.nombre} en ${ticket.comuna.nombre}`);
+      const recibida = elemento("a", "boton boton-secundario", "Ver evaluación recibida o denunciar");
+      recibida.href = `evaluar.html?ticket=${encodeURIComponent(ticket.ref)}#recibida`;
+      recibida.setAttribute("aria-label", `Ver la evaluación que recibiste del trabajo de ${ticket.servicio.nombre} en ${ticket.comuna.nombre}, o denunciarla`);
+      acciones.append(evaluar, recibida);
+    }
     item.append(acciones);
     return item;
   }

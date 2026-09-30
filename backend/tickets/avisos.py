@@ -87,6 +87,12 @@ def texto(aviso, ticket):
         )
     if aviso.tipo == TipoAvisoTicket.MENSAJE_NUEVO:
         return f"Tienes un mensaje nuevo sobre el pedido de {servicio} para {cuando(ticket)}. Abre la conversación para leerlo."
+    if aviso.tipo == TipoAvisoTicket.CONVERSACION_REVISADA:
+        # M-04, P-33: se avisa a ambas partes cada vez que moderación abre la conversación.
+        return (
+            f"Moderación revisó la conversación del pedido de {servicio} de {cuando(ticket)} "
+            "porque hay una denuncia sobre una evaluación de ese trabajo."
+        )
     if aviso.tipo == TipoAvisoTicket.ORDEN_FINALIZADA:
         return f"El trabajo de {servicio} de {cuando(ticket)} terminó con un precio final de {pesos(ticket.monto_final)}."
     motivos = MOTIVOS_PARA_MAESTRO if para_maestro else MOTIVOS_PARA_CLIENTE

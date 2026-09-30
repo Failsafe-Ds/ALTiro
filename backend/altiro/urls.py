@@ -13,6 +13,7 @@ from perfil import vistas_publicas as perfil_publico
 from busqueda import vistas as busqueda
 from territorio import vistas as territorio
 from mensajeria import vistas as mensajeria
+from evaluaciones import vistas as evaluaciones
 from tickets import vistas as tickets
 
 # Toda ruta /api/ es privada salvo las marcadas con comun.api.publica.
@@ -66,6 +67,16 @@ urlpatterns = [
     path("api/tickets/<uuid:ref>/precio-final/objecion", tickets.precio_objecion, name="ticket_precio_objecion"),
     # Conversación del ticket aceptado (HU-07, RF-25; ADR-026, E-2).
     path("api/tickets/<uuid:ref>/mensajes", mensajeria.mensajes, name="ticket_mensajes"),
+    # Evaluación y denuncia de las partes; moderación (HU-09, HU-18, HU-21; ADR-026, E-3 y E-4).
+    path("api/tickets/<uuid:ref>/evaluacion", evaluaciones.evaluacion, name="ticket_evaluacion"),
+    path("api/tickets/<uuid:ref>/evaluaciones", evaluaciones.evaluaciones, name="ticket_evaluaciones"),
+    path("api/tickets/<uuid:ref>/evaluacion-recibida/denuncia", evaluaciones.denuncia, name="ticket_denuncia"),
+    path("api/moderacion/denuncias", evaluaciones.denuncias, name="moderacion_denuncias"),
+    path("api/moderacion/denuncias/<uuid:ref>", evaluaciones.denuncia_detalle, name="moderacion_denuncia"),
+    path("api/moderacion/denuncias/<uuid:ref>/conversacion", evaluaciones.denuncia_conversacion,
+         name="moderacion_conversacion"),
+    path("api/moderacion/denuncias/<uuid:ref>/resolucion", evaluaciones.denuncia_resolucion,
+         name="moderacion_resolucion"),
     path("api/clientes/tickets", tickets.del_cliente, name="tickets_del_cliente"),
     path("api/maestros/tickets", tickets.del_maestro, name="tickets_del_maestro"),
     path("api/avisos", tickets.avisos, name="avisos"),

@@ -353,7 +353,8 @@ def test_el_perfil_publico_muestra_solo_la_lista_explicita(publicado):
     assert respuesta.status_code == 200
     assert respuesta["Cache-Control"] == "no-store"
     datos = respuesta.json()["maestro"]
-    assert set(datos) == {"ref", "nombre", "foto", "servicios", "comunas", "agenda", "bloques"}
+    assert set(datos) == {"ref", "nombre", "foto", "servicios", "comunas", "agenda", "bloques",
+                          "calificacion", "calificacion_texto", "comentarios"}
     assert datos["nombre"] == "Maestro Uno"
     ref = _ref(publicado)
     assert datos["foto"] == {

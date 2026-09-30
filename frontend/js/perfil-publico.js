@@ -4,8 +4,8 @@
 //   cuál es la principal) y horarios semanales en "HH:MM" de 24 horas.
 // - Un maestro no publicado o una referencia inexistente responden el mismo
 //   404: la página dice lo mismo en ambos casos, sin motivos.
-// - Sin datos de contacto: la API no los entrega. Sin calificaciones (S5):
-//   "Todavía no tiene evaluaciones" (CA-05.2).
+// - Sin datos de contacto: la API no los entrega. Calificación por dimensión y últimos
+//   comentarios sin autor; sin evaluaciones, "Todavía no tiene evaluaciones" (CA-05.1, CA-05.2).
 // - Bloques de los próximos 14 días agrupados por fecha, libres u ocupados con
 //   ícono y texto además del color (RF-14, CA-05.1; ADR-022, punto 4). Cada
 //   bloque libre lleva «Pedir este horario» a
@@ -141,14 +141,46 @@
       ...(maestro.comunas || []).map((c) => elemento("li", "", c.nombre))
     );
     pintarHorarios(maestro.agenda || []);
-    // CA-05.2: el texto del servidor si llega (S5); mientras no haya evaluaciones, este.
-    document.getElementById("calificacion-maestro").textContent =
-      (maestro.calificacion !== undefined && maestro.calificacion !== null && maestro.calificacion_texto) ||
-      SIN_EVALUACIONES;
+    pintarCalificacion(maestro);
     pintarServiciosAPedir(maestro.servicios || []);
     pintarBloques(maestro.ref, maestro.bloques || []);
     cargando.hidden = true;
     perfil.hidden = false;
+  }
+
+  // --- Calificación (RF-14, RF-30, CA-05.1, CA-05.2; ADR-026, E-3) ---
+
+  const DIMENSIONES = [
+    ["puntualidad", "Puntualidad"],
+    ["trabajo", "Calidad del trabajo"],
+    ["cordialidad", "Trato"],
+  ];
+
+  function nota(valor) {
+    return `${Number(valor).toFixed(1).replace(".", ",")} de 5`;
+  }
+
+  function pintarCalificacion(maestro) {
+    const calificacion = maestro.calificacion || null;
+    // CA-05.2: sin evaluaciones, el texto y nunca un promedio en cero.
+    document.getElementById("calificacion-maestro").textContent = calificacion
+      ? `Calificación: ${maestro.calificacion_texto}`
+      : maestro.calificacion_texto || SIN_EVALUACIONES;
+    const seccion = document.getElementById("seccion-evaluaciones");
+    seccion.hidden = !calificacion;
+    if (!calificacion) {
+      return;
+    }
+    document.getElementById("dimensiones").replaceChildren(
+      ...DIMENSIONES.flatMap(([clave, nombre]) => [elemento("dt", "", nombre), elemento("dd", "", nota(calificacion[clave]))])
+    );
+    const comentarios = maestro.comentarios || [];
+    document.getElementById("lista-comentarios").replaceChildren(
+      ...comentarios.map((c) =>
+        elemento("li", "comentario", elemento("p", "", c.texto), elemento("p", "ayuda", c.fecha_texto))
+      )
+    );
+    document.getElementById("sin-comentarios").hidden = comentarios.length > 0;
   }
 
   // --- Bloques de los próximos 14 días (RF-14, CA-05.1; ADR-022, punto 4) ---

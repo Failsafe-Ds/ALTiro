@@ -56,6 +56,13 @@ El informe define qué hace cada requisito del S5, pero no fija: dónde se guard
 5. **Datos del ticket para moderación.** Sin dirección ni teléfono.
 6. **Resolución.** `mantener` o `retirar`, con motivo obligatorio. Escribe en la bitácora `denuncia_resuelta` con el estado anterior y el nuevo de la evaluación. `retirar` pone la evaluación en `retirada`: no la borra y la excluye del promedio.
 
+7. **Aclaraciones de implementación (incrementos 5 y 6, provisionales):**
+   - el moderador que es parte del ticket no ve esa denuncia en su lista y recibe `ConflictoDeInteres` (403 registrado) en el detalle, la conversación y la resolución;
+   - `ConflictoDeInteres` ya existía (expediente); cada política define su mensaje en `Politica.mensaje_conflicto`;
+   - la bitácora de la resolución usa entidad `evaluacion` y guarda la `ref` de la denuncia en los valores;
+   - no se avisa a las partes cuando se resuelve una denuncia: CA-21.2 y RF-31 solo exigen registrar decisión, autor y motivo;
+   - `aviso_ticket.tipo` pasa de 20 a 30 caracteres.
+
 ### E-5. `ParteEquivocada` (revisión de la aclaración 20 del S4)
 Se mantiene y se extiende a las rutas de precio final. Quien la recibe ya es parte del recurso, así que un 404 no protege nada. El registro sirve de evidencia para CA-25.3. No se crean excepciones nuevas. En las rutas donde la parte se deduce del usuario (mensajes, evaluación, denuncia), la excepción no aplica.
 

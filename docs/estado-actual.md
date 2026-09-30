@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 4 cerrados; siguiente: incremento 5, evaluaciones).
+Última actualización: 2026-09-30 (S5 en curso: incrementos 0 a 6 cerrados; siguiente: incremento 7, indicadores).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -22,7 +22,7 @@
 - Migrar: `docker compose exec app python manage.py migrate`. Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
 
 ## Apps del backend (`backend/`)
-`identidad` (usuario propio, sesión, Argon2id) · `autorizacion` (políticas, `obtener_autorizado`, enlaces firmados) · `bitacora` (solo inserción) · `territorio` · `catalogo` · `expediente` (documentos cifrados, curatoría, planificador) · `perfil` (servicios, cobertura, agenda, foto, publicación, ocurrencias, ocupación) · `busqueda` · `tickets` · `mensajeria` (conversación) · `comun` (API, middleware, errores).
+`identidad` (usuario propio, sesión, Argon2id) · `autorizacion` (políticas, `obtener_autorizado`, enlaces firmados) · `bitacora` (solo inserción) · `territorio` · `catalogo` · `expediente` (documentos cifrados, curatoría, planificador) · `perfil` (servicios, cobertura, agenda, foto, publicación, ocurrencias, ocupación) · `busqueda` · `tickets` · `mensajeria` (conversación) · `evaluaciones` (evaluación, calificación, denuncia y moderación) · `comun` (API, middleware, errores).
 
 ## Invariantes transversales (resumen de ADR)
 - **Rutas privadas por defecto:** `@publica` para abrir una ruta. Verificar siempre identidad, rol, propiedad y estado en el servidor.
@@ -75,6 +75,12 @@
   - **ningún GET de mensajes renueva la sesión**: `identidad.middleware.SesionMiddleware` (reemplaza al `SessionMiddleware` de Django) respeta `request.sin_renovar_sesion`; abrir el pedido (`GET /api/tickets/<ref>`) y enviar sí renuevan;
   - aviso `mensaje_nuevo` a la otra parte con `enlace` a `conversacion.html`, reactivado con `tickets.avisos.emitir` (también lo usan los avisos de precio);
   - pantalla `conversacion.html?ticket=<ref>` (sondeo de 20 s solo visible, borrador `altiro.conversacion.<ref>`); "Ver conversación" en `mis-pedidos` y `mis-trabajos` (aceptado/finalizado). Reglas A-09 a A-15.
+- **Evaluación y moderación (ADR-026, E-3 y E-4; S5 inc. 5-6):**
+  - tablas `evaluacion` (único `(ticket, parte)`, notas 1..5, comentario ≤500, `publicada`/`retirada`, CHECK autor≠evaluado) y `denuncia` (único `(evaluacion, denunciante)`, CHECK de resolución completa);
+  - `POST /api/tickets/<ref>/evaluacion` (solo `finalizado`; repetir → 409), `GET …/evaluaciones` → `{mia, recibida, puede_evaluar, aviso}`, `POST …/evaluacion-recibida/denuncia` (solo la parte evaluada, una vez); `PoliticaTicket`;
+  - calificación en lectura (`evaluaciones/calificacion.py`): publicadas del cliente, redondeo mitad hacia arriba a 1 decimal; ficha pública con dimensiones y 10 comentarios sin autor; tarjeta de búsqueda en lote (`ordenar` la deja en `Candidato.calificacion`); desempate con el valor redondeado y la cantidad, antes del sorteo;
+  - `/api/moderacion/denuncias[?estado=]`, `/<ref>`, `/<ref>/conversacion`, `/<ref>/resolucion`: `requiere_rol("moderacion")` + `PoliticaDenuncia` (moderador parte → `ConflictoDeInteres` 403 registrado, con `Politica.mensaje_conflicto`); conversación solo con denuncia `abierta` (si no, 404 registrado), bitácora `conversacion_consultada` y aviso `conversacion_revisada` a ambas partes; resolución → bitácora `denuncia_resuelta` (entidad `evaluacion`, estado anterior y nuevo);
+  - pantallas `evaluar.html?ticket=`, `moderacion.html`; calificación en `perfil-maestro` y `buscar`; `ingresar.js` vuelve a `conversacion`/`evaluar` (con `ticket`) y `moderacion`. Reglas P-12 a P-14, C-16, C-17, A-16 a A-24.
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
 - **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre y operación; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04; conversación: A-09 a A-15). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
@@ -102,3 +108,4 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 | 2026-09-30 | S5 incrementos 1 y 2 (precio final, historial y pantallas) | backend (principal) | ~206 mil (69 pasos; dos incrementos juntos) |
 | 2026-09-30 | S5 incremento 3 (respaldo, registro JSON y retención) | backend (principal) | ~197 mil (107 pasos) |
 | 2026-09-30 | S5 incremento 4 (mensajería) | backend (principal) | ~177 mil (67 pasos) |
+| 2026-09-30 | S5 incrementos 5 y 6 (evaluaciones, calificación y moderación) | backend (principal) | ~219 mil (64 pasos; se cortó por límite y se retomó) |

@@ -26,6 +26,15 @@
       <!-- CA-05.2: sin evaluaciones no se muestra un promedio en cero. -->
       <p id="calificacion-maestro" class="calificacion-ficha"></p>
 
+      <!-- CA-05.1: calificación por dimensión y comentarios (sin autor; ADR-026, E-3.5). -->
+      <section id="seccion-evaluaciones" aria-labelledby="titulo-evaluaciones" hidden>
+        <h2 id="titulo-evaluaciones">Lo que dicen sus clientes</h2>
+        <dl id="dimensiones" class="datos"></dl>
+        <h3 id="titulo-comentarios">Últimos comentarios</h3>
+        <ul id="lista-comentarios" class="lista-comentarios" aria-labelledby="titulo-comentarios"></ul>
+        <p id="sin-comentarios" hidden>Sus clientes todavía no han dejado comentarios escritos.</p>
+      </section>
+
       <section aria-labelledby="titulo-servicios">
         <h2 id="titulo-servicios">Servicios y precios</h2>
         <div id="lista-servicios"></div>
