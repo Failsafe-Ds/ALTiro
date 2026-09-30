@@ -33,10 +33,10 @@
 
 ## Enmiendas
 
-### E-1 — La documentación se extrae una sola vez
+### E-1 — El grafo cubre solo el código
 - **Fecha:** 2026-09-30. Decisión del equipo.
 - **Cambio:**
-  - la extracción de documentación con agentes se hizo **una sola vez** (2026-09-29/30) y no se repite;
-  - el grafo se mantiene al día solo con `graphify update .` (código, sin LLM) y con `scripts/graphify_requisitos.py` (identificadores del informe, sin LLM);
-  - si un ADR o documento nuevo no está en el grafo, se lee directamente.
+  - se reemplaza el punto 3 de la decisión: **no se extrae documentación**, ni con agentes ni con scripts. Se detuvo el intento del 2026-09-29/30 y se descartaron sus resultados;
+  - el grafo se mantiene solo con `graphify update .` (código, sin LLM);
+  - la documentación se consulta con `docs/estado-actual.md` y con lecturas puntuales del informe y de los ADR.
 - **Motivo:** la extracción semántica cuesta cientos de miles de tokens y el ahorro que da en las consultas es incierto.

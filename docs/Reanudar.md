@@ -39,10 +39,9 @@ El costo de un agente crece con **lo que lee × los pasos que da**. Todo lo de a
 8. **Mantener `docs/estado-actual.md`:**
    - el coordinador agrega una línea por incremento cerrado;
    - es la única lectura obligatoria de los agentes, además de CLAUDE.md.
-9. **graphify (ADR-025):**
-   - el código se actualiza con `graphify update .`, que no usa LLM, después de cada commit;
-   - el informe se actualiza con `scripts/graphify_requisitos.py`, que tampoco usa LLM;
-   - **no se vuelve a extraer documentación con agentes.**
+9. **graphify, solo para código (ADR-025 E-1):**
+   - después de cada commit se corre `graphify update .`, que no usa LLM;
+   - **nunca se extrae documentación al grafo.**
 10. **Medir:**
     - anotar los tokens de cada agente, que vienen en la notificación de término, en `docs/estado-actual.md` → "Consumo";
     - si en el primer incremento del S5 el gasto no baja respecto del incremento 4 del S4 (unos 340 mil), revisar la regla de graphify que obliga a consultar el grafo antes de cada búsqueda.
