@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S4, incrementos 1 a 7 hechos; suite 1679).
+Última actualización: 2026-09-30 (S4, incrementos 1 a 8 hechos; suite 1679).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -11,7 +11,7 @@
 | S1 Identidad, roles y acceso | Cerrado | `sprint-1`, `docs/testing/cierre-sprint-1.md` |
 | S2 Expediente y curatoría | Cerrado | `sprint-2`, `cierre-sprint-2.md` |
 | S3 Catálogo, cobertura y agenda | Cerrado con observaciones | `sprint-3`, `cierre-sprint-3.md` |
-| S4 Búsqueda y ticket | En curso: incrementos 1 a 7 hechos; faltan 8 y 9 | propuesta §9 y §11 (aclaraciones 27-28) |
+| S4 Búsqueda y ticket | En curso: incrementos 1 a 8 hechos; falta el 9 (cierre) | propuesta §9 y §11 (aclaraciones 27-29) |
 | S5 Mensajería, evaluación, bitácora e indicadores | No iniciado | — |
 
 ## Stack y cómo correr
@@ -68,7 +68,7 @@ ADR-016 E-1 y ADR-018 a ADR-024 están en "Aceptada — PROVISIONAL" y se revisa
 ## Pendientes y riesgos vigentes
 - **S4:**
   - incremento 7 hecho (QA en `docs/testing/qa-s4-incremento-7.md`, DEF-QA-001 a 004 corregidos). Queda para el representante: horarios alternativos del 409 (CA-06.2) como texto sin enlace directo, y "Ingresar" desde `pedir-trabajo` sin retorno a la página;
-  - incremento 8: RF-12, si hay capacidad;
+  - incremento 8: RF-12 ya estaba construido desde los incrementos 1-2 (aclaración 29); su evidencia en navegador va en el QA de cierre;
   - incremento 9: mediciones de RNF-01 a 04, RNF-21 y RNF-14 a 18 con 1.000 tickets en una pila aparte, más el QA.
 - **RNF-13** sin ejecutar (DA-17: antes de la revisión del S4; requiere personas).
 - **RNF-18:** falta el pase manual en navegadores de marca y en Android.

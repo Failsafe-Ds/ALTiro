@@ -221,3 +221,6 @@
 ### Aclaraciones del incremento 7 (bandejas y pantallas, 2026-09-30, provisionales)
 27. **Filtro de las bandejas:** `GET /api/clientes/tickets` y `GET /api/maestros/tickets` aceptan `estado` opcional (`pendiente`, `aceptado`, `finalizado` o `cerrado`), un solo valor. Un valor fuera de la lista o repetido responde 400 en `estado`; otro parámetro sigue respondiendo 400 general (cierra la parte pendiente de la aclaración 15).
 28. **`pedir-trabajo.html`** (§6) se construye en este incremento: la ficha ya enlazaba a ella y sin la página el flujo de ticket no se puede demostrar.
+
+### Incremento 8 (2026-09-30)
+29. **RF-12 no se recorta:** ya quedó construido en los incrementos 1 y 2 (`busqueda/sugerencias.py`, sección `sugerencias` de `buscar.html`, prueba `test_ca04_2_ca04_3_sugerencias_separadas_con_el_criterio_que_incumplen`). El incremento 8 no agrega código; la evidencia en navegador de CA-04.1 a CA-04.3 va en el QA de cierre (incremento 9). El registro "RF-12 queda como recorte" de §10 no aplica.
