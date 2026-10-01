@@ -11,12 +11,12 @@ servicio dice si los clientes lo ven y, si no, por qué, en el lenguaje del
 oficio (RNF-17), con la regla única de ``perfil.publicacion``. Lista explícita
 de campos: nunca RUT, contacto ni ids internos. ``Cache-Control: no-store``.
 """
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 
 from autorizacion.acceso import obtener_autorizado
 from autorizacion.decoradores import requiere_rol
 from catalogo.models import Modalidad
-from comun.api import ErroresDeCampo, leer_json, manejar_errores, metodos, respuesta_error
+from comun.api import ErroresDeCampo, leer_json, manejar_errores, metodos, respuesta_error, respuesta_json
 from expediente import vigencia
 from expediente.errores import ErrorEstado, ErroresValidacion
 from expediente.models import EstadoExpediente, Expediente
@@ -54,12 +54,6 @@ MENSAJES_POSTULACION = {
 }
 
 
-def _json(datos, estado=200):
-    respuesta = JsonResponse(datos, status=estado)
-    respuesta["Cache-Control"] = "no-store"
-    return respuesta
-
-
 def _motivo(codigo, servicio_maestro):
     mensaje = MENSAJES_MOTIVO[codigo].format(oficio=servicio_maestro.servicio.oficio.nombre)
     return {"codigo": codigo, "mensaje": mensaje}
@@ -94,7 +88,7 @@ def _pendientes(maestro_id):
 def _uno(servicio_maestro, estado=200):
     servicio_maestro = ServicioMaestro.objects.select_related("servicio__oficio").get(pk=servicio_maestro.pk)
     elegible = publicacion.maestro_elegible(servicio_maestro.maestro_id)
-    return _json({"servicio": datos_servicio_maestro(servicio_maestro, vigencia.hoy_negocio(), elegible)}, estado)
+    return respuesta_json({"servicio": datos_servicio_maestro(servicio_maestro, vigencia.hoy_negocio(), elegible)}, estado)
 
 
 def _con_errores_de_dominio(funcion):
@@ -116,7 +110,7 @@ def mis_servicios(request):
         return _con_errores_de_dominio(lambda: _uno(servicios.ofrecer_servicio(request.usuario, datos), 201))
     hoy = vigencia.hoy_negocio()
     elegible = publicacion.maestro_elegible(maestro_id)
-    return _json(
+    return respuesta_json(
         {
             "servicios": [
                 datos_servicio_maestro(s, hoy, elegible) for s in publicacion.servicios_activos(maestro_id)

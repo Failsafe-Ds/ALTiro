@@ -20,7 +20,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | DA-06 | Purga automática de `acceso_denegado` | S2 (cerrado el 2026-09-28, con el planificador de DA-16) | Temporal (cerrado) |
 | DA-07 | RNF-22 parcial | S5 | Temporal |
 | DA-08 | Barrera 3 de la bitácora no implementada | Evaluar en S5 | Temporal, condicionado a capacidad |
-| DA-09 | Reautenticación de RNF-09 | Según decisión de alcance | Pendiente de decisión |
+| DA-09 | Reautenticación de RNF-09 | Cerrado el 2026-09-30 con DA-27 (ADR-027) | Cerrado |
 | DA-10 | Uso de la bitácora desde S2 | S2 | Adelanto (definitivo) |
 | DA-11 | RNF-23 sin medir en equipo limpio | Medido el 2026-09-28 (47 s); confirmar en el laboratorio | Temporal (cerrado) |
 | DA-12 | RF-34, CA-24.1 y CA-24.3 (servicios) pasan a S3 | S3 (cerrado el 2026-09-29) | Temporal (cerrado) |
@@ -38,6 +38,7 @@ Registro de desplazamientos de alcance exigido por el informe (§5.3.6, Control 
 | DA-24 | Conversación de CA-15.2 pasa a S5 | S5 | Temporal |
 | DA-25 | RNF-03 con 5.000 mensajes (y nueva medición de RNF-01) pasa a S5 | S5 | Temporal |
 | DA-26 | RNF-13 vence de nuevo: la ejecución pasa a antes de la revisión del S5 | S5 | Temporal |
+| DA-27 | Ampliación: cambio de contraseña, cambio de correo y recuperación de contraseña | Después del S5 (2026-09-30) | Ampliación de alcance |
 
 ## Registros
 
@@ -298,3 +299,12 @@ Registros previstos en la propuesta del S4 (§10) y detectados en el QA de cierr
 - **Impacto:** si no se ejecuta en el S5, RNF-13 queda sin evidencia al final del proyecto. Es la acción de riesgo más alta pendiente del equipo.
 - **Autorización:** pendiente de confirmación del equipo (registrada como provisional según `docs/Reanudar.md`).
 - **Relacionado:** RNF-13, DA-17; `docs/testing/rnf-13-protocolo.md`.
+
+### DA-27 — Ampliación: cambio de contraseña, cambio de correo y recuperación de contraseña
+- **Fecha:** 2026-09-30 (después del cierre del S5).
+- **Alcance original:** ninguna HU ni RF pedía cambiar la contraseña o el correo ni recuperar la contraseña (ADR-013, puntos 7 y 10; propuesta del S1, §2.1). La segunda mitad de RNF-09 ("Reautenticación al cambiar contraseña o correo") quedaba sin evidencia (DA-09).
+- **Cambio:** se construyen las tres funciones. Cambiar la contraseña o el correo exige la contraseña actual. La recuperación usa un enlace de un solo uso enviado a un buzón local, más una vía asistida por comando de consola para maestros sin correo. Detalle en ADR-027.
+- **Motivo:** dar evidencia completa a RNF-09 y una salida a quien olvida su contraseña (R-03, NTI-09). No desplaza nada comprometido: los cinco sprints ya estaban cerrados.
+- **Impacto:** nuevas rutas `api/cuenta/contrasena`, `api/cuenta/correo`, `api/recuperacion` y `api/recuperacion/contrasena`; tabla `solicitud_recuperacion`; volumen `buzon`; pantallas `recuperar.html` y `nueva-contrasena.html`, y sección «Seguridad de mi cuenta» en `cuenta.html`. Cierra DA-09 y responde P-11.
+- **Autorización:** equipo de desarrollo (instrucción del 2026-09-30, que también eligió el canal: buzón local más recuperación asistida). Falta la conformidad del representante del producto.
+- **Relacionado:** RNF-09, RNF-10, R-03, NTI-09, NTI-11; ADR-013, ADR-027; DA-09, P-11.

@@ -46,6 +46,7 @@ Para cambiarlos, cree un `.env` a partir de `.env.example` (el `.env` no se vers
 | `/conversacion.html`, `/evaluar.html` | Cliente y maestro: conversación del pedido aceptado y evaluación (RF-25, RF-29) |
 | `/moderacion.html` | Moderación: denuncias de evaluaciones (RF-31) |
 | `/indicadores.html` | Control de gestión: indicadores y exportación anonimizada (RF-38) |
+| `/recuperar.html`, `/nueva-contrasena.html` | Olvidé mi contraseña y crear una nueva con el enlace (ADR-027) |
 
 ## Datos de demostración
 
@@ -59,6 +60,23 @@ docker compose exec app python manage.py cargar_datos_demo
 El volumen sintético de medición (RNF-01, RNF-03) se genera con `generar_volumen_prueba`,
 **solo en una pila aparte** (`-p altiro-volumen`), nunca en la de demostración. Las instrucciones
 están al inicio de `backend/busqueda/management/commands/generar_volumen_prueba.py`.
+
+## Correos y recuperación de contraseña (ADR-027)
+
+No se usan servicios externos: los correos (enlace de recuperación y avisos de
+cambio) se escriben como archivos en el volumen `buzon`. Para leer el último:
+
+```sh
+docker compose exec app sh -c 'cat "/buzon/$(ls -t /buzon | head -1)"'
+```
+
+Una persona sin correo en su cuenta (por ejemplo, un maestro que ingresa con RUT)
+recupera su contraseña con ayuda. **Antes**, verifique su identidad fuera del
+sistema (llamada al teléfono registrado). Después genere el enlace y hágaselo llegar:
+
+```sh
+docker compose exec app python manage.py crear_enlace_recuperacion --cuenta 12.345.678-5
+```
 
 ## Crear una cuenta administrativa
 

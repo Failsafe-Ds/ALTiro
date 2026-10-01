@@ -82,6 +82,10 @@ services:
       ALTIRO_DOCUMENTOS_DIR: /documentos
       # Foto del maestro (ADR-021): volumen "fotos", solo en app.
       ALTIRO_FOTOS_DIR: /fotos
+      # Correos y recuperación de contraseña (ADR-027).
+      ALTIRO_BUZON_DIR: /buzon
+      ALTIRO_URL_PUBLICA: ${ALTIRO_URL_PUBLICA:-https://localhost}
+      ALTIRO_RECUPERACION_MINUTOS: ${ALTIRO_RECUPERACION_MINUTOS:-30}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
     volumes:
       - secretos:/secretos:ro
@@ -92,6 +96,9 @@ services:
       # Foto del maestro (ADR-021, punto 3): solo en app; nunca en el proxy ni
       # en el planificador. Dueño 10001 y modo 0700 desde /fotos de la imagen.
       - fotos:/fotos
+      # Buzón local de correos (ADR-027, punto 4): solo en app. Sin servicios
+      # externos; se lee con docker compose exec. Dueño 10001 y modo 0700.
+      - buzon:/buzon
     networks:
       - interna
     depends_on:
@@ -250,3 +257,6 @@ volumes:
   # Foto del maestro, sin cifrar (ADR-021). Se entrega solo si el maestro está
   # publicado. Nombres UUID; sin datos en el nombre.
   fotos: {}
+  # Buzón local de correos (ADR-027, punto 4). No se respalda: los enlaces
+  # vencen en 30 minutos.
+  buzon: {}

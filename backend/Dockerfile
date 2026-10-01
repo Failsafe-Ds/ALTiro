@@ -29,6 +29,10 @@ RUN mkdir /documentos && chown altiro:altiro /documentos && chmod 0700 /document
 # lo monta app.
 RUN mkdir /fotos && chown altiro:altiro /fotos && chmod 0700 /fotos
 
+# Punto de montaje del volumen "buzon" (ADR-027, punto 4), mismo patrón: solo
+# lo monta app.
+RUN mkdir /buzon && chown altiro:altiro /buzon && chmod 0700 /buzon
+
 COPY . .
 # Defensa ante fines de línea CRLF si el archivo se editó en Windows (ADR-009).
 RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod 0755 /app/entrypoint.sh

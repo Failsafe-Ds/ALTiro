@@ -14,7 +14,7 @@ Paquete único de preguntas (CP-01: la contraparte está disponible cada tres o 
 | P-08 | ¿Se acepta que el registro separado `acceso_denegado` cumple "queda en la bitácora" de CA-25.3? | Sí (pendiente desde el S1, DA-04) | ADR-010 |
 | P-09 | ¿Se acepta el alcance nacional del catálogo territorial? | Sí (pendiente desde el S1) | ADR-012 |
 | P-10 | ¿Se acepta que el HTML estático de una página privada sin datos cumple RF-02 ("vista privada")? | Sí (pendiente desde el S1) | ADR-002 |
-| P-11 | ¿Qué opción de alcance se elige para la reautenticación de RNF-09 (A a D)? | D: sin funciones de cambio de contraseña ni de correo | Propuesta del S1, §2.1; DA-09 |
+| P-11 | ¿Qué opción de alcance se elige para la reautenticación de RNF-09 (A a D)? | **Resuelta por el equipo (2026-09-30):** A, más recuperación de contraseña (ADR-027, DA-27). Falta la conformidad del representante | Propuesta del S1, §2.1; DA-09 |
 
 ## Decisión provisional sobre P-01 y P-02 (2026-09-28)
 Sin respuesta del representante, y siguiendo la instrucción del equipo de tomar la opción recomendada, se usa una **lista provisional** de ocho oficios comunes del hogar en Chile, que aparece en pantalla sin rótulos:

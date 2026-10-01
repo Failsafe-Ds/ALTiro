@@ -7,7 +7,6 @@ registro). Campos permitidos explícitos por ruta (ADR-013, E-2). Respuestas
 con lista explícita de campos, sin ids internos ni datos personales, y con
 ``Cache-Control: no-store``.
 """
-from django.http import JsonResponse
 
 from autorizacion.acceso import obtener_autorizado
 from autorizacion.decoradores import requiere_rol
@@ -15,7 +14,7 @@ from catalogo import servicios
 from catalogo.errores import ErrorVersion
 from catalogo.models import Oficio, Servicio
 from catalogo.politicas import PoliticaOficioComercial, PoliticaServicioComercial
-from comun.api import leer_json, manejar_errores, metodos, respuesta_error
+from comun.api import leer_json, manejar_errores, metodos, respuesta_error, respuesta_json
 
 CAMPOS_CREAR_OFICIO = {"nombre", "regulado", "orden", "motivo"}
 # ``regulado`` se admite en la lectura solo para responder con un mensaje propio
@@ -24,12 +23,6 @@ CAMPOS_MODIFICAR_OFICIO = {"version", "motivo", "nombre", "orden", "activo", "re
 CAMPOS_CREAR_SERVICIO = {"oficio", "nombre", "orden", "modalidades", "motivo"}
 # ``oficio`` se admite en la lectura solo para responder con un mensaje propio: no se cambia.
 CAMPOS_MODIFICAR_SERVICIO = {"version", "motivo", "nombre", "orden", "activo", "modalidades", "oficio"}
-
-
-def _json(datos, estado=200):
-    respuesta = JsonResponse(datos, status=estado)
-    respuesta["Cache-Control"] = "no-store"
-    return respuesta
 
 
 def datos_oficio_comercial(oficio):
@@ -64,7 +57,7 @@ def catalogo_comercial(request):
     por_oficio = {}
     for servicio in todos:
         por_oficio.setdefault(servicio.oficio_id, []).append(datos_servicio_comercial(servicio))
-    return _json(
+    return respuesta_json(
         {
             "oficios": [
                 {**datos_oficio_comercial(oficio), "servicios": por_oficio.get(oficio.pk, [])}
@@ -87,7 +80,7 @@ def _con_conflicto(funcion):
 def crear_oficio(request):
     datos = leer_json(request, CAMPOS_CREAR_OFICIO)
     return _con_conflicto(
-        lambda: _json({"oficio": datos_oficio_comercial(servicios.crear_oficio(request.usuario, datos))}, 201)
+        lambda: respuesta_json({"oficio": datos_oficio_comercial(servicios.crear_oficio(request.usuario, datos))}, 201)
     )
 
 
@@ -99,7 +92,7 @@ def modificar_oficio(request, ref):
     oficio = obtener_autorizado(Oficio.objects.all(), ref, request.usuario, PoliticaOficioComercial())
     datos = leer_json(request, CAMPOS_MODIFICAR_OFICIO)
     return _con_conflicto(
-        lambda: _json({"oficio": datos_oficio_comercial(servicios.modificar_oficio(request.usuario, oficio, datos))})
+        lambda: respuesta_json({"oficio": datos_oficio_comercial(servicios.modificar_oficio(request.usuario, oficio, datos))})
     )
 
 
@@ -109,7 +102,7 @@ def modificar_oficio(request, ref):
 def crear_servicio(request):
     datos = leer_json(request, CAMPOS_CREAR_SERVICIO)
     return _con_conflicto(
-        lambda: _json({"servicio": datos_servicio_comercial(servicios.crear_servicio(request.usuario, datos))}, 201)
+        lambda: respuesta_json({"servicio": datos_servicio_comercial(servicios.crear_servicio(request.usuario, datos))}, 201)
     )
 
 
@@ -122,7 +115,7 @@ def modificar_servicio(request, ref):
     )
     datos = leer_json(request, CAMPOS_MODIFICAR_SERVICIO)
     return _con_conflicto(
-        lambda: _json(
+        lambda: respuesta_json(
             {"servicio": datos_servicio_comercial(servicios.modificar_servicio(request.usuario, servicio, datos))}
         )
     )

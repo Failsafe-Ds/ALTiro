@@ -19,6 +19,9 @@ RUTAS_PUBLICAS = {
     "api/maestros/publicos/<uuid:ref>/foto",
     # Búsqueda: filtros excluyentes, puntaje oculto (RF-09 a RF-13; ADR-022).
     "api/busqueda",
+    # Recuperación de contraseña: misma respuesta exista o no la cuenta; enlace de un solo uso (ADR-027).
+    "api/recuperacion",
+    "api/recuperacion/contrasena",
 }
 
 

@@ -111,7 +111,7 @@ class UsuarioRol(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["usuario", "rol"], name="usuario_rol_unico"),
             models.CheckConstraint(
-                condition=Q(rol__in=[valor for valor, _ in Rol.choices]),
+                condition=Q(rol__in=Rol.values),
                 name="usuario_rol_valido",
             ),
         ]
@@ -198,3 +198,55 @@ class IntentoAutenticacion(models.Model):
 
     def __str__(self):
         return f"Intento fallido {self.pk}"
+
+
+class ViaRecuperacion(models.TextChoices):
+    """Cómo se pidió el enlace de recuperación (ADR-027, punto 3)."""
+
+    CORREO = "correo", "Por correo"
+    ASISTIDA = "asistida", "Asistida por un administrador"
+
+
+class SolicitudRecuperacion(models.Model):
+    """Solicitud de recuperación de contraseña (ADR-027, punto 3).
+
+    - ``usuario`` NULL: el identificador no corresponde a una cuenta. La fila
+      existe igual para que el límite por origen no revele qué cuentas existen.
+    - ``token_hash``: SHA-256 del token; NULL si no se emitió enlace (cuenta
+      sin correo o límite por cuenta alcanzado). El token nunca se guarda.
+    - Un enlace sirve si no venció, no se usó y no se anuló.
+    - Las filas de más de 24 horas se borran al insertar (M-08).
+    """
+
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, null=True, blank=True, related_name="+", db_column="usuario_id"
+    )
+    origen = models.GenericIPAddressField()
+    via = models.CharField(max_length=10, choices=ViaRecuperacion.choices)
+    token_hash = models.CharField(max_length=64, null=True, blank=True)
+    creada_en = models.DateTimeField()
+    vence_en = models.DateTimeField(null=True, blank=True)
+    usada_en = models.DateTimeField(null=True, blank=True)
+    anulada_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "solicitud_recuperacion"
+        constraints = [
+            models.UniqueConstraint(fields=["token_hash"], name="solicitud_recuperacion_token_unico"),
+            models.CheckConstraint(
+                condition=Q(via__in=ViaRecuperacion.values),
+                name="solicitud_recuperacion_via_valida",
+            ),
+            # Un enlace emitido siempre tiene cuenta y vencimiento.
+            models.CheckConstraint(
+                condition=Q(token_hash__isnull=True) | (Q(usuario__isnull=False) & Q(vence_en__isnull=False)),
+                name="solicitud_recuperacion_enlace_completo",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["origen", "creada_en"], name="recuperacion_origen_fecha"),
+            models.Index(fields=["creada_en"], name="recuperacion_fecha"),
+        ]
+
+    def __str__(self):
+        return f"Solicitud de recuperación {self.pk}"

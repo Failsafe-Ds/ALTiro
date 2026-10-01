@@ -9,12 +9,7 @@
 const hora24 = (() => {
   const MINUTOS = ["00", "30"];
 
-  function opcion(valor, texto) {
-    const nodo = document.createElement("option");
-    nodo.value = valor;
-    nodo.textContent = texto;
-    return nodo;
-  }
+  const opcion = dom.opcion;
 
   // Si la hora elegida es 24, los minutos quedan en 00 y "30" se desactiva.
   function ajustar(selectHora, selectMinutos) {

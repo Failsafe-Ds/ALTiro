@@ -12,11 +12,11 @@ falta; 401 sin sesión). Lista explícita de campos; ``Cache-Control: no-store``
 - ``GET /api/maestros/perfil``: ref pública, si está publicado y lo que le falta.
 """
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 
 from autorizacion.acceso import obtener_autorizado
 from autorizacion.decoradores import requiere_rol
-from comun.api import ErroresDeCampo, leer_json, leer_multipart, manejar_errores, metodos, respuesta_error
+from comun.api import ErroresDeCampo, leer_json, leer_multipart, manejar_errores, metodos, respuesta_error, respuesta_json
 from expediente.errores import ErrorEstado, ErroresValidacion
 from expediente.models import EstadoExpediente, Expediente
 from perfil import agenda, cobertura, fotos, publicacion
@@ -45,12 +45,6 @@ MENSAJES_POSTULACION = {
 }
 
 
-def _json(datos, estado=200):
-    respuesta = JsonResponse(datos, status=estado)
-    respuesta["Cache-Control"] = "no-store"
-    return respuesta
-
-
 def _con_errores_de_dominio(funcion):
     try:
         return funcion()
@@ -69,7 +63,7 @@ def datos_comuna(comuna):
 
 
 def _cobertura(maestro_id, estado=200):
-    return _json(
+    return respuesta_json(
         {
             "comunas": [
                 {**datos_comuna(c.comuna), "es_base": c.es_base} for c in cobertura.cobertura_de(maestro_id)
@@ -117,9 +111,9 @@ def mi_disponibilidad(request):
     if request.method == "POST":
         datos = leer_json(request, CAMPOS_BLOQUE)
         return _con_errores_de_dominio(
-            lambda: _json({"bloque": datos_bloque(agenda.agregar_bloque(request.usuario, datos))}, 201)
+            lambda: respuesta_json({"bloque": datos_bloque(agenda.agregar_bloque(request.usuario, datos))}, 201)
         )
-    return _json({"bloques": [datos_bloque(b) for b in agenda.bloques_activos(request.usuario.pk)]})
+    return respuesta_json({"bloques": [datos_bloque(b) for b in agenda.bloques_activos(request.usuario.pk)]})
 
 
 @metodos("DELETE")
@@ -152,7 +146,7 @@ def _pendientes(maestro_id):
 def _perfil(maestro_id, estado=200):
     perfil = PerfilPublico.objects.get(perfil_maestro_id=maestro_id)
     pendientes = _pendientes(maestro_id)
-    return _json(
+    return respuesta_json(
         {
             "perfil": {
                 "ref": str(perfil.ref),

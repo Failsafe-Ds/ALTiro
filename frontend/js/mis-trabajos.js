@@ -46,14 +46,7 @@
   let refAbierto = null;
   let accionPendiente = null; // "aceptacion" | "rechazo"
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
   // --- Sesión y acceso ---
 

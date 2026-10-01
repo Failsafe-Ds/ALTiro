@@ -38,10 +38,6 @@ def consulta():
     )
 
 
-def _instante(valor):
-    return None if valor is None else timezone.localtime(valor, ocurrencias.ZONA).isoformat()
-
-
 def _comunes(ticket):
     servicio = ticket.servicio_maestro.servicio
     return {
@@ -65,11 +61,11 @@ def _comunes(ticket):
         "modalidad": ticket.modalidad,
         "modalidad_texto": Modalidad(ticket.modalidad).label,
         "monto_publicado": ticket.monto_publicado,
-        "enviado_en": _instante(ticket.enviado_en),
-        "vence_en": _instante(ticket.vence_en),
-        "aceptado_en": _instante(ticket.aceptado_en),
-        "finalizado_en": _instante(ticket.finalizado_en),
-        "cerrado_en": _instante(ticket.cerrado_en),
+        "enviado_en": ocurrencias.iso_local(ticket.enviado_en),
+        "vence_en": ocurrencias.iso_local(ticket.vence_en),
+        "aceptado_en": ocurrencias.iso_local(ticket.aceptado_en),
+        "finalizado_en": ocurrencias.iso_local(ticket.finalizado_en),
+        "cerrado_en": ocurrencias.iso_local(ticket.cerrado_en),
     }
 
 
@@ -80,8 +76,8 @@ def _precio(ticket):
     return {
         "monto": ticket.monto_final,
         "estado": "acordado" if ticket.estado == EstadoTicket.FINALIZADO else "por_aceptar",
-        "registrado_en": _instante(ticket.monto_final_en),
-        "aceptado_en": _instante(ticket.precio_aceptado_en),
+        "registrado_en": ocurrencias.iso_local(ticket.monto_final_en),
+        "aceptado_en": ocurrencias.iso_local(ticket.precio_aceptado_en),
     }
 
 

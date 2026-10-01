@@ -24,14 +24,7 @@
   const form = document.getElementById("formulario-resolucion");
   let actual = null;
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
   function fechaHora(iso) {
     const fecha = new Date(iso);

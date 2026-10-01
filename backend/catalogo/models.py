@@ -83,7 +83,7 @@ class ServicioModalidad(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["servicio", "modalidad"], name="servicio_modalidad_unica"),
             models.CheckConstraint(
-                condition=Q(modalidad__in=[valor for valor, _ in Modalidad.choices]),
+                condition=Q(modalidad__in=Modalidad.values),
                 name="servicio_modalidad_valida",
             ),
             models.CheckConstraint(

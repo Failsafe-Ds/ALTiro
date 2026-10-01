@@ -36,10 +36,6 @@ def consulta():
     )
 
 
-def _instante(valor):
-    return None if valor is None else timezone.localtime(valor, ocurrencias.ZONA).isoformat()
-
-
 def _denunciante(denuncia):
     ticket = denuncia.evaluacion.ticket
     return "cliente" if denuncia.denunciante_id == ticket.cliente_id else "maestro"
@@ -51,7 +47,7 @@ def datos_en_lista(denuncia):
         "ref": str(denuncia.ref),
         "estado": denuncia.estado,
         "estado_texto": EstadoDenuncia(denuncia.estado).label,
-        "creada_en": _instante(denuncia.creada_en),
+        "creada_en": ocurrencias.iso_local(denuncia.creada_en),
         "denunciante": _denunciante(denuncia),
         "servicio": ticket.servicio_maestro.servicio.nombre,
         "comuna": ticket.comuna.nombre,
@@ -72,8 +68,8 @@ def _resumen_ticket(ticket):
         "modalidad_texto": Modalidad(ticket.modalidad).label,
         "monto_publicado": ticket.monto_publicado,
         "monto_final": ticket.monto_final,
-        "enviado_en": _instante(ticket.enviado_en),
-        "finalizado_en": _instante(ticket.finalizado_en),
+        "enviado_en": ocurrencias.iso_local(ticket.enviado_en),
+        "finalizado_en": ocurrencias.iso_local(ticket.finalizado_en),
     }
 
 
@@ -84,7 +80,7 @@ def datos_detalle(denuncia):
         "decision": denuncia.decision,
         "decision_texto": denuncia.get_decision_display() if denuncia.decision else None,
         "motivo_resolucion": denuncia.motivo_resolucion,
-        "resuelta_en": _instante(denuncia.resuelta_en),
+        "resuelta_en": ocurrencias.iso_local(denuncia.resuelta_en),
         "puede_ver_conversacion": denuncia.estado == EstadoDenuncia.ABIERTA,
         "evaluacion": datos_evaluacion(denuncia.evaluacion),
         "ticket": _resumen_ticket(denuncia.evaluacion.ticket),

@@ -17,9 +17,9 @@ import logging
 from django.core.management.base import BaseCommand, CommandError
 
 from identidad import servicios
-from identidad.autenticacion import interpretar_identificador
+from identidad.autenticacion import buscar_usuario, interpretar_identificador
 from identidad.errores import ErrorValidacion
-from identidad.models import ROLES_ADMINISTRATIVOS, PerfilMaestro, Usuario
+from identidad.models import ROLES_ADMINISTRATIVOS
 
 _ROLES = sorted(ROLES_ADMINISTRATIVOS)
 
@@ -78,12 +78,7 @@ class Command(BaseCommand):
     def _agregar_roles(self, opciones):
         if opciones["nombre"] or opciones["correo"] or opciones["telefono"]:
             raise CommandError("Con --agregar-a solo se indican los roles: la cuenta ya tiene sus datos.")
-        tipo, valor = interpretar_identificador(opciones["agregar_a"])
-        if tipo == "correo":
-            usuario = Usuario.objects.filter(correo=valor).first()
-        else:
-            perfil = PerfilMaestro.objects.select_related("usuario").filter(rut=valor).first()
-            usuario = perfil.usuario if perfil else None
+        usuario = buscar_usuario(*interpretar_identificador(opciones["agregar_a"]))
         if usuario is None:
             raise CommandError("No existe una cuenta con ese correo o RUT.")
         for rol in sorted(set(opciones["rol"])):

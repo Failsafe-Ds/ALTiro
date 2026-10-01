@@ -20,13 +20,12 @@ Minimización de datos (CLAUDE.md §8; HU-25: "función administrativa justifica
 Todas las respuestas llevan ``Cache-Control: no-store``.
 """
 from django.db.models import Count, Q
-from django.http import JsonResponse
 
 from autorizacion.acceso import obtener_autorizado
 from autorizacion.decoradores import requiere_rol
 from bitacora.models import AutorTipo, Bitacora
 from catalogo.vistas import datos_oficio
-from comun.api import ErrorSolicitud, ErroresDeCampo, leer_json, manejar_errores, metodos, respuesta_error
+from comun.api import ErrorSolicitud, ErroresDeCampo, leer_json, manejar_errores, metodos, respuesta_error, respuesta_json
 from expediente import avisos, servicios, vigencia
 from expediente.errores import ErrorEstado, ErroresValidacion
 from expediente.models import Documento, EstadoDocumento, EstadoExpediente, Expediente, OficioMaestro
@@ -43,12 +42,6 @@ CAMPOS_REVISION = {"resultado", "estado_actual", "motivo"}
 MENSAJE_FILTRO_INVALIDO = "Uno de los filtros no es válido. Vuelve a cargar la página e inténtalo de nuevo."
 AUTOR_SISTEMA = "Sistema"
 AUTOR_DESCONOCIDO = "Persona no disponible"
-
-
-def _json(datos, estado=200):
-    respuesta = JsonResponse(datos, status=estado)
-    respuesta["Cache-Control"] = "no-store"
-    return respuesta
 
 
 def _fecha(valor):
@@ -129,7 +122,7 @@ def cola(request):
         )
         .order_by("creado_en", "pk")[inicio : inicio + TAMANO_PAGINA]
     )
-    return _json(
+    return respuesta_json(
         {
             "expedientes": [_datos_en_cola(expediente, hoy) for expediente in expedientes],
             "pagina": pagina,
@@ -195,7 +188,7 @@ def _expediente_autorizado(request, ref):
 @metodos("GET")
 @requiere_rol("curatoria")
 def detalle(request, ref):
-    return _json({"expediente": datos_detalle(_expediente_autorizado(request, ref))})
+    return respuesta_json({"expediente": datos_detalle(_expediente_autorizado(request, ref))})
 
 
 # --- Cambio de estado ---
@@ -214,7 +207,7 @@ def cambiar_estado(request, ref):
         raise ErroresDeCampo(error.errores) from None
     except ErrorEstado as error:
         return respuesta_error(409, error.mensaje)
-    return _json({"expediente": datos_detalle(expediente)})
+    return respuesta_json({"expediente": datos_detalle(expediente)})
 
 
 # --- Revisión de un documento ---
@@ -236,7 +229,7 @@ def revisar_documento(request, ref):
     except ErrorEstado as error:
         return respuesta_error(409, error.mensaje)
     expediente = Expediente.objects.select_related("perfil_maestro").get(pk=documento.expediente_id)
-    return _json({"expediente": datos_detalle(expediente)})
+    return respuesta_json({"expediente": datos_detalle(expediente)})
 
 
 # --- Historial (bitácora de solo lectura; ADR-010, E-1) ---
@@ -294,7 +287,7 @@ def historial(request, ref):
         ).order_by("-fecha", "-id")
     )
     autores = _autores(entradas)
-    return _json({"historial": [_datos_entrada(entrada, autores, documentos) for entrada in entradas]})
+    return respuesta_json({"historial": [_datos_entrada(entrada, autores, documentos) for entrada in entradas]})
 
 
 # --- Avisos de RF-35 (ADR-016, punto 2) ---
@@ -308,4 +301,4 @@ def avisos_curatoria(request):
     Cada aviso trae el nombre del maestro y la ``ref`` del expediente para abrir
     el detalle; nunca RUT, contacto ni ids internos. Ver ``expediente.avisos``.
     """
-    return _json({"avisos": avisos.de_curatoria(request.usuario, vigencia.hoy_negocio())})
+    return respuesta_json({"avisos": avisos.de_curatoria(request.usuario, vigencia.hoy_negocio())})

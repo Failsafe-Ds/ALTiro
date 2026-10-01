@@ -2,6 +2,8 @@
 // - Si la sesión termina mientras se agrega un perfil, se avisa y se ofrece
 //   volver a ingresar, conservando lo escrito (propuesta del S1, §6; RNF-09; DEF-QA-002).
 // - "Cerrar sesión" solo da la sesión por cerrada si el servidor lo confirma (RF-02; DEF-QA-003).
+// - Seguridad (RNF-09; ADR-027): cambiar la contraseña o el correo pide la
+//   contraseña actual. Las contraseñas escritas se borran tras cada respuesta.
 // - Hallazgo UX M-2: tras cerrar sesión, "Volver" no debe mostrar los datos
 //   desde la caché del navegador (location.replace, datos vaciados y nueva
 //   consulta a /api/cuenta al volver a mostrar la página).
@@ -133,6 +135,9 @@
     mostrar(document.getElementById("campo-telefono-cliente"), !cuenta.telefono);
     mostrar(document.getElementById("seccion-maestro"), !maestro);
     mostrar(document.getElementById("campo-telefono-maestro"), !cuenta.telefono);
+
+    // Un maestro sin correo lo agrega desde aquí (ADR-027, punto 2), para poder recuperar su contraseña.
+    document.getElementById("titulo-cambiar-correo").textContent = cuenta.correo ? "Cambiar mi correo" : "Agregar mi correo";
   }
 
   // --- Sesión terminada (DEF-QA-002) ---
@@ -305,6 +310,46 @@
     });
   }
 
+  // --- Seguridad: cambiar la contraseña o el correo (RNF-09; ADR-027) ---
+  // idsDeError: el nombre del campo en la API -> el id de su error en la página
+  // (los dos formularios tienen un campo "contrasena").
+  function conectarSeguridad(form, ruta, idsDeError, alTerminar) {
+    formulario.prepararBoton(form);
+    const contrasenas = form.querySelectorAll('input[name^="contrasena"]');
+    form.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      formulario.limpiarErrores(form);
+      avisoSesion.replaceChildren();
+      avisoSesion.className = "aviso";
+      formulario.ocupado(form, true);
+      const { estado, datos } = await api.enviar(ruta, formulario.leer(form));
+      formulario.ocupado(form, false);
+      // Nunca se conserva una contraseña escrita (ADR-002).
+      for (const campo of contrasenas) {
+        campo.value = "";
+        campo.type = "password";
+      }
+      if (estado === 401) {
+        sesionTerminada(form);
+        return;
+      }
+      if (estado === 200) {
+        form.reset();
+        formulario.avisar(form, datos.mensaje, "exito");
+        await alTerminar(datos);
+        return;
+      }
+      const errores = {};
+      for (const [campo, texto] of Object.entries(datos.errores || {})) {
+        errores[idsDeError[campo] || campo] = texto;
+      }
+      const campo = formulario.mostrarErrores(form, { mensaje: datos.mensaje, errores });
+      if (campo) {
+        campo.focus();
+      }
+    });
+  }
+
   // --- Cerrar sesión (RF-02; DEF-QA-003) ---
   // Solo se muestra la sesión como cerrada si el servidor lo confirma (204) o
   // si ya no había sesión (401). Si no, la página se mantiene y se puede reintentar.
@@ -397,6 +442,21 @@
     "/api/maestros/postulaciones",
     "Primer paso listo. Ahora envía las fotos de tus documentos desde «Mi postulación».",
     { telefono: "telefono-maestro", perfil: "perfil-maestro" }
+  );
+  conectarSeguridad(
+    document.getElementById("cambiar-contrasena"),
+    "/api/cuenta/contrasena",
+    { contrasena: "contrasena-actual" },
+    async () => {}
+  );
+  conectarSeguridad(
+    document.getElementById("cambiar-correo"),
+    "/api/cuenta/correo",
+    { contrasena: "contrasena-correo", correo: "correo-nuevo" },
+    async (respuesta) => {
+      pintar(respuesta.cuenta);
+      huella = await calcularHuella(respuesta.cuenta);
+    }
   );
   restaurar(pendiente);
   lista = true;

@@ -70,14 +70,7 @@
 
   // --- Utilidades de interfaz ---
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
   // Hallazgo UX M-3: con la sesión terminada no queda a la vista el expediente
   // (nombre, RUT, motivos): se oculta y se vacía antes de avisar.

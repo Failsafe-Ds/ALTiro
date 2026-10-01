@@ -36,14 +36,7 @@
   formulario.prepararBoton(formPrincipal);
   formulario.prepararBoton(formOtra);
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
   function principal() {
     return comunas.find((c) => c.es_base) || null;

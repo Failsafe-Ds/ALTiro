@@ -18,6 +18,7 @@ from altiro.configuracion import (
     leer_clave_aes256,
     leer_entero,
     leer_lista,
+    leer_opcional,
     leer_secreto,
     leer_variable,
 )
@@ -144,6 +145,18 @@ DATA_UPLOAD_MAX_NUMBER_FILES = 2
 # publicado (ADR-019). La subida usa el mismo máximo por archivo que los
 # documentos (ALTIRO_DOCUMENTO_MAXIMO_BYTES) y la misma recodificación.
 ALTIRO_FOTOS_DIR = Path(leer_variable("ALTIRO_FOTOS_DIR"))
+
+# --- Correo y recuperación de contraseña (ADR-027, punto 4) ---
+# Sin servicios externos: cada correo se escribe como archivo en el volumen
+# "buzon", montado solo en app. Pasar a SMTP es solo configuración (RNF-24).
+ALTIRO_BUZON_DIR = Path(leer_opcional("ALTIRO_BUZON_DIR", "/buzon"))
+EMAIL_BACKEND = leer_opcional("ALTIRO_EMAIL_BACKEND", "django.core.mail.backends.filebased.EmailBackend")
+EMAIL_FILE_PATH = str(ALTIRO_BUZON_DIR)
+DEFAULT_FROM_EMAIL = leer_opcional("ALTIRO_CORREO_REMITENTE", "AlTiro <no-responder@altiro.invalid>")
+# Dirección pública con la que se arman los enlaces de los correos.
+ALTIRO_URL_PUBLICA = leer_opcional("ALTIRO_URL_PUBLICA", "https://localhost").rstrip("/")
+# Vigencia del enlace de recuperación, en minutos.
+ALTIRO_RECUPERACION_MINUTOS = leer_entero("ALTIRO_RECUPERACION_MINUTOS", por_defecto=30)
 
 # --- Planificador del actor Sistema (ADR-016) ---
 # Cada cuántos segundos corre las tareas idempotentes (por defecto, cada 5 minutos:

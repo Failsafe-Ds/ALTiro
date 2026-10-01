@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Olvidé mi contraseña — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/recuperar.js" defer></script>
+</head>
+<body>
+  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
+  <main>
+    <h1>Olvidé mi contraseña</h1>
+    <p>Escribe el correo o el RUT con que ingresas. Si tu cuenta tiene correo, te enviaremos un enlace para crear una contraseña nueva.</p>
+    <form id="recuperar" novalidate>
+      <div class="aviso" role="alert" tabindex="-1"></div>
+      <div class="campo">
+        <label for="identificador">Correo o RUT</label>
+        <span class="ayuda" id="ayuda-identificador">Si eres maestro, puedes usar tu RUT. Ejemplo: 12.345.678-5</span>
+        <input id="identificador" name="identificador" autocomplete="username" required
+               aria-describedby="ayuda-identificador error-identificador">
+        <span class="error-campo" id="error-identificador"></span>
+      </div>
+      <div class="acciones">
+        <button type="submit">Enviarme el enlace</button>
+      </div>
+    </form>
+    <h2>¿No tienes correo en tu cuenta?</h2>
+    <p>Comunícate con AlTiro. Después de confirmar que eres tú, te harán llegar un enlace para crear tu contraseña nueva.</p>
+    <div class="acciones">
+      <a class="boton boton-secundario" href="ingresar.html">Volver a Ingresar</a>
+    </div>
+  </main>
+</body>
+</html>

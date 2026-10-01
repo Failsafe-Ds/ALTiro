@@ -45,14 +45,7 @@
   // Guarda el texto del botón para devolverlo después de "Enviando…".
   formulario.prepararBoton(form);
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
   function mayuscula(texto) {
     return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : "";

@@ -40,14 +40,7 @@
   const avisoNuevos = document.getElementById("aviso-nuevos");
   const FALLO_CONSULTA = "No pudimos revisar mensajes nuevos. Revisa tu señal.";
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
   function nuevaClave() {
     if (window.crypto && typeof window.crypto.randomUUID === "function") {

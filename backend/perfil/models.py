@@ -83,7 +83,7 @@ class ServicioMaestro(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=Q(modalidad__in=[valor for valor, _ in Modalidad.choices]),
+                condition=Q(modalidad__in=Modalidad.values),
                 name="servicio_maestro_modalidad_valida",
             ),
             models.CheckConstraint(

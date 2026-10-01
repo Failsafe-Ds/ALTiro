@@ -39,14 +39,7 @@
 
   // --- Utilidades ---
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
   function etiqueta(icono, texto, clase) {
     const marca = elemento("span", "", icono);

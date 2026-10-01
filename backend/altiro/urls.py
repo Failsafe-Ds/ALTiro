@@ -29,6 +29,10 @@ urlpatterns = [
     path("api/sesion/csrf", identidad.csrf, name="csrf"),
     path("api/sesion", identidad.sesion, name="sesion"),
     path("api/cuenta", identidad.cuenta, name="cuenta"),
+    path("api/cuenta/contrasena", identidad.cuenta_contrasena, name="cuenta-contrasena"),
+    path("api/cuenta/correo", identidad.cuenta_correo, name="cuenta-correo"),
+    path("api/recuperacion", identidad.recuperacion_solicitud, name="recuperacion"),
+    path("api/recuperacion/contrasena", identidad.recuperacion_contrasena, name="recuperacion-contrasena"),
     path("api/clientes", identidad.clientes, name="clientes"),
     path("api/maestros/postulaciones", identidad.postulaciones, name="postulaciones"),
     # Catálogo público, de solo lectura (ADR-017, punto 1; ADR-018, puntos 5 y 6; CA-20.2).

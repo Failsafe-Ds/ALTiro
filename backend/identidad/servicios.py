@@ -18,6 +18,7 @@ Contraseña: toda cuenta nueva la recibe, se valida con la política de ADR-013
 ``perfil_cliente``: código del catálogo territorial (ADR-012).
 """
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 
 from expediente import servicios as expedientes
 from perfil import servicios as perfiles_publicos
@@ -29,6 +30,7 @@ from identidad.models import (
     PerfilCliente,
     PerfilMaestro,
     Rol,
+    SolicitudRecuperacion,
     Usuario,
     UsuarioRol,
 )
@@ -64,6 +66,8 @@ _MENSAJES_DATO_DE_CONTACTO = {
 }
 MENSAJE_YA_ES_CLIENTE = "Tu cuenta ya puede pedir trabajos."
 MENSAJE_YA_ES_MAESTRO = "Ya postulaste como maestro con esta cuenta."
+MENSAJE_CONTRASENA_IGUAL = "Elige una contraseña distinta de la actual."
+MENSAJE_MISMO_CORREO = "Ese ya es tu correo. Escribe el correo nuevo que quieres usar."
 
 
 # --- Invariantes (ADR-013, punto 9) ---
@@ -334,3 +338,52 @@ def asignar_rol_administrativo(usuario, rol):
     _asignar_rol(usuario, rol)
     _exigir_invariantes(usuario)
     return usuario
+
+
+# --- Cambio de credenciales (ADR-027, puntos 1 a 3) ---
+# La reautenticación (RNF-09) la hace quien llama: la vista con la contraseña
+# actual, o la recuperación con un enlace válido.
+
+def anular_enlaces_de_recuperacion(usuario):
+    """Ningún enlace de recuperación pendiente de la cuenta sigue sirviendo."""
+    SolicitudRecuperacion.objects.filter(
+        usuario=usuario, token_hash__isnull=False, usada_en__isnull=True, anulada_en__isnull=True
+    ).update(anulada_en=timezone.now())
+
+
+@transaction.atomic
+def cambiar_contrasena(usuario, contrasena_nueva):
+    """Guarda la contraseña nueva con la política de ADR-013 (errores en ``contrasena_nueva``).
+
+    Cambia ``get_session_auth_hash()``: todas las sesiones abiertas de la cuenta
+    dejan de valer (ADR-005); quien llama renueva la propia si corresponde.
+    """
+    usuario = _bloquear(usuario)
+    try:
+        validar_contrasena_nueva(contrasena_nueva)
+    except ErrorValidacion as error:
+        raise ErrorValidacion("contrasena_nueva", error.mensaje) from None
+    if usuario.check_password(contrasena_nueva):
+        raise ErrorValidacion("contrasena_nueva", MENSAJE_CONTRASENA_IGUAL)
+    usuario.set_password(contrasena_nueva)
+    usuario.save(update_fields=["password"])
+    anular_enlaces_de_recuperacion(usuario)
+    return usuario
+
+
+@transaction.atomic
+def cambiar_correo(usuario, correo):
+    """Cambia el correo, o agrega el primero (ADR-027, punto 2; enmienda a ADR-013, punto 7).
+
+    Devuelve ``(usuario, correo_anterior)``; el anterior puede ser ``None``.
+    """
+    usuario = _bloquear(usuario)
+    correo = normalizar_correo(correo)
+    if correo == usuario.correo:
+        raise ErrorValidacion("correo", MENSAJE_MISMO_CORREO)
+    _correo_libre(correo)
+    anterior = usuario.correo
+    usuario.correo = correo
+    _guardar(usuario, update_fields=["correo"])
+    _exigir_invariantes(usuario)
+    return usuario, anterior

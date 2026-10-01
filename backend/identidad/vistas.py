@@ -16,9 +16,10 @@ from comun.api import (
     publica,
     respuesta_error,
 )
-from identidad import limitador, servicios
+from identidad import limitador, recuperacion, servicios
 from identidad.autenticacion import (
     autenticar,
+    buscar_usuario,
     interpretar_identificador,
     validar_contrasena_ingreso,
 )
@@ -47,6 +48,19 @@ CAMPOS_CLIENTE_CON_SESION = {"comuna", "correo", "telefono"}
 CAMPOS_MAESTRO_SIN_SESION = {"nombre", "telefono", "rut", "contrasena", "correo"}
 CAMPOS_MAESTRO_CON_SESION = {"rut", "telefono"}
 CAMPOS_SESION = {"identificador", "contrasena"}
+# Cambio de credenciales y recuperación (ADR-027).
+CAMPOS_CAMBIO_CONTRASENA = {"contrasena", "contrasena_nueva"}
+CAMPOS_CAMBIO_CORREO = {"contrasena", "correo"}
+CAMPOS_RECUPERACION = {"identificador"}
+CAMPOS_RESTABLECER = {"token", "contrasena_nueva"}
+
+MENSAJE_CONTRASENA_ACTUAL = "La contraseña actual no es correcta. Revísala e inténtalo de nuevo."
+# ADR-027, punto 3: la misma respuesta exista o no la cuenta.
+MENSAJE_RECUPERACION = (
+    "Si los datos corresponden a una cuenta con correo, te enviamos un enlace para crear una contraseña nueva. "
+    "Revisa tu correo: el enlace sirve una sola vez. Si no tienes correo en tu cuenta, comunícate con AlTiro "
+    "para que te ayuden a recuperarla."
+)
 
 
 def _validar_todos(datos, validadores):
@@ -70,6 +84,14 @@ def _ejecutar(servicio, *args, **kwargs):
 
 def _opcional(datos, campo):
     return datos[campo] if campo in datos else servicios.AUSENTE
+
+
+def _respuesta_espera(minutos, plantilla):
+    """429 con ``Retry-After`` (RNF-10; ADR-007 y ADR-027). ``plantilla`` recibe "N minutos"."""
+    texto = "1 minuto" if minutos == 1 else f"{minutos} minutos"
+    respuesta = respuesta_error(429, plantilla.format(texto))
+    respuesta["Retry-After"] = str(minutos * 60)
+    return respuesta
 
 
 def datos_cuenta(usuario):
@@ -154,13 +176,7 @@ def _iniciar_sesion(request):
     minutos = limitador.minutos_de_bloqueo(origen, clave)
     if minutos:
         # RNF-10: bloqueado aunque la contraseña sea correcta. No se cuenta (punto 2).
-        texto = "1 minuto" if minutos == 1 else f"{minutos} minutos"
-        respuesta = respuesta_error(
-            429,
-            f"Hubo varios intentos fallidos. Por seguridad, espera {texto} e inténtalo de nuevo.",
-        )
-        respuesta["Retry-After"] = str(minutos * 60)
-        return respuesta
+        return _respuesta_espera(minutos, "Hubo varios intentos fallidos. Por seguridad, espera {} e inténtalo de nuevo.")
 
     usuario = autenticar(tipo, valor, datos["contrasena"])
     if usuario is None:
@@ -182,6 +198,89 @@ def cuenta(request):
     respuesta = JsonResponse({"cuenta": datos_cuenta(request.usuario)})
     respuesta["Cache-Control"] = "no-store"
     return respuesta
+
+
+# --- Cambio de contraseña y de correo (RNF-09; ADR-027, puntos 1 y 2) ---
+
+
+def _reautenticar(request, contrasena):
+    """Exige la contraseña actual (RNF-09) con el limitador de RNF-10.
+
+    Devuelve un 429 si la cuenta está bloqueada desde este origen, o ``None``
+    si la contraseña es correcta. Si no lo es, cuenta el fallo y responde 400
+    en ``contrasena``. Un 400 de formato no cuenta (ADR-007, punto 8).
+    """
+    _ejecutar(validar_contrasena_ingreso, contrasena)
+    origen = limitador.origen_de(request)
+    clave = limitador.clave_de("cuenta", str(request.usuario.pk))
+    minutos = limitador.minutos_de_bloqueo(origen, clave)
+    if minutos:
+        return _respuesta_espera(
+            minutos, "Hubo varios intentos con una contraseña equivocada. Por seguridad, espera {} e inténtalo de nuevo."
+        )
+    if not request.usuario.check_password(contrasena):
+        limitador.registrar_fallo(origen, clave)
+        logger.info("Reautenticación fallida.")
+        raise ErroresDeCampo({"contrasena": MENSAJE_CONTRASENA_ACTUAL})
+    return None
+
+
+@metodos("POST")
+@manejar_errores
+def cuenta_contrasena(request):
+    datos = leer_json(request, CAMPOS_CAMBIO_CONTRASENA)
+    bloqueo = _reautenticar(request, datos.get("contrasena"))
+    if bloqueo:
+        return bloqueo
+    usuario = _ejecutar(servicios.cambiar_contrasena, request.usuario, datos.get("contrasena_nueva"))
+    # Las demás sesiones ya no valen (cambió el hash); esta sigue, con un ID y un token CSRF nuevos.
+    iniciar_sesion(request, usuario)
+    recuperacion.avisar_contrasena_cambiada(usuario)
+    logger.info("Contraseña cambiada por el usuario %s.", usuario.pk)
+    return JsonResponse(
+        {"mensaje": "Listo: tu contraseña cambió. Cerramos tu sesión en los otros teléfonos o computadores."}
+    )
+
+
+@metodos("POST")
+@manejar_errores
+def cuenta_correo(request):
+    datos = leer_json(request, CAMPOS_CAMBIO_CORREO)
+    bloqueo = _reautenticar(request, datos.get("contrasena"))
+    if bloqueo:
+        return bloqueo
+    usuario, anterior = _ejecutar(servicios.cambiar_correo, request.usuario, datos.get("correo"))
+    if anterior is not None:
+        recuperacion.avisar_correo_cambiado(anterior)
+    logger.info("Correo cambiado por el usuario %s.", usuario.pk)
+    return JsonResponse({"mensaje": "Listo: guardamos tu correo nuevo.", "cuenta": datos_cuenta(usuario)})
+
+
+# --- Recuperación de contraseña (ADR-027, punto 3) ---
+
+
+@publica
+@metodos("POST")
+@manejar_errores
+def recuperacion_solicitud(request):
+    datos = leer_json(request, CAMPOS_RECUPERACION)
+    tipo, valor = _ejecutar(interpretar_identificador, datos.get("identificador"))
+    try:
+        recuperacion.solicitar(buscar_usuario(tipo, valor), limitador.origen_de(request))
+    except recuperacion.DemasiadasSolicitudes as error:
+        return _respuesta_espera(error.minutos, "Pediste varios enlaces seguidos. Espera {} e inténtalo de nuevo.")
+    return JsonResponse({"mensaje": MENSAJE_RECUPERACION}, status=202)
+
+
+@publica
+@metodos("POST")
+@manejar_errores
+def recuperacion_contrasena(request):
+    datos = leer_json(request, CAMPOS_RESTABLECER)
+    usuario = _ejecutar(recuperacion.restablecer, datos.get("token"), datos.get("contrasena_nueva"))
+    recuperacion.avisar_contrasena_cambiada(usuario)
+    logger.info("Contraseña restablecida con un enlace de recuperación (usuario %s).", usuario.pk)
+    return JsonResponse({"mensaje": "Listo: tu contraseña nueva quedó guardada. Ahora ingresa con ella."})
 
 
 # --- Registro de cliente (RF-01, HU-01) ---

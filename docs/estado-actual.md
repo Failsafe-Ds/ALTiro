@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S5 cerrado, etiqueta `sprint-5`; suite 1888; siguiente: revisión del S5 y defensa; material en `docs/defensa/guion-defensa.md`).
+Última actualización: 2026-09-30 (S5 cerrado, etiqueta `sprint-5`; ADR-027 después del S5; suite 1920; siguiente: revisión del S5 y defensa; material en `docs/defensa/guion-defensa.md`).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -17,7 +17,7 @@
 ## Stack y cómo correr
 - Docker Compose: `init`, `db` (PostgreSQL 16), `app` (Django 5.2 + gunicorn), `proxy` (Nginx, TLS autofirmado, gzip), `planificador` (cada 300 s) y `respaldo` (postgres:16, diario).
 - Frontend estático en HTML, CSS y JS, sin framework y con CSP estricta (sin inline).
-- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 9 min y hoy pasan 1882.
+- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 10 min y hoy pasan 1920.
 - **Durante el desarrollo**, solo pruebas dirigidas: el mismo comando con `tests/test_x.py -k nombre`.
 - Migrar: `docker compose exec app python manage.py migrate`. Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
 
@@ -86,6 +86,12 @@
   - `gestion/indicadores.py`: concreción y primera respuesta con agregaciones en la base (`PERCENTILE_CONT`); primera respuesta solo cuenta eventos del maestro del ticket (`aceptado` o `rechazado_maestro`); vigencia documental a hoy, en lote, con las reglas puras de `expediente/vigencia.py`;
   - `gestion/exportacion.py`: CSV (UTF-8 con BOM) con `COLUMNAS` cerradas, supresión k=5 (maestros y clientes distintos); mediana vacía si hay menos de 5 finalizadas o menos de 5 maestros o clientes distintos entre ellas (E-6.5, DEF-QA-014); neutralización de `= + - @`, tabulador y retorno; bitácora `exportacion_agregada` (entidad `exportacion`, `valor_nuevo` = período, filas y suprimidas);
   - pantalla `indicadores.html` (enlace en `cuenta.html` para `control_gestion`; `ingresar.js` vuelve a `indicadores`). Reglas A-25, I-01 a I-04 y N-01 a N-05 (grupos `indicadores` y `anonimizacion` activos).
+- **Credenciales y recuperación (ADR-027, DA-27; después del S5):**
+  - `POST /api/cuenta/contrasena {contrasena, contrasena_nueva}` y `POST /api/cuenta/correo {contrasena, correo}`: reautenticación con la contraseña actual (RNF-09) y limitador con clave `cuenta:<id>` (RNF-10, 429). Cambiar la contraseña invalida las demás sesiones (hash de sesión) y renueva la propia. `cambiar_correo` también agrega el primer correo de un maestro;
+  - `POST /api/recuperacion {identificador}` (pública): siempre 202 con el mismo mensaje; 5 por origen en 15 min → 429; 3 enlaces por cuenta y hora. `POST /api/recuperacion/contrasena {token, contrasena_nueva}` (pública): un solo uso, 30 min, no inicia sesión. Tabla `solicitud_recuperacion` (solo el SHA-256 del token; borra lo de más de 24 h);
+  - enlace `…/nueva-contrasena.html#t=<token>` (fragmento: no llega al proxy); correos en el volumen `buzon` (backend de archivos, solo en `app`); recuperación asistida con `manage.py crear_enlace_recuperacion --cuenta`. Sin bitácora (M-03), evento de aplicación sin token. Reglas A-26 a A-30;
+  - pantallas `recuperar.html`, `nueva-contrasena.html` y «Seguridad de mi cuenta» en `cuenta.html`.
+- **Ayudas compartidas (revisión de redundancias, 2026-09-30):** `frontend/js/dom.js` (`dom.elemento`, `dom.opcion`) en lugar de las copias por página; `comun.api.respuesta_json` (JSON con `no-store`); `perfil.ocurrencias.iso_local`; `identidad.autenticacion.buscar_usuario`; `TextChoices.values` en los CHECK de los modelos.
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
 - **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre, operación, indicadores y anonimización; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04; conversación: A-09 a A-15). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
@@ -99,6 +105,7 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 - **Antes (S4) pasaban al S5 (DA-22 a DA-26):** RF-28 completo (precio acordado), evidencia de RF-11/CA-03.3 y calificación de RF-13/RF-14/CA-05.1, conversación de CA-15.2, RNF-03 con 5.000 mensajes (y nueva medición de RNF-01).
 - **Para el representante (S4):** horarios alternativos del 409 (CA-06.2) como texto sin enlace; "Ingresar" desde `pedir-trabajo` sin retorno; sugerencias limitadas a 5.
 - **Plazos:** `calcular_vence_en` y la proximidad se calculan en UTC (DEF-QA-005); toda aritmética de horas sobre fechas con zona Santiago debe pasar por UTC.
+- **RNF-09** cerrado el 2026-09-30 con ADR-027 (DA-09 cerrado por DA-27; P-11 respondida por el equipo).
 - **RNF-13** sin ejecutar (DA-26: antes de la revisión del S5; requiere personas). Riesgo más alto pendiente del equipo.
 - **RNF-18:** falta el pase manual en navegadores de marca y en Android.
 - **Observaciones del S3:** OBS-S3-02 (precios de referencia sin pantalla pública), OBS-S3-04 (scripts de Playwright sin el campo `bloques`) y OBS-S3-05 (contrastes del S3).

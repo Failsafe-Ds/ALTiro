@@ -292,13 +292,13 @@ def test_pi251_la_actividad_renueva_el_plazo(client, cliente):
 
 
 @pytest.mark.django_db
-def test_pi252_no_existen_rutas_de_cambio_de_correo_ni_contrasena(client, cliente):
+def test_pi252_la_cuenta_no_se_edita_en_bloque(client, cliente):
+    """Desde ADR-027 (DA-27) el cambio de contraseña y de correo tiene rutas propias con
+    reautenticación (``tests/test_credenciales.py``); ``/api/cuenta`` sigue sin edición genérica."""
     iniciar_sesion(client, "ana.prueba@example.com")
 
     assert client.put(URL_CUENTA).status_code == 405
     assert client.patch(URL_CUENTA).status_code == 405
-    for ruta in ["/api/cuenta/contrasena", "/api/cuenta/correo", "/api/recuperar"]:
-        assert client.post(ruta).status_code == 404
 
 
 # --- Registros (CLAUDE.md §8, PI-174) ---

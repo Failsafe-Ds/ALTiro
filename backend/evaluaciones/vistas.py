@@ -17,18 +17,18 @@ De moderación (``@requiere_rol("moderacion")`` y ``PoliticaDenuncia``):
 """
 import re
 
-from django.http import JsonResponse
 
 from autorizacion.acceso import obtener_autorizado
 from autorizacion.decoradores import requiere_rol
 from comun.api import (
-    MENSAJE_CLAVE_DESCONOCIDA,
-    ErroresDeCampo,
     ErrorSolicitud,
+    ErroresDeCampo,
+    MENSAJE_CLAVE_DESCONOCIDA,
     leer_json,
     manejar_errores,
     metodos,
     respuesta_error,
+    respuesta_json,
 )
 from evaluaciones import moderacion, servicios
 from evaluaciones.models import (
@@ -59,12 +59,6 @@ MENSAJE_DECISION = "Elige si la evaluación se mantiene o se retira."
 MENSAJE_FILTRO = "No pudimos aplicar el filtro. Elige «En revisión» o «Resueltas» y vuelve a intentarlo."
 
 _NO_VACIO = re.compile(r"\S")
-
-
-def _json(datos, estado=200):
-    respuesta = JsonResponse(datos, status=estado)
-    respuesta["Cache-Control"] = "no-store"
-    return respuesta
 
 
 def _conflicto(error):
@@ -117,7 +111,7 @@ def evaluacion(request, ref):
         creada = servicios.evaluar(ticket, request.usuario, notas, comentario)
     except ErrorEstado as error:
         return _conflicto(error)
-    return _json({"evaluacion": servicios.datos_evaluacion(creada)}, 201)
+    return respuesta_json({"evaluacion": servicios.datos_evaluacion(creada)}, 201)
 
 
 @metodos("GET")
@@ -126,7 +120,7 @@ def evaluaciones(request, ref):
     if request.GET:
         raise ErrorSolicitud(MENSAJE_CLAVE_DESCONOCIDA)
     ticket = _ticket(request, ref)
-    return _json(servicios.evaluaciones_de(ticket, request.usuario))
+    return respuesta_json(servicios.evaluaciones_de(ticket, request.usuario))
 
 
 @metodos("POST")
@@ -142,7 +136,7 @@ def denuncia(request, ref):
         creada = servicios.denunciar(ticket, request.usuario, motivo)
     except ErrorEstado as error:
         return _conflicto(error)
-    return _json({"denuncia": servicios.datos_denuncia_propia(creada)}, 201)
+    return respuesta_json({"denuncia": servicios.datos_denuncia_propia(creada)}, 201)
 
 
 # --- De moderación ---
@@ -169,13 +163,13 @@ def denuncias(request):
     consulta = consulta.exclude(evaluacion__ticket__cliente_id=request.usuario.pk).exclude(
         evaluacion__ticket__perfil_maestro_id=request.usuario.pk
     )
-    return _json({"denuncias": [moderacion.datos_en_lista(d) for d in consulta.order_by("creada_en", "id")]})
+    return respuesta_json({"denuncias": [moderacion.datos_en_lista(d) for d in consulta.order_by("creada_en", "id")]})
 
 
 @metodos("GET")
 @requiere_rol("moderacion")
 def denuncia_detalle(request, ref):
-    return _json({"denuncia": moderacion.datos_detalle(_denuncia(request, ref))})
+    return respuesta_json({"denuncia": moderacion.datos_detalle(_denuncia(request, ref))})
 
 
 @metodos("GET")
@@ -183,7 +177,7 @@ def denuncia_detalle(request, ref):
 def denuncia_conversacion(request, ref):
     # Denuncia no abierta: 404 idéntico con registro. Moderador que es parte: ConflictoDeInteres (E-4.3).
     denuncia_actual = _denuncia(request, ref, PoliticaConversacionDenuncia())
-    return _json(moderacion.leer_conversacion(denuncia_actual, request.usuario))
+    return respuesta_json(moderacion.leer_conversacion(denuncia_actual, request.usuario))
 
 
 @metodos("POST")
@@ -204,4 +198,4 @@ def denuncia_resolucion(request, ref):
     except ErrorEstado as error:
         return _conflicto(error)
     resuelta = moderacion.consulta().get(pk=resuelta.pk)
-    return _json({"denuncia": moderacion.datos_detalle(resuelta)})
+    return respuesta_json({"denuncia": moderacion.datos_detalle(resuelta)})

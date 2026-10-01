@@ -55,14 +55,7 @@
     textoLista: "✓ Foto lista. Revisa que se vea bien tu cara y toca «Guardar mi foto».",
   });
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
   function icono(texto) {
     const nodo = elemento("span", "", texto);

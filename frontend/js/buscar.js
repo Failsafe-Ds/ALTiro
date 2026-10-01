@@ -57,21 +57,9 @@
   let consulta = 0; // Solo se pinta la respuesta de la última búsqueda pedida.
   let actual = null; // Filtros de la última búsqueda que respondió 200.
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
-  function opcion(valor, texto) {
-    const nodo = document.createElement("option");
-    nodo.value = valor;
-    nodo.textContent = texto;
-    return nodo;
-  }
+  const opcion = dom.opcion;
 
   // --- Filtros <-> dirección de la página ---
 

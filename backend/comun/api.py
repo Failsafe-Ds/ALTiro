@@ -27,7 +27,7 @@ MENSAJE_ARCHIVO_ESPERADO = "Aquí va una foto. Elige la foto de nuevo e inténta
 # incluidos los del formulario de documentos (multipart), los de curatoría, los
 # del catálogo de comercial (ADR-018), los de servicios y cobertura del maestro
 # (ADR-019), los de su agenda (ADR-020), los del pedido y sus avisos (ADR-023, ADR-024)
-# y los de la conversación (ADR-026, E-2).
+# los de la conversación (ADR-026, E-2) y los del cambio de credenciales (ADR-027).
 CAMPOS_CONOCIDOS = frozenset(
     {"nombre", "telefono", "correo", "contrasena", "comuna", "rut", "identificador", "oficios",
      "tipo", "oficio", "fecha_emision", "fecha_vencimiento", "archivo", "archivo_reverso",
@@ -37,8 +37,11 @@ CAMPOS_CONOCIDOS = frozenset(
      "comunas", "dia_semana", "inicio", "fin",
      "maestro", "fecha", "direccion", "descripcion", "materiales", "avisos",
      "texto", "clave_envio",
-     "puntualidad", "trabajo", "cordialidad", "comentario", "decision"}
+     "puntualidad", "trabajo", "cordialidad", "comentario", "decision",
+     "contrasena_nueva", "token"}
 )
+# Las contraseñas no pasan por la revisión de texto: su validador da el mensaje propio.
+CAMPOS_CONTRASENA = frozenset({"contrasena", "contrasena_nueva"})
 
 
 class ErrorSolicitud(Exception):
@@ -55,6 +58,13 @@ class ErroresDeCampo(Exception):
     def __init__(self, errores):
         super().__init__(", ".join(sorted(errores)))
         self.errores = errores
+
+
+def respuesta_json(datos, estado=200):
+    """Respuesta JSON con datos de una persona: el navegador no la guarda en caché."""
+    respuesta = JsonResponse(datos, status=estado)
+    respuesta["Cache-Control"] = "no-store"
+    return respuesta
 
 
 def respuesta_error(estado, mensaje, errores=None):
@@ -125,7 +135,7 @@ def leer_json(request, permitidos):
     errores = {campo: MENSAJE_CAMPO_NO_PERMITIDO for campo in datos if campo not in permitidos}
     errores.update(
         {campo: MENSAJE_TEXTO_INVALIDO for campo, valor in datos.items()
-         if campo not in errores and campo != "contrasena" and not _texto_procesable(valor)}
+         if campo not in errores and campo not in CAMPOS_CONTRASENA and not _texto_procesable(valor)}
     )
     if errores:
         raise ErroresDeCampo(errores)

@@ -27,6 +27,8 @@ import datetime
 from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 
+from django.utils import timezone
+
 ZONA = ZoneInfo("America/Santiago")
 UTC = datetime.timezone.utc
 MINUTOS_DIA = 24 * 60
@@ -46,6 +48,11 @@ class Ocurrencia:
     fin_min: int
     inicio_en: datetime.datetime
     fin_en: datetime.datetime
+
+
+def iso_local(valor):
+    """Fecha y hora en ISO 8601 con la zona de Santiago, o ``None``."""
+    return None if valor is None else timezone.localtime(valor, ZONA).isoformat()
 
 
 def instante(fecha, minutos):

@@ -79,10 +79,6 @@ def _horas(delta):
     return Cast(Value(f"{int(delta.total_seconds() // 3600)} hours"), models.DurationField())
 
 
-def _valores(opciones):
-    return [valor for valor, _ in opciones.choices]
-
-
 class Ticket(models.Model):
     id = models.BigAutoField(primary_key=True)
     ref = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -143,9 +139,9 @@ class Ticket(models.Model):
         constraints = [
             # ADR-013, E-9: nadie se pide un trabajo a sí mismo.
             models.CheckConstraint(condition=~Q(cliente=F("perfil_maestro")), name="ticket_cliente_no_es_maestro"),
-            models.CheckConstraint(condition=Q(estado__in=_valores(EstadoTicket)), name="ticket_estado_valido"),
+            models.CheckConstraint(condition=Q(estado__in=EstadoTicket.values), name="ticket_estado_valido"),
             models.CheckConstraint(
-                condition=Q(motivo_cierre__isnull=True) | Q(motivo_cierre__in=_valores(MotivoCierre)),
+                condition=Q(motivo_cierre__isnull=True) | Q(motivo_cierre__in=MotivoCierre.values),
                 name="ticket_motivo_cierre_valido",
             ),
             # El motivo existe si y solo si el estado es cerrado (ADR-023, punto 1).
@@ -154,7 +150,7 @@ class Ticket(models.Model):
                 | (~Q(estado=EstadoTicket.CERRADO) & Q(motivo_cierre__isnull=True)),
                 name="ticket_motivo_solo_si_cerrado",
             ),
-            models.CheckConstraint(condition=Q(modalidad__in=_valores(Modalidad)), name="ticket_modalidad_valida"),
+            models.CheckConstraint(condition=Q(modalidad__in=Modalidad.values), name="ticket_modalidad_valida"),
             models.CheckConstraint(
                 condition=Q(monto_publicado__gt=0) & Q(monto_publicado__lte=MONTO_MAXIMO),
                 name="ticket_monto_publicado_valido",
@@ -336,7 +332,7 @@ class AvisoTicket(models.Model):
             models.Index(F("destinatario"), F("creado_en").desc(), name="aviso_ticket_destinatario_idx"),
         ]
         constraints = [
-            models.CheckConstraint(condition=Q(tipo__in=_valores(TipoAvisoTicket)), name="aviso_ticket_tipo_valido"),
+            models.CheckConstraint(condition=Q(tipo__in=TipoAvisoTicket.values), name="aviso_ticket_tipo_valido"),
             models.CheckConstraint(
                 condition=Q(visto_en__isnull=True) | Q(visto_en__gte=F("creado_en")),
                 name="aviso_ticket_visto_despues_de_creado",

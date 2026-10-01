@@ -64,7 +64,7 @@ class Expediente(models.Model):
         db_table = "expediente"
         constraints = [
             models.CheckConstraint(
-                condition=Q(estado__in=[valor for valor, _ in EstadoExpediente.choices]),
+                condition=Q(estado__in=EstadoExpediente.values),
                 name="expediente_estado_valido",
             ),
             # Todo cambio de estado con autor exige un motivo escrito (RF-32, CA-19.1).
@@ -169,11 +169,11 @@ class Documento(models.Model):
         db_table = "documento"
         constraints = [
             models.CheckConstraint(
-                condition=Q(tipo__in=[valor for valor, _ in TipoDocumento.choices]),
+                condition=Q(tipo__in=TipoDocumento.values),
                 name="documento_tipo_valido",
             ),
             models.CheckConstraint(
-                condition=Q(estado__in=[valor for valor, _ in EstadoDocumento.choices]),
+                condition=Q(estado__in=EstadoDocumento.values),
                 name="documento_estado_valido",
             ),
             # El oficio va solo, y siempre, en la licencia SEC (RF-33).
@@ -262,12 +262,12 @@ class Aviso(models.Model):
         db_table = "aviso"
         constraints = [
             models.CheckConstraint(
-                condition=Q(tipo__in=[valor for valor, _ in TipoAviso.choices]),
+                condition=Q(tipo__in=TipoAviso.values),
                 name="aviso_tipo_valido",
             ),
             models.CheckConstraint(
                 condition=Q(destinatario_rol__isnull=True)
-                | Q(destinatario_rol__in=[valor for valor, _ in RolDestinatarioAviso.choices]),
+                | Q(destinatario_rol__in=RolDestinatarioAviso.values),
                 name="aviso_destinatario_rol_valido",
             ),
             # Exactamente un destinatario: una cuenta o un rol.

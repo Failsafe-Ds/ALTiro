@@ -48,17 +48,21 @@ def validar_contrasena_ingreso(valor):
         ) from None
 
 
+def buscar_usuario(tipo, valor):
+    """Cuenta de un identificador ya interpretado (``interpretar_identificador``), o ``None``."""
+    if tipo == "correo":
+        return Usuario.objects.filter(correo=valor).first()
+    perfil = PerfilMaestro.objects.select_related("usuario").filter(rut=valor).first()
+    return perfil.usuario if perfil else None
+
+
 def autenticar(tipo, valor, contrasena):
     """Devuelve el usuario si las credenciales son correctas; si no, ``None``.
 
     Si el identificador no existe se calcula igual un hash (señuelo), para que
     el tiempo de respuesta no revele si la cuenta existe (propuesta del S1, §6).
     """
-    if tipo == "correo":
-        usuario = Usuario.objects.filter(correo=valor).first()
-    else:
-        perfil = PerfilMaestro.objects.select_related("usuario").filter(rut=valor).first()
-        usuario = perfil.usuario if perfil else None
+    usuario = buscar_usuario(tipo, valor)
     if usuario is None:
         make_password(contrasena)
         return None

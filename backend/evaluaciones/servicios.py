@@ -9,7 +9,6 @@
   y una sola vez (P-26).
 """
 from django.db import IntegrityError, transaction
-from django.utils import timezone
 
 from evaluaciones.models import (
     DIMENSIONES,
@@ -43,10 +42,6 @@ def _otra_parte_id(usuario, ticket):
     return ticket.perfil_maestro_id if usuario.pk == ticket.cliente_id else ticket.cliente_id
 
 
-def _instante(valor):
-    return None if valor is None else timezone.localtime(valor, ocurrencias.ZONA).isoformat()
-
-
 def datos_evaluacion(evaluacion):
     """Lista explícita de campos: sin ids, sin autor ni evaluado."""
     return {
@@ -55,7 +50,7 @@ def datos_evaluacion(evaluacion):
         "trabajo": evaluacion.trabajo,
         "cordialidad": evaluacion.cordialidad,
         "comentario": evaluacion.comentario,
-        "creada_en": _instante(evaluacion.creada_en),
+        "creada_en": ocurrencias.iso_local(evaluacion.creada_en),
         "estado": evaluacion.estado,
         "estado_texto": EstadoEvaluacion(evaluacion.estado).label,
     }
@@ -65,7 +60,7 @@ def datos_denuncia_propia(denuncia):
     return {
         "estado": denuncia.estado,
         "estado_texto": EstadoDenuncia(denuncia.estado).label,
-        "creada_en": _instante(denuncia.creada_en),
+        "creada_en": ocurrencias.iso_local(denuncia.creada_en),
         "decision_texto": denuncia.get_decision_display() if denuncia.decision else None,
     }
 

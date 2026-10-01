@@ -47,10 +47,6 @@ class DecisionDenuncia(models.TextChoices):
     RETIRAR = "retirar", "Se retira la evaluación"
 
 
-def _valores(opciones):
-    return [valor for valor, _ in opciones.choices]
-
-
 def _nota(campo):
     return Q(**{f"{campo}__gte": NOTA_MINIMA, f"{campo}__lte": NOTA_MAXIMA})
 
@@ -77,8 +73,8 @@ class Evaluacion(models.Model):
         constraints = [
             # RF-29, CA-09.2, CA-18.1: una sola evaluación por parte y por orden.
             models.UniqueConstraint(fields=["ticket", "parte"], name="evaluacion_una_por_parte"),
-            models.CheckConstraint(condition=Q(parte__in=_valores(ParteEvaluacion)), name="evaluacion_parte_valida"),
-            models.CheckConstraint(condition=Q(estado__in=_valores(EstadoEvaluacion)),
+            models.CheckConstraint(condition=Q(parte__in=ParteEvaluacion.values), name="evaluacion_parte_valida"),
+            models.CheckConstraint(condition=Q(estado__in=EstadoEvaluacion.values),
                                    name="evaluacion_estado_valido"),
             models.CheckConstraint(condition=~Q(autor=F("evaluado")), name="evaluacion_autor_no_evaluado"),
             models.CheckConstraint(condition=_nota("puntualidad") & _nota("trabajo") & _nota("cordialidad"),
@@ -115,8 +111,8 @@ class Denuncia(models.Model):
         constraints = [
             # P-26: una denuncia por evaluación y denunciante.
             models.UniqueConstraint(fields=["evaluacion", "denunciante"], name="denuncia_una_por_denunciante"),
-            models.CheckConstraint(condition=Q(estado__in=_valores(EstadoDenuncia)), name="denuncia_estado_valido"),
-            models.CheckConstraint(condition=Q(decision__isnull=True) | Q(decision__in=_valores(DecisionDenuncia)),
+            models.CheckConstraint(condition=Q(estado__in=EstadoDenuncia.values), name="denuncia_estado_valido"),
+            models.CheckConstraint(condition=Q(decision__isnull=True) | Q(decision__in=DecisionDenuncia.values),
                                    name="denuncia_decision_valida"),
             models.CheckConstraint(
                 condition=Q(GreaterThanOrEqual(Length("motivo"), 1)) & Q(LessThanOrEqual(Length("motivo"), LARGO_MOTIVO)),

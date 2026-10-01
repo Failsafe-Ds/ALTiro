@@ -15,7 +15,8 @@ incremento 3, la operación agrega el grupo ``operacion`` (O-01 a O-04); en el
 incremento 4, la conversación agrega A-09 a A-15; en los incrementos 5 y 6,
 la evaluación y la moderación agregan P-12 a P-14, C-16, C-17 y A-16 a A-24; en
 el incremento 7, los indicadores agregan A-25 y los grupos ``indicadores``
-(I-01 a I-04) y ``anonimizacion`` (N-01 a N-06).
+(I-01 a I-04) y ``anonimizacion`` (N-01 a N-06). Después del S5, el cambio de
+credenciales y la recuperación (ADR-027) agregan A-26 a A-30.
 """
 
 REGLAS = {
@@ -96,6 +97,11 @@ REGLAS = {
         "A-23": "E-4.1 / E-4.3: sin denuncia abierta, la conversación da el 404 idéntico con registro",
         "A-24": "CA-21.2 / RF-37: la resolución exige motivo y registra decisión, autor, estado anterior y nuevo",
         "A-25": "HU-22 / ADR-026, E-6.3: solo control_gestion consulta indicadores y exporta; otro rol, 403 registrado",
+        "A-26": "RNF-09 / ADR-027: cambiar la contraseña o el correo exige la contraseña actual",
+        "A-27": "RNF-10 / ADR-027: los fallos de reautenticación cuentan en el limitador y bloquean con 429",
+        "A-28": "ADR-005 / ADR-027: cambiar o recuperar la contraseña deja sin valor las demás sesiones",
+        "A-29": "ADR-027: pedir la recuperación responde igual exista o no la cuenta, y solo envía a cuentas con correo",
+        "A-30": "ADR-027: el enlace de recuperación sirve una vez, vence y se anula con uno nuevo o al cambiar la contraseña",
     },
     # S5, incremento 3 (ADR-026, E-8 y E-9).
     "operacion": {

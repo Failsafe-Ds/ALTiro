@@ -29,20 +29,20 @@ Todas con ``Cache-Control: no-store``.
 import re
 import uuid
 
-from django.http import JsonResponse
 
 from autorizacion.acceso import obtener_autorizado
 from autorizacion.decoradores import requiere_rol
 from autorizacion.excepciones import ParteEquivocada
 from comun.api import (
+    ErrorSolicitud,
+    ErroresDeCampo,
     MENSAJE_CLAVE_DESCONOCIDA,
     MENSAJE_VALOR_REPETIDO,
-    ErroresDeCampo,
-    ErrorSolicitud,
     leer_json,
     manejar_errores,
     metodos,
     respuesta_error,
+    respuesta_json,
 )
 from expediente.errores import ErrorEstado
 from perfil.servicios import _monto as validar_monto
@@ -63,12 +63,6 @@ MENSAJE_ESTADO_INVALIDO = "Elige una de las pestañas de la lista."
 MENSAJE_AVISOS_INVALIDOS = "No pudimos marcar tus avisos como vistos. Vuelve a cargar la página e inténtalo de nuevo."
 
 _DIGITOS = re.compile(r"[0-9]{1,4}")
-
-
-def _json(datos, estado=200):
-    respuesta = JsonResponse(datos, status=estado)
-    respuesta["Cache-Control"] = "no-store"
-    return respuesta
 
 
 def _pagina(parametros):
@@ -117,17 +111,17 @@ def crear(request):
     except servicios.AutoPedido as error:
         return respuesta_error(400, error.mensaje, {"maestro": error.mensaje})
     except servicios.HorarioNoDisponible as error:
-        return _json({"mensaje": error.mensaje, "errores": {}, "bloques": error.bloques}, 409)
+        return respuesta_json({"mensaje": error.mensaje, "errores": {}, "bloques": error.bloques}, 409)
     except ErrorEstado as error:
         return respuesta_error(409, error.mensaje)
     ticket = serializacion.consulta().get(pk=ticket.pk)
-    return _json({"ticket": serializacion.para_cliente(ticket)}, 201 if creado else 200)
+    return respuesta_json({"ticket": serializacion.para_cliente(ticket)}, 201 if creado else 200)
 
 
 @metodos("GET")
 def detalle(request, ref):
     ticket = obtener_autorizado(serializacion.consulta(), ref, request.usuario, PoliticaTicket())
-    return _json({"ticket": serializacion.para(ticket, request.usuario)})
+    return respuesta_json({"ticket": serializacion.para(ticket, request.usuario)})
 
 
 @metodos("GET")
@@ -138,7 +132,7 @@ def del_cliente(request):
     consulta = serializacion.consulta().filter(cliente_id=request.usuario.pk).order_by("-enviado_en", "-id")
     if estado:
         consulta = consulta.filter(estado=estado)
-    return _json(_paginado(consulta, pagina, "tickets", serializacion.para_cliente))
+    return respuesta_json(_paginado(consulta, pagina, "tickets", serializacion.para_cliente))
 
 
 @metodos("GET")
@@ -149,7 +143,7 @@ def del_maestro(request):
     consulta = serializacion.consulta().filter(perfil_maestro_id=request.usuario.pk).order_by("-enviado_en", "-id")
     if estado:
         consulta = consulta.filter(estado=estado)
-    return _json(_paginado(consulta, pagina, "tickets", serializacion.para_maestro))
+    return respuesta_json(_paginado(consulta, pagina, "tickets", serializacion.para_maestro))
 
 
 @metodos("GET")
@@ -158,7 +152,7 @@ def avisos(request):
     pagina = _pagina(request.GET)
     datos = _paginado(avisos_ticket.del_usuario(request.usuario.pk), pagina, "avisos", avisos_ticket.datos_aviso)
     datos["sin_ver"] = avisos_ticket.sin_ver(request.usuario.pk)
-    return _json(datos)
+    return respuesta_json(datos)
 
 
 def _refs_de_avisos(valor):
@@ -181,7 +175,7 @@ def avisos_vistos(request):
     datos = leer_json(request, CAMPOS_VISTOS)
     refs = _refs_de_avisos(datos.get("avisos"))
     avisos_ticket.marcar_vistos(request.usuario.pk, refs)
-    return _json({"sin_ver": avisos_ticket.sin_ver(request.usuario.pk)})
+    return respuesta_json({"sin_ver": avisos_ticket.sin_ver(request.usuario.pk)})
 
 
 # --- Acciones sobre el ticket (incremento 5; ADR-023, puntos 3 y 6) ---
@@ -232,7 +226,7 @@ def _accion(request, ref, del_maestro, hacer, leer=_sin_datos, mensajes=(MENSAJE
     except ErrorEstado as error:
         return respuesta_error(409, error.mensaje)
     ticket = serializacion.consulta().get(pk=ticket.pk)
-    return _json({"ticket": serializacion.para(ticket, request.usuario)})
+    return respuesta_json({"ticket": serializacion.para(ticket, request.usuario)})
 
 
 @metodos("POST")

@@ -41,6 +41,11 @@ def leer_variable(nombre):
     return valor
 
 
+def leer_opcional(nombre, por_defecto):
+    """Devuelve una variable de entorno; si no existe o está vacía, ``por_defecto``."""
+    return os.environ.get(nombre, "").strip() or por_defecto
+
+
 def leer_lista(nombre):
     """Devuelve una variable obligatoria separada por comas como lista no vacía."""
     elementos = [e.strip() for e in leer_variable(nombre).split(",") if e.strip()]

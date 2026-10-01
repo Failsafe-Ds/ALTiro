@@ -18,18 +18,18 @@ dice "tu", "cliente" o "maestro"; sin ids internos ni datos de contacto.
 import re
 import uuid
 
-from django.http import JsonResponse
 
 from autorizacion.acceso import obtener_autorizado
 from comun.api import (
+    ErrorSolicitud,
+    ErroresDeCampo,
     MENSAJE_CLAVE_DESCONOCIDA,
     MENSAJE_VALOR_REPETIDO,
-    ErroresDeCampo,
-    ErrorSolicitud,
     leer_json,
     manejar_errores,
     metodos,
     respuesta_error,
+    respuesta_json,
 )
 from expediente.errores import ErrorEstado
 from mensajeria import conversacion
@@ -45,12 +45,6 @@ MENSAJE_CLAVE_INVALIDA = "No pudimos enviar tu mensaje. Vuelve a cargar la pági
 MENSAJE_DESPUES_INVALIDO = "No pudimos actualizar la conversación. Vuelve a cargar la página."
 
 _NO_VACIO = re.compile(r"\S")
-
-
-def _json(datos, estado=200):
-    respuesta = JsonResponse(datos, status=estado)
-    respuesta["Cache-Control"] = "no-store"
-    return respuesta
 
 
 def _uuid(valor):
@@ -99,12 +93,12 @@ def _leer(request, ticket):
     except conversacion.ReferenciaDesconocida:
         # Un ref de otra conversación se trata igual que uno inexistente (no revela nada).
         raise ErroresDeCampo({"despues": MENSAJE_DESPUES_INVALIDO})
-    return _json(datos)
+    return respuesta_json(datos)
 
 
 def _enviar(request, ticket, texto, clave):
     mensaje, creado = conversacion.enviar(ticket, request.usuario, texto, clave)
-    return _json({"mensaje": conversacion.datos_mensaje(mensaje, request.usuario, ticket)}, 201 if creado else 200)
+    return respuesta_json({"mensaje": conversacion.datos_mensaje(mensaje, request.usuario, ticket)}, 201 if creado else 200)
 
 
 @metodos("GET", "POST")

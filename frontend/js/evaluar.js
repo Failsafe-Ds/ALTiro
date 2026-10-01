@@ -62,14 +62,7 @@
   const recibidaDatos = document.getElementById("recibida-datos");
   const formDenuncia = document.getElementById("formulario-denuncia");
 
-  function elemento(etiqueta, clase, ...hijos) {
-    const nodo = document.createElement(etiqueta);
-    if (clase) {
-      nodo.className = clase;
-    }
-    nodo.append(...hijos);
-    return nodo;
-  }
+  const elemento = dom.elemento;
 
   function errorPagina(texto, accion) {
     cargando.hidden = true;

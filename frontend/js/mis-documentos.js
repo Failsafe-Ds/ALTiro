@@ -28,14 +28,7 @@
 
   // --- Lista ---
 
-  function parrafo(clase, ...hijos) {
-    const p = document.createElement("p");
-    if (clase) {
-      p.className = clase;
-    }
-    p.append(...hijos);
-    return p;
-  }
+  const parrafo = (clase, ...hijos) => dom.elemento("p", clase, ...hijos);
 
   function enlaceSubir(documento) {
     const parametros = new URLSearchParams({ subir: documento.tipo });

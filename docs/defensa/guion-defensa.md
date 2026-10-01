@@ -63,6 +63,7 @@ Cada paso nombra lo que se muestra y el requerimiento que prueba.
 | 11 | Control de gestión | `indicadores.html` y exportación CSV | Tres indicadores con su definición; el CSV no trae identificadores y suprime los grupos de menos de 5 | RF-38, CA-22.x |
 | 12 | Seguridad (en vivo) | Cambiar la `ref` de un pedido en la URL por la de otro cliente | Responde el mismo 404 que un pedido inexistente y queda registrado en `acceso_denegado` | **RNF-07**, ADR-011 |
 | 13 | Seguridad (opcional) | 6 contraseñas erróneas | "Espera 15 minutos…" (429) | RNF-10 |
+| 14 | Cuenta (opcional) | Cambiar la contraseña en «Mi cuenta» con otra sesión abierta; después, «Olvidé mi contraseña» y abrir el enlace desde el buzón | Pide la contraseña actual; la otra sesión se cierra; el enlace sirve una vez y no queda en los registros | RNF-09, ADR-027 |
 
 Si falta tiempo, se acortan los pasos 9 a 11, nunca el 4 ni el 12, que son el núcleo de seguridad.
 
@@ -80,7 +81,7 @@ Valores tomados de los informes de cierre y las mediciones. Todo se midió en el
 | RNF-06 | fuera de rutas públicas; enlace de 10 min | AES-256-GCM; enlace válido a los 600 s y rechazado a los 601 s | Cumple | `cierre-sprint-2.md` |
 | RNF-07 | prueba de terceros por cada ruta con identificador | prueba de control de rutas sin exenciones; 404 idéntico | Cumple | suite; `cierre-sprint-5.md` §2 |
 | RNF-08 | dirección y teléfono no viajan mientras está pendiente | verificado en la respuesta del servidor | Cumple | `cierre-sprint-4.md`, `cierre-sprint-5.md` |
-| RNF-09 | expiración a 30 min; reautenticación al cambiar contraseña o correo | expiración: cumple. Reautenticación: no existe la función de cambio | **Parcial** (DA-09, P-11) | `bitacora-de-alcance.md` |
+| RNF-09 | expiración a 30 min; reautenticación al cambiar contraseña o correo | expiración: cumple. Cambiar contraseña o correo exige la contraseña actual (ADR-027, DA-27) | Cumple | `credenciales-adr027.md` |
 | RNF-10 | bloqueo tras 5 fallos en 15 min | 429 con `Retry-After` | Cumple | `cierre-sprint-1.md` |
 | RNF-11 | bitácora sin edición ni borrado | triggers de solo inserción en la base | Cumple | suite |
 | RNF-12 | cifrado; certificado propio declarado | HTTP → 307 a HTTPS; certificado "AlTiro demo local, autofirmado" | Cumple | `cierre-sprint-1.md` |
@@ -104,7 +105,7 @@ Conviene decirlo antes de que lo pregunten: muestra control del proyecto.
 - **RNF-13 sin ejecutar.** Es el riesgo más alto que queda. El protocolo está escrito. Faltan 3 participantes. Si se ejecuta antes de la defensa, reemplazar esta línea con el resultado.
 - **Decisiones provisionales.** ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL". Las preguntas P-01 a P-33 al representante siguen sin respuesta. Es la consecuencia esperada del riesgo de §5.4.1 (el representante no tiene autoridad real).
 - **Supuestos V-01 a V-05** siguen sin validar. Por ejemplo, V-04 bloquea los plazos de RNF-26.
-- **RNF-09:** la reautenticación depende de que exista el cambio de contraseña o de correo, que no está en ninguna HU (DA-09). No se amplió el alcance sin autorización (§5.3.6).
+- **Ampliación registrada (DA-27):** el cambio de contraseña y de correo, y la recuperación, se agregaron después del S5 por decisión del equipo, para cerrar RNF-09. Se siguió el control de cambios de §5.3.6. La recuperación usa un buzón local, no un proveedor de correo real.
 - **Entorno:** todo se midió en el equipo local, como define la prueba de concepto. No hay nube ni carga real.
 - **Fuera de alcance:** pagos, facturación y publicidad (CLAUDE.md §4).
 

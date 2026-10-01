@@ -99,7 +99,7 @@ Todas las decisiones de este ADR son **decisiones del equipo**, no reglas textua
 - El correo se guarda en `usuario` con la normalización y la unicidad del punto 5. Si ya pertenece a otra cuenta, se responde 400 y no se crea nada.
 - La creación de `perfil_cliente`, la asignación del rol `cliente` y la actualización del correo en `usuario` forman **una sola operación atómica** (una transacción).
 - Si la cuenta ya tiene correo, esta operación no lo lee ni lo modifica. (Ver Enmienda E-2.)
-- No se crea un endpoint separado para "agregar correo" ni una función genérica de editar la cuenta.
+- No se crea un endpoint separado para "agregar correo" ni una función genérica de editar la cuenta. *(Enmendado por ADR-027, punto 2: `POST /api/cuenta/correo`, con reautenticación, cambia el correo o agrega el primero.)*
 - **Interpretación de RNF-09:** agregar el primer correo a una cuenta con correo `NULL` **no es "cambiar correo"** y no exige reautenticación. Cambiar un correo ya existente es una operación distinta.
 - Ninguna HU ni RF pide cambiar el correo ni la contraseña. **Ambas funciones quedan fuera del alcance actual** y no se diseñan endpoints para ellas. La evidencia de la segunda mitad de RNF-09 sigue dependiendo de la pregunta de alcance de la propuesta del S1 (§2.1).
 
@@ -128,6 +128,7 @@ Cómo se garantizan:
 - Cada vía de creación tiene pruebas automatizadas (RNF-21).
 
 ## 10. Fuera del alcance actual
+> **Enmendado por ADR-027 (2026-09-30):** la recuperación de contraseña, el cambio de correo y el cambio de contraseña ya están dentro del alcance (DA-27). La verificación del correo sigue fuera.
 - **Recuperación de contraseña**: ninguna HU ni RF la exige. No se crea endpoint ni flujo. Quien olvide su contraseña **no tendrá recuperación** dentro del alcance actual de la prueba de concepto. Se valida más adelante con la contraparte (por ejemplo, si procede un restablecimiento asistido por curatoría, planteado como pregunta, no como funcionalidad). **No bloquea RF-01, RF-02 ni RF-03.**
 - **Verificación del correo**: ninguna HU ni RF la exige. No se implementa en el S1 ni en el alcance actual. No hay servicio de correo, token ni proveedor externo.
 - **Cambio de correo y cambio de contraseña**: ver punto 7.
