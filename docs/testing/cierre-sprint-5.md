@@ -143,3 +143,10 @@ No se corrió la suite completa (el coordinador informa 1888 pasan). QA recreó 
 - **UX-S5 corregidos** (conversación, evaluación, precio y moderación): verificado el paso de confirmación al aceptar un precio en `mis-pedidos` ("Sí, aceptar" / "Volver", con el monto 31.000), sin violaciones axe y con el formulario del precio final de `mis-trabajos` explicando si el cliente deberá aceptar. Los borradores y los avisos de conexión limitada no se ejercitaron en el navegador (solo código y pruebas del commit).
 - **OBS-S5-06 (nueva, baja; corresponde al OBS-S5-01 del coordinador):** el 409 del enlace de documento responde JSON y el enlace se abre por navegación directa, de modo que la persona ve el JSON en el navegador en vez de una pantalla. Verificado con HTTP; no se abrió en un navegador. Conviene que el frontend abra el documento con `fetch` y muestre el mensaje en la página.
 - Pendientes del equipo sin cambios: RNF-13, RNF-18 en navegadores de marca y Android, primer respaldo automático de las 03:00 del 2026-10-01, plazos de retención (RNF-26) y P-24 a P-33.
+
+## 11. OBS-S5-06 (corrección posterior al cierre, 2026-09-30)
+
+- En la interfaz, la foto se carga con `<img>`, así que la persona no veía el JSON: veía, tras un reintento inútil, "No pudimos mostrar la foto. Revisa tu señal…", que es engañoso.
+- `frontend/js/visor.js` ahora consulta el mismo enlace con `fetch` cuando la imagen falla; si responde 409, muestra el mensaje del servidor y no ofrece «Reintentar».
+- Verificado con Playwright 1.63, en Chromium y Firefox a 360 px: curatoría abre el documento ilegible `d91acbad-…` y ve "No pudimos abrir el archivo de este documento. Hay que cargarlo de nuevo para poder revisarlo.", sin botón de reintento y sin errores de JavaScript ni de CSP.
+- Dato ficticio agregado a la pila principal: la cuenta `qa.obs06.cur.*@example.com` (curatoría).

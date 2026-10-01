@@ -127,9 +127,37 @@ const visorFotos = (() => {
       imagenVisor.hidden = false;
     });
 
+    // Documento eliminado o archivo ilegible (OBS-S5-06): el servidor responde
+    // 409 con un mensaje accionable que <img> no puede leer. Se consulta el
+    // mismo enlace para mostrarlo; cualquier otra respuesta devuelve null.
+    async function mensajeConflicto(url) {
+      try {
+        const respuesta = await fetch(url, { credentials: "same-origin", cache: "no-store" });
+        if (respuesta.status !== 409) {
+          return null;
+        }
+        const datos = await respuesta.json();
+        return typeof datos.mensaje === "string" ? datos.mensaje : null;
+      } catch {
+        return null;
+      }
+    }
+
     // Enlace caducado o conexión cortada: se pide un enlace nuevo una sola vez.
-    imagenVisor.addEventListener("error", () => {
-      if (!fotoAbierta || !imagenVisor.getAttribute("src")) {
+    imagenVisor.addEventListener("error", async () => {
+      const url = imagenVisor.getAttribute("src");
+      if (!fotoAbierta || !url) {
+        return;
+      }
+      const abierta = fotoAbierta;
+      const mensaje = await mensajeConflicto(url);
+      if (fotoAbierta !== abierta || imagenVisor.getAttribute("src") !== url) {
+        return; // Se cerró o se cambió de foto mientras se consultaba.
+      }
+      if (mensaje) {
+        // Reintentar no sirve: hay que volver a cargar el documento.
+        imagenVisor.removeAttribute("src");
+        estadoVisor.textContent = mensaje;
         return;
       }
       enlaces.delete(`${fotoAbierta.documento.ref}:${fotoAbierta.cara}`);

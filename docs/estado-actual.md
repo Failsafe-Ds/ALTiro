@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S5 cerrado, etiqueta `sprint-5`; suite 1888; siguiente: revisión del S5 y defensa).
+Última actualización: 2026-09-30 (S5 cerrado, etiqueta `sprint-5`; suite 1888; siguiente: revisión del S5 y defensa; material en `docs/defensa/guion-defensa.md`).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -95,7 +95,7 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 
 ## Pendientes y riesgos vigentes
 - **Cerrados en el S5:** DA-22 a DA-25 (precio acordado, calificación y desempate, conversación, RNF-03 con 5.000 mensajes y RNF-01). DEF-QA-013 a 015 corregidos y verificados.
-- **Pendientes del equipo tras el S5:** revisar el primer respaldo automático (2026-10-01 03:00) y definir dónde se guarda la copia de la clave de cifrado (ADR-026 E-7.2); plazos de retención RNF-26 (P-30, V-04); P-24 a P-33; OBS-S5-06 (el 409 del enlace de documento se ve como JSON).
+- **Pendientes del equipo tras el S5:** revisar el primer respaldo automático (2026-10-01 03:00) y definir dónde se guarda la copia de la clave de cifrado (ADR-026 E-7.2); plazos de retención RNF-26 (P-30, V-04); P-24 a P-33. OBS-S5-06 corregida (el visor muestra el mensaje del 409).
 - **Antes (S4) pasaban al S5 (DA-22 a DA-26):** RF-28 completo (precio acordado), evidencia de RF-11/CA-03.3 y calificación de RF-13/RF-14/CA-05.1, conversación de CA-15.2, RNF-03 con 5.000 mensajes (y nueva medición de RNF-01).
 - **Para el representante (S4):** horarios alternativos del 409 (CA-06.2) como texto sin enlace; "Ingresar" desde `pedir-trabajo` sin retorno; sugerencias limitadas a 5.
 - **Plazos:** `calcular_vence_en` y la proximidad se calculan en UTC (DEF-QA-005); toda aritmética de horas sobre fechas con zona Santiago debe pasar por UTC.

@@ -110,7 +110,7 @@ Se mantiene y se extiende a las rutas de precio final. Quien la recibe ya es par
 3. **Sin plazo configurado no se elimina nada** y se registra una advertencia (P-30).
 4. **Tarea del planificador.** Autor Sistema. Borra el archivo cifrado, pone `eliminado_en` y `motivo_eliminacion` en la fila y escribe en la bitácora `documento_eliminado_retencion` con el tipo y el plazo aplicado.
 
-5. **Documento ilegible o eliminado (cierre del S5, provisional).** La descarga de un documento eliminado por retención o que no se puede descifrar responde 409 `{mensaje, errores}` con un mensaje accionable, en vez de 500. El registro de ERROR lleva solo la `ref` y la cara, sin nombre de archivo, ruta ni contenido. Observación: el enlace se abre por navegación directa y el navegador muestra el JSON; queda como OBS-S5-06.
+5. **Documento ilegible o eliminado (cierre del S5, provisional).** La descarga de un documento eliminado por retención o que no se puede descifrar responde 409 `{mensaje, errores}` con un mensaje accionable, en vez de 500. El registro de ERROR lleva solo la `ref` y la cara, sin nombre de archivo, ruta ni contenido. Observación: el enlace se abre por navegación directa y el navegador muestra el JSON; queda como OBS-S5-06. Corregida (2026-09-30): en la interfaz la foto se carga en `<img>`, que ante el 409 mostraba un aviso de conexión engañoso; `js/visor.js` consulta el mismo enlace con `fetch` y muestra el mensaje del servidor sin ofrecer «Reintentar».
 
 ### E-10. Revisión de dependencias (RNF-27)
 `pip-audit` se ejecuta en un contenedor efímero al inicio de cada sprint. No se agrega a `requirements*.txt`. El resultado queda en `docs/testing/revision-dependencias-s<N>.md`.

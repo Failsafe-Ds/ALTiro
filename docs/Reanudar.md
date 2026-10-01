@@ -57,5 +57,5 @@ S5 cerrado (etiqueta `sprint-5`). Los cinco sprints del informe están construid
 - RNF-13 con personas (DA-26) y RNF-18 manual en navegadores de marca y Android;
 - revisar el primer respaldo automático del 2026-10-01 y definir dónde se guarda la copia de la clave;
 - responder P-01 a P-33 y revisar los ADR en "Aceptada — PROVISIONAL";
-- material de defensa (fila S5 de §5.3.5).
+- material de defensa (fila S5 de §5.3.5): borrador en `docs/defensa/guion-defensa.md`, para que el equipo lo ajuste y ensaye.
 Ver `docs/estado-actual.md` → "Pendientes" y `docs/testing/cierre-sprint-5.md`.

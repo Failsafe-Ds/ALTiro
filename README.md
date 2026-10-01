@@ -5,12 +5,11 @@ La documentación funcional está en `docs/` (`docs/informe-altiro.md`) y las
 decisiones técnicas en `docs/decisions/`. Los desplazamientos de alcance
 (informe §5.3.6) se registran en `docs/alcance/bitacora-de-alcance.md`.
 
-Estado actual: **Sprint 1 (identidad y acceso)**. Registro de cliente (RF-01),
-inicio y cierre de sesión (RF-02), postulación de maestro (RF-03), catálogo
-territorial, sesiones que expiran a los 30 minutos y bloqueo tras 5 intentos
-fallidos, autorización centralizada, bitácora de solo inserción y registro de
-accesos denegados. Cierre: `docs/testing/cierre-sprint-1.md` (listo con
-observaciones). Pendiente: reautenticación de RNF-09 (pregunta de alcance §2.1).
+Estado actual: **los cinco sprints del informe están construidos** (etiquetas `sprint-1` a
+`sprint-5`; cierres en `docs/testing/cierre-sprint-*.md`). Hoja corta del estado:
+`docs/estado-actual.md`. Material de defensa: `docs/defensa/guion-defensa.md`.
+Pendientes del equipo: RNF-13 con personas, RNF-18 manual, plazos de RNF-26 y
+preguntas P-01 a P-33.
 
 ## Requisitos
 
@@ -42,6 +41,11 @@ Para cambiarlos, cree un `.env` a partir de `.env.example` (el `.env` no se vers
 | `/curatoria.html`, `/curatoria-expediente.html` | Curatoría: revisión de expedientes (RF-08) |
 | `/comercial.html` | Comercial: catálogo de oficios y servicios (RF-36) |
 | `/buscar.html`, `/perfil-maestro.html` | Público: búsqueda y ficha del maestro (RF-09 a RF-11, RF-14) |
+| `/pedir-trabajo.html`, `/mis-pedidos.html` | Cliente: pedir un horario, seguir pedidos, aceptar el precio e historial |
+| `/mis-trabajos.html` | Maestro: pedidos recibidos, aceptar o rechazar, precio final e historial |
+| `/conversacion.html`, `/evaluar.html` | Cliente y maestro: conversación del pedido aceptado y evaluación (RF-25, RF-29) |
+| `/moderacion.html` | Moderación: denuncias de evaluaciones (RF-31) |
+| `/indicadores.html` | Control de gestión: indicadores y exportación anonimizada (RF-38) |
 
 ## Datos de demostración
 
