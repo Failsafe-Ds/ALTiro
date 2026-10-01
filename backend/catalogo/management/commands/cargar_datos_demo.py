@@ -16,13 +16,21 @@ Con ``--con-cuentas`` (ADR-028) también crea maestros publicados, clientes y
 tickets ficticios para probar el flujo completo (``busqueda.cuentas_demo``).
 Las cuentas con ingreso reciben una contraseña aleatoria que se imprime **una
 sola vez** en la consola (nunca en el registro). Las existentes conservan la
-suya salvo ``--restablecer-contrasenas``.
+suya salvo ``--restablecer-contrasenas``. También crea una cuenta
+administrativa por rol administrativo (ADR-028, Enmienda E-1).
+
+Con ``--maestros-por-comuna [N]`` (ADR-028, Enmienda E-1; por defecto 3)
+garantiza al menos N maestros ficticios publicados con comuna base en cada
+comuna, o solo en las de ``--region R`` (``busqueda.maestros_por_comuna``), para
+probar los filtros de la búsqueda. Esos maestros no tienen ingreso.
 
 Uso dentro del contenedor:
     python manage.py cargar_datos_demo
     python manage.py cargar_datos_demo --con-cuentas [--restablecer-contrasenas]
+    python manage.py cargar_datos_demo --maestros-por-comuna [N] [--region R]
 """
 import logging
+import time
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -86,17 +94,50 @@ class Command(BaseCommand):
             "--restablecer-contrasenas", action="store_true", dest="restablecer",
             help="Con --con-cuentas: da una contraseña nueva a las cuentas demo que ya existen.",
         )
+        parser.add_argument(
+            "--maestros-por-comuna", type=int, nargs="?", const=3, default=None, dest="por_comuna", metavar="N",
+            help="Garantiza al menos N maestros ficticios publicados con comuna base en cada comuna (por defecto 3).",
+        )
+        parser.add_argument(
+            "--region", type=int, default=None, metavar="CODIGO",
+            help="Con --maestros-por-comuna: solo las comunas de esa región (código CUT, por ejemplo 8).",
+        )
 
-    def handle(self, *args, con_cuentas=False, restablecer=False, **opciones):
+    def handle(self, *args, con_cuentas=False, restablecer=False, por_comuna=None, region=None, **opciones):
         if restablecer and not con_cuentas:
             raise CommandError("--restablecer-contrasenas solo se usa junto con --con-cuentas.")
+        if region is not None and por_comuna is None:
+            raise CommandError("--region solo se usa junto con --maestros-por-comuna.")
         creados = cargar_datos_demo()
         logger.info("Datos de demostración del catálogo cargados por comando de consola: %s servicios nuevos.", creados)
         self.stdout.write(f"Servicios de demostración creados: {creados} (datos ficticios, rotulados «(demo)»).")
         if con_cuentas:
             self._cuentas(restablecer)
-        else:
+        elif por_comuna is None:
             self.stdout.write("Para crear también maestros, clientes y tickets con los que ingresar: agrega --con-cuentas.")
+        if por_comuna is not None:
+            self._por_comuna(por_comuna, region)
+
+    def _por_comuna(self, n, region):
+        from busqueda.maestros_por_comuna import cargar_maestros_por_comuna
+
+        inicio = time.monotonic()
+        try:
+            resumen = cargar_maestros_por_comuna(n, region=region, avance=self.stdout.write)
+        except ValueError as error:
+            raise CommandError(str(error)) from None
+        segundos = time.monotonic() - inicio
+        logger.info(
+            "Maestros de demostración por comuna cargados por comando de consola: %s maestros nuevos en %s comunas.",
+            resumen.maestros, resumen.comunas,
+        )
+        self.stdout.write(
+            f"Maestros por comuna (datos ficticios, sin ingreso): {resumen.maestros} nuevos en {resumen.comunas} comunas, "
+            f"{resumen.licencias} licencias SEC, {resumen.tickets} tickets y {resumen.evaluaciones} evaluaciones; "
+            f"mínimo por comuna: {resumen.minimo}; {segundos:.0f} s."
+        )
+        if resumen.faltantes:
+            raise CommandError(f"Comunas con menos de {n} maestros: {resumen.faltantes[:20]}.")
 
     def _cuentas(self, restablecer):
         from busqueda.cuentas_demo import cargar_cuentas_demo

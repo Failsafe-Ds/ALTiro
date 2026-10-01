@@ -42,7 +42,8 @@ def test_crea_maestros_publicados_clientes_y_tickets_idempotente(capsys):
         # Solo el maestro con ingreso tiene contraseña usable.
         assert perfil.usuario.has_usable_password() == (perfil.usuario.correo == cuentas_demo.CORREO_MAESTRO)
     assert {u.correo for u in Usuario.objects.filter(correo__isnull=False)} == {
-        cuentas_demo.CORREO_MAESTRO, *[c[0] for c in cuentas_demo.CLIENTES]
+        cuentas_demo.CORREO_MAESTRO, *[c[0] for c in cuentas_demo.CLIENTES],
+        *[c[1] for c in cuentas_demo.ADMINISTRATIVAS],
     }
     estados = sorted(Ticket.objects.values_list("estado", flat=True))
     assert estados == sorted([EstadoTicket.PENDIENTE, EstadoTicket.ACEPTADO, EstadoTicket.FINALIZADO,
@@ -66,7 +67,8 @@ def test_la_contrasena_es_aleatoria_cumple_la_politica_y_solo_se_imprime(capsys,
     assert clave not in caplog.text
     _, restablecida = _cargar(capsys, "--restablecer-contrasenas")
     assert restablecida is not None and restablecida != clave
-    for correo in ("cliente.demo.1@example.com", "cliente.demo.2@example.com", cuentas_demo.CORREO_MAESTRO):
+    for correo in ("cliente.demo.1@example.com", "cliente.demo.2@example.com", cuentas_demo.CORREO_MAESTRO,
+                   *[c[1] for c in cuentas_demo.ADMINISTRATIVAS]):
         usuario = Usuario.objects.get(correo=correo)
         assert usuario.check_password(restablecida) and not usuario.check_password(clave)
 
@@ -122,3 +124,25 @@ def test_limpieza_lista_por_defecto_y_borra_solo_oficios_de_prueba_desactivados(
 
     call_command("limpiar_oficios_de_prueba", "--confirmo")
     assert "No hay oficios de prueba" in capsys.readouterr().out
+
+
+# --- Enmienda E-1: cuentas administrativas demo ---
+
+
+def test_crea_una_cuenta_administrativa_por_rol_con_la_misma_contrasena(capsys):
+    from identidad.models import ROLES_ADMINISTRATIVOS, UsuarioRol
+
+    salida, clave = _cargar(capsys)
+    assert {rol for rol, _, _ in cuentas_demo.ADMINISTRATIVAS} == set(ROLES_ADMINISTRATIVOS)
+    for rol, correo, _ in cuentas_demo.ADMINISTRATIVAS:
+        usuario = Usuario.objects.get(correo=correo)
+        assert correo.endswith("@example.com") and correo in salida
+        assert set(UsuarioRol.objects.filter(usuario=usuario).values_list("rol", flat=True)) == {rol}
+        assert usuario.check_password(clave)
+        assert iniciar_sesion(Client(enforce_csrf_checks=False), correo, clave).status_code == 200
+    # Idempotente: no se duplican ni cambian de contraseña.
+    _cargar(capsys)
+    assert Usuario.objects.filter(correo__in=[c[1] for c in cuentas_demo.ADMINISTRATIVAS]).count() == len(
+        cuentas_demo.ADMINISTRATIVAS
+    )
+    assert all(Usuario.objects.get(correo=c[1]).check_password(clave) for c in cuentas_demo.ADMINISTRATIVAS)

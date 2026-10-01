@@ -55,7 +55,6 @@ from django.utils import timezone
 
 from busqueda import ficticios
 from catalogo.management.commands.cargar_datos_demo import cargar_datos_demo
-from catalogo.models import Modalidad
 from evaluaciones.models import Evaluacion, ParteEvaluacion
 from expediente import vigencia
 from identidad import servicios as identidad
@@ -227,18 +226,10 @@ def _tickets_de(azar, perfil, clientes, ahora, hoy):
         cliente = azar.choice(clientes)
         enviado = una.inicio_en - datetime.timedelta(hours=azar.randint(5, 72))
         if azar.random() < 0.6:
-            ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.FINALIZADO, enviado)
-            ticket.aceptado_en = _entre(azar, enviado, ticket.vence_en)
-            ticket.finalizado_en = una.fin_en + datetime.timedelta(hours=1)
-            # Precio final coherente con el CHECK de ADR-026, E-1: el monto publicado, aceptado si es por hora.
-            ticket.monto_final, ticket.monto_final_en = ticket.monto_publicado, ticket.finalizado_en
-            ticket.monto_final_autor_id = perfil.pk
-            if ticket.modalidad == Modalidad.POR_HORA:
-                ticket.precio_aceptado_en = ticket.finalizado_en
-            pasos = [
-                (ticket.aceptado_en, EstadoTicket.PENDIENTE, EstadoTicket.ACEPTADO, perfil.pk, None),
-                (ticket.finalizado_en, EstadoTicket.ACEPTADO, EstadoTicket.FINALIZADO, perfil.pk, None),
-            ]
+            ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.PENDIENTE, enviado)
+            # Precio final coherente con el CHECK de ADR-026, E-1 (ficticios.finalizar).
+            pasos = ficticios.finalizar(ticket, perfil.pk, _entre(azar, enviado, ticket.vence_en),
+                                        una.fin_en + datetime.timedelta(hours=1))
         else:
             ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.PENDIENTE, enviado)
             autor = _cerrar(azar, ticket)

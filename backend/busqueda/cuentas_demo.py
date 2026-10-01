@@ -9,6 +9,10 @@ idempotente y rotulada "(demo)":
   (``MAESTRO_CON_INGRESO``) puede ingresar; los demás tienen contraseña
   inutilizable;
 - 2 clientes que pueden ingresar (Concepción y Santiago);
+- una cuenta administrativa por rol administrativo (curatoría, comercial,
+  moderación y control de gestión), creada con
+  ``identidad.servicios.crear_cuenta_administrativa``, la misma vía que
+  ``crear_usuario_administrativo`` (ADR-013, punto 8; ADR-028, Enmienda E-1);
 - tickets del primer cliente con el maestro que ingresa: uno pendiente y uno
   aceptado (con dos mensajes) en los próximos días, uno finalizado sin
   evaluar y uno cerrado por rechazo, cada uno con su historial.
@@ -31,10 +35,9 @@ from django.db import transaction
 from django.utils import timezone
 
 from busqueda import ficticios
-from catalogo.models import Modalidad
 from expediente import vigencia
 from identidad import servicios as identidad
-from identidad.models import PerfilMaestro, Usuario
+from identidad.models import ROLES_ADMINISTRATIVOS, PerfilMaestro, Rol, Usuario
 from mensajeria.models import Mensaje
 from perfil import ocurrencias
 from perfil.models import Cobertura, Disponibilidad, ServicioMaestro
@@ -65,6 +68,11 @@ MAESTRO_CON_INGRESO = 0
 CLIENTES = (
     ("cliente.demo.1@example.com", "Clienta Demo Uno (demo)", "+56 9 0002 0101", "8101"),
     ("cliente.demo.2@example.com", "Cliente Demo Dos (demo)", "+56 9 0002 0102", "13101"),
+)
+# (rol, correo, nombre): una cuenta por rol administrativo existente.
+ADMINISTRATIVAS = tuple(
+    (rol, f"{rol.replace('_', '.')}.demo@example.com", f"{Rol(rol).label} Demo (demo)")
+    for rol in sorted(ROLES_ADMINISTRATIVOS)
 )
 _ALFABETO = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
@@ -141,6 +149,20 @@ def _crear_clientes(contrasena):
     return cuentas
 
 
+def _crear_administrativas(contrasena):
+    """Cuentas administrativas demo que faltan, con la vía de ``crear_usuario_administrativo``."""
+    from identidad.management.commands.crear_usuario_administrativo import _registrar_asignacion
+
+    cuentas = []
+    for rol, correo, nombre in ADMINISTRATIVAS:
+        if Usuario.objects.filter(correo=correo).exists():
+            continue
+        usuario = identidad.crear_cuenta_administrativa(nombre=nombre, correo=correo, roles=[rol], contrasena=contrasena)
+        _registrar_asignacion(usuario, [rol])
+        cuentas.append(Cuenta(rol, correo, contrasena, True))
+    return cuentas
+
+
 def _usuarios_con_ingreso():
     """``[(rol, identificador, Usuario)]`` de las cuentas demo con ingreso que existen."""
     resultado = []
@@ -153,6 +175,10 @@ def _usuarios_con_ingreso():
         usuario = Usuario.objects.filter(correo=correo).first()
         if usuario is not None:
             resultado.append(("cliente", correo, usuario))
+    for rol, correo, _ in ADMINISTRATIVAS:
+        usuario = Usuario.objects.filter(correo=correo).first()
+        if usuario is not None:
+            resultado.append((rol, correo, usuario))
     return resultado
 
 
@@ -185,24 +211,18 @@ def _crear_tickets(ahora):
     aceptado = nuevo(futuras[3], servicios[-1], EstadoTicket.ACEPTADO, ahora - 2 * h,
                      "Pedido de demostración aceptado.")
     aceptado.aceptado_en = ahora - h
-    finalizado = nuevo(pasadas[-1], servicios[0], EstadoTicket.FINALIZADO, pasadas[-1].inicio_en - 30 * h,
+    finalizado = nuevo(pasadas[-1], servicios[0], EstadoTicket.PENDIENTE, pasadas[-1].inicio_en - 30 * h,
                        "Trabajo de demostración terminado, sin evaluar.")
-    finalizado.aceptado_en = finalizado.enviado_en + 2 * h
-    finalizado.finalizado_en = min(pasadas[-1].fin_en + h, ahora)
-    finalizado.monto_final, finalizado.monto_final_en = finalizado.monto_publicado, finalizado.finalizado_en
-    finalizado.monto_final_autor_id = perfil.pk
-    if finalizado.modalidad == Modalidad.POR_HORA:
-        finalizado.precio_aceptado_en = finalizado.finalizado_en
+    pasos_finalizado = ficticios.finalizar(
+        finalizado, perfil.pk, finalizado.enviado_en + 2 * h, min(pasadas[-1].fin_en + h, ahora)
+    )
     cerrado = nuevo(pasadas[0], servicios[-1], EstadoTicket.CERRADO, pasadas[0].inicio_en - 30 * h,
                     "Pedido de demostración que el maestro no pudo tomar.")
     cerrado.cerrado_en, cerrado.motivo_cierre = cerrado.enviado_en + 3 * h, MotivoCierre.RECHAZADO_MAESTRO
 
     pasos = {
         "aceptado": [(aceptado.aceptado_en, EstadoTicket.PENDIENTE, EstadoTicket.ACEPTADO, perfil.pk, None)],
-        "finalizado": [
-            (finalizado.aceptado_en, EstadoTicket.PENDIENTE, EstadoTicket.ACEPTADO, perfil.pk, None),
-            (finalizado.finalizado_en, EstadoTicket.ACEPTADO, EstadoTicket.FINALIZADO, perfil.pk, None),
-        ],
+        "finalizado": pasos_finalizado,
         "cerrado": [(cerrado.cerrado_en, EstadoTicket.PENDIENTE, EstadoTicket.CERRADO, perfil.pk,
                      MotivoCierre.RECHAZADO_MAESTRO)],
     }
@@ -235,6 +255,7 @@ def cargar_cuentas_demo(*, restablecer=False, ahora=None):
     contrasena = contrasena_aleatoria()
     maestros, cuenta_maestro = _crear_maestros(por_oficio, contrasena)
     nuevas = ([cuenta_maestro] if cuenta_maestro else []) + _crear_clientes(contrasena)
+    nuevas += _crear_administrativas(contrasena)
     con_nueva = {c.identificador for c in nuevas}
     cuentas = list(nuevas)
     for rol, identificador, usuario in _usuarios_con_ingreso():
@@ -246,6 +267,6 @@ def cargar_cuentas_demo(*, restablecer=False, ahora=None):
         else:
             cuentas.append(Cuenta(rol, identificador, None, False))
     tickets = _crear_tickets(ahora)
-    orden = {"maestro": 0, "cliente": 1}
+    orden = {"maestro": 0, "cliente": 1} | {rol: 2 + i for i, (rol, _, _) in enumerate(ADMINISTRATIVAS)}
     cuentas.sort(key=lambda c: (orden[c.rol], c.identificador))
     return maestros, tickets, cuentas

@@ -71,13 +71,17 @@ Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
    idempotente: volver a ejecutarlo no duplica nada. Sin `--con-cuentas` solo carga los servicios del catálogo.
 
 3. **Anota la contraseña que imprime la consola**: aparece una sola vez, no se guarda en
-   ningún archivo ni registro y es la misma para las tres cuentas con ingreso:
+   ningún archivo ni registro y es la misma para todas las cuentas con ingreso:
 
    | Quién | Ingresa con |
    |---|---|
    | Maestro | RUT `49990001-5` o `maestro.demo@example.com` |
    | Clienta (Concepción) | `cliente.demo.1@example.com` |
    | Cliente (Santiago) | `cliente.demo.2@example.com` |
+   | Curatoría | `curatoria.demo@example.com` |
+   | Comercial | `comercial.demo@example.com` |
+   | Moderación | `moderacion.demo@example.com` |
+   | Control de gestión | `control.gestion.demo@example.com` |
 
    Entra en `https://localhost/ingresar.html`: el campo acepta correo o RUT.
    Si perdiste la contraseña, genera otra para esas cuentas con
@@ -87,9 +91,26 @@ Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
 4. Prueba la búsqueda, por ejemplo "Gasfitería" en Concepción o "Pintura" en Santiago. El
    maestro con ingreso atiende Concepción, Talcahuano, San Pedro de la Paz y Chiguayante.
 
-5. Para curatoría, comercial, moderación o control de gestión, crea una cuenta
-   administrativa con `crear_usuario_administrativo` (ver "Crear una cuenta administrativa").
-   La contraseña la eliges tú y se pide oculta.
+5. `--con-cuentas` también crea una cuenta demo por rol administrativo (tabla de arriba, con la
+   misma contraseña). Para una cuenta administrativa con tu propia contraseña usa
+   `crear_usuario_administrativo` (ver "Crear una cuenta administrativa").
+
+6. Para probar los filtros de la búsqueda con volumen (oficio, comuna y bloque horario;
+   RF-09 a RF-12), carga al menos 3 maestros ficticios con comuna base en **cada** comuna
+   (unos 1.040 en todo el país; ADR-028, Enmienda E-1):
+
+   ```sh
+   docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 3
+   docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 3 --region 8   # solo una región
+   ```
+
+   Es idempotente: cuenta los maestros demo que ya tiene cada comuna y crea solo los que faltan
+   (N entre 1 y 10; sin número, 3). Se llaman "Maestro Demo NNNN (datos de prueba)", no tienen
+   correo ni contraseña con la que ingresar, ofrecen oficios distintos en cada comuna (algunas
+   combinaciones oficio + comuna quedan vacías a propósito para ver las sugerencias), con agendas
+   de mañana, tarde, jornada o vespertino, algunos bloques ocupados y algunas evaluaciones. Los de
+   gas y electricidad llevan una licencia SEC vigente sintética, cifrada como cualquier documento.
+   La carga del país completo tarda unos minutos.
 
 Si la base tiene oficios `oficio_prueba_s3_…` u `oficio_qa3_…` (restos de pruebas de navegador
 del S3), `docker compose exec app python manage.py limpiar_oficios_de_prueba` los lista.
