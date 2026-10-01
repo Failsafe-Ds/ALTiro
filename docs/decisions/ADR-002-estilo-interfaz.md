@@ -34,3 +34,9 @@ Con frontend estático, el HTML de una página privada puede descargarse sin ses
   - Nunca se guarda la contraseña.
 - **Por qué 2 horas:** la sesión vence a los 30 minutos (RNF-09) y la postulación debería tomar 10 minutos o menos (RNF-13). Dos horas dan margen para recuperar la señal y volver a ingresar (RNF-20) sin conservar los datos indefinidamente.
 - **Aprobación:** equipo de desarrollo, 2026-09-28 (Sprint 2, incremento 0).
+
+## Enmienda 2026-10-01: pie de página y «← Volver»
+
+- Pie `<footer class="pie" role="contentinfo">` estático en todas las páginas (también `errores/`) con copyright y aviso de prueba de concepto. La versión sale de un solo archivo, `frontend/js/version.js` (`ALTIRO_VERSION`, se cambia en cada iteración), y `js/pie.js` la escribe en el pie.
+- Enlace `← Volver` (`a[data-volver]`, `href` de respaldo real) en el encabezado de todas las páginas salvo `index.html`, `errores/*` y las tres que ya tienen enlace a su padre (`conversacion`, `evaluar`, `curatoria-expediente`). `js/volver.js` usa `history.back()` si el origen anterior es del mismo sitio o si hay un paso interno; si no, sigue el respaldo.
+- Pasos internos con `history.pushState({altiroPaso})`: `buscar.js` (formulario, horario, resultados) y `formulario.porPasos` (postulación, pedir trabajo). Atrás del teléfono retrocede un paso sin perder lo escrito (RNF-20).

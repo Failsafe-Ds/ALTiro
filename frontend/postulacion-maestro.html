@@ -8,9 +8,13 @@
   <script src="js/api.js" defer></script>
   <script src="js/formulario.js" defer></script>
   <script src="js/postulacion-maestro.js" defer></script>
+  <script src="js/version.js" defer></script>
+  <script src="js/pie.js" defer></script>
+  <script src="js/volver.js" defer></script>
 </head>
 <body>
-  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
+  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" data-volver href="index.html">← Volver</a></header>
   <main>
     <h1>Postular como maestro</h1>
     <section id="con-sesion" class="tarjeta oculto" aria-labelledby="titulo-con-sesion">
@@ -78,5 +82,9 @@
     </form>
     <p class="solo-visitante oculto">¿Ya postulaste? <a href="ingresar.html">Ingresa con tu RUT</a>.</p>
   </main>
+  <footer class="pie" role="contentinfo">
+    <p>AlTiro <span id="pie-version"></span> · © 2026 Equipo AlTiro.</p>
+    <p>Prueba de concepto académica; no es un servicio comercial. Los datos de demostración son ficticios.</p>
+  </footer>
 </body>
 </html>

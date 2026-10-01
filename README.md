@@ -50,16 +50,55 @@ Para cambiarlos, cree un `.env` a partir de `.env.example` (el `.env` no se vers
 
 ## Datos de demostración
 
-Una instalación limpia tiene oficios y comunas, pero **no tiene servicios** en el catálogo.
-Para cargar servicios ficticios (rotulados "(demo)", idempotente):
+Una instalación limpia tiene oficios y comunas, pero **no tiene servicios, maestros ni cuentas**.
+Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
 
-```sh
-docker compose exec app python manage.py cargar_datos_demo
-```
+1. Levanta la pila con el código al día (el comando vive en la imagen de `app`):
+
+   ```sh
+   docker compose up -d --build
+   ```
+
+2. Carga el catálogo de demostración **y** las cuentas para probar el flujo completo:
+
+   ```sh
+   docker compose exec app python manage.py cargar_datos_demo --con-cuentas
+   ```
+
+   Crea 10 maestros publicados (7 en el Gran Concepción y 3 en Santiago, con foto, cobertura,
+   agenda de lunes a sábado y servicios de oficios no regulados), 2 clientes y 4 pedidos de
+   ejemplo (pendiente, aceptado con conversación, finalizado sin evaluar y cerrado). Es
+   idempotente: volver a ejecutarlo no duplica nada. Sin `--con-cuentas` solo carga los servicios del catálogo.
+
+3. **Anota la contraseña que imprime la consola**: aparece una sola vez, no se guarda en
+   ningún archivo ni registro y es la misma para las tres cuentas con ingreso:
+
+   | Quién | Ingresa con |
+   |---|---|
+   | Maestro | RUT `49990001-5` o `maestro.demo@example.com` |
+   | Clienta (Concepción) | `cliente.demo.1@example.com` |
+   | Cliente (Santiago) | `cliente.demo.2@example.com` |
+
+   Entra en `https://localhost/ingresar.html`: el campo acepta correo o RUT.
+   Si perdiste la contraseña, genera otra para esas cuentas con
+   `cargar_datos_demo --con-cuentas --restablecer-contrasenas`.
+   Esa opción cierra las sesiones abiertas de esas cuentas.
+
+4. Prueba la búsqueda, por ejemplo "Gasfitería" en Concepción o "Pintura" en Santiago. El
+   maestro con ingreso atiende Concepción, Talcahuano, San Pedro de la Paz y Chiguayante.
+
+5. Para curatoría, comercial, moderación o control de gestión, crea una cuenta
+   administrativa con `crear_usuario_administrativo` (ver "Crear una cuenta administrativa").
+   La contraseña la eliges tú y se pide oculta.
+
+Si la base tiene oficios `oficio_prueba_s3_…` u `oficio_qa3_…` (restos de pruebas de navegador
+del S3), `docker compose exec app python manage.py limpiar_oficios_de_prueba` los lista.
+Con `--confirmo` los borra. Solo toca oficios desactivados con esos códigos exactos.
 
 El volumen sintético de medición (RNF-01, RNF-03) se genera con `generar_volumen_prueba`,
 **solo en una pila aparte** (`-p altiro-volumen`), nunca en la de demostración. Las instrucciones
 están al inicio de `backend/busqueda/management/commands/generar_volumen_prueba.py`.
+Las pruebas de navegador también deben correr en una pila aparte o limpiar lo que crean.
 
 ## Correos y recuperación de contraseña (ADR-027)
 

@@ -44,7 +44,6 @@ Rotulado y resguardos:
   de una persona de la aplicación.
 """
 import datetime
-import io
 import logging
 import random
 import secrets
@@ -53,28 +52,18 @@ import uuid
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
-from PIL import Image
 
+from busqueda import ficticios
 from catalogo.management.commands.cargar_datos_demo import cargar_datos_demo
-from catalogo.models import Modalidad, Servicio, ServicioModalidad
+from catalogo.models import Modalidad
 from evaluaciones.models import Evaluacion, ParteEvaluacion
 from expediente import vigencia
-from expediente.models import EstadoExpediente, Expediente, OficioMaestro
 from identidad import servicios as identidad
 from identidad.models import PerfilMaestro, Usuario
 from mensajeria.models import Mensaje
-from perfil import fotos, ocurrencias
-from perfil.models import Cobertura, Disponibilidad, PerfilPublico, ServicioMaestro
-from tickets.models import (
-    ANTICIPACION_MINIMA,
-    PLAZO_RESPUESTA,
-    AutorTipo,
-    EstadoTicket,
-    MotivoCierre,
-    Ticket,
-    TicketEvento,
-)
-from tickets.servicios import calcular_vence_en
+from perfil import ocurrencias
+from perfil.models import Cobertura, Disponibilidad, ServicioMaestro
+from tickets.models import ANTICIPACION_MINIMA, PLAZO_RESPUESTA, EstadoTicket, MotivoCierre, Ticket, TicketEvento
 
 logger = logging.getLogger(__name__)
 
@@ -98,31 +87,7 @@ PROBABILIDAD_EVAL_MAESTRO = 0.4
 
 def rut_ficticio(semilla, numero):
     """RUT sintético válido, distinto por semilla y número, sin puntos: 5x.xxx.xxx-DV."""
-    cuerpo = RUT_BASE + (semilla % 10_000) * 1_000 + numero
-    suma, factor = 0, 2
-    for digito in reversed(str(cuerpo)):
-        suma += int(digito) * factor
-        factor = 2 if factor == 7 else factor + 1
-    dv = 11 - suma % 11
-    return f"{cuerpo}-{'0' if dv == 11 else 'K' if dv == 10 else dv}"
-
-
-def _foto(azar):
-    salida = io.BytesIO()
-    color = tuple(azar.randint(40, 220) for _ in range(3))
-    Image.new("RGB", (320, 320), color).save(salida, format="JPEG", quality=80)
-    return fotos.variantes(salida.getvalue())
-
-
-def _servicios_por_oficio():
-    """``{oficio: [Servicio]}`` de los oficios **no regulados** activos con servicios activos."""
-    por_oficio = {}
-    for servicio in Servicio.objects.filter(activo=True, oficio__activo=True, oficio__regulado=False).select_related(
-        "oficio"
-    ).order_by("oficio__orden", "orden", "pk"):
-        if ServicioModalidad.objects.filter(servicio=servicio).exists():
-            por_oficio.setdefault(servicio.oficio, []).append(servicio)
-    return por_oficio
+    return ficticios.rut_con_dv(RUT_BASE + (semilla % 10_000) * 1_000 + numero)
 
 
 def _elegir_servicios(azar, por_oficio):
@@ -150,52 +115,23 @@ def crear_maestro(semilla, numero, por_oficio):
     if PerfilMaestro.objects.filter(rut=rut.replace("-", "")).exists():
         return False
     azar = random.Random(f"{semilla}-{numero}")
-    variantes = _foto(azar)
-    nombre_foto = fotos.guardar(variantes)
-    try:
-        with transaction.atomic():
-            usuario = identidad.crear_cuenta_maestro(
-                nombre=f"Maestro Ficticio {numero + 1:03d} (datos de prueba)",
-                telefono=f"+56 9 0000 {numero:04d}",
-                rut=rut,
-                contrasena=secrets.token_urlsafe(24),
-            )
-            usuario.set_unusable_password()
-            usuario.save(update_fields=["password"])
-            oficios, servicios = _elegir_servicios(azar, por_oficio)
-            OficioMaestro.objects.bulk_create([OficioMaestro(maestro_id=usuario.pk, oficio=o) for o in oficios])
-            ServicioMaestro.objects.bulk_create(
-                [
-                    ServicioMaestro(
-                        maestro_id=usuario.pk,
-                        servicio=s,
-                        modalidad=ServicioModalidad.objects.filter(servicio=s).order_by("modalidad").first().modalidad,
-                        monto=azar.randint(10, 120) * 1000,
-                    )
-                    for s in servicios
-                ]
-            )
-            base = azar.choice(COMUNAS_BASE)
-            extra = azar.sample([c for c in COMUNAS_EXTRA if c != base], azar.randint(1, 4))
-            Cobertura.objects.bulk_create(
-                [Cobertura(maestro_id=usuario.pk, comuna_id=base, es_base=True)]
-                + [Cobertura(maestro_id=usuario.pk, comuna_id=c, es_base=False) for c in extra]
-            )
-            Disponibilidad.objects.bulk_create(
-                [
-                    Disponibilidad(maestro_id=usuario.pk, dia_semana=d, inicio_min=i, fin_min=f)
-                    for d, i, f in _agenda(azar)
-                ]
-            )
-            PerfilPublico.objects.filter(perfil_maestro_id=usuario.pk).update(
-                foto=nombre_foto, foto_actualizada_en=timezone.now()
-            )
-            Expediente.objects.filter(perfil_maestro_id=usuario.pk).update(
-                estado=EstadoExpediente.APROBADO, estado_motivo=MOTIVO, estado_cambiado_en=timezone.now()
-            )
-    except BaseException:
-        fotos.borrar(nombre_foto)
-        raise
+    foto = ficticios.foto_sintetica(azar)
+    _, servicios = _elegir_servicios(azar, por_oficio)
+    montos = [azar.randint(10, 120) * 1000 for _ in servicios]
+    base = azar.choice(COMUNAS_BASE)
+    extra = azar.sample([c for c in COMUNAS_EXTRA if c != base], azar.randint(1, 4))
+    ficticios.crear_maestro_publicado(
+        nombre=f"Maestro Ficticio {numero + 1:03d} (datos de prueba)",
+        telefono=f"+56 9 0000 {numero:04d}",
+        rut=rut,
+        servicios=servicios,
+        montos=montos,
+        base=base,
+        extra=extra,
+        agenda=_agenda(azar),
+        foto=foto,
+        motivo=MOTIVO,
+    )
     return True
 
 
@@ -226,44 +162,21 @@ def crear_cliente(semilla, numero):
     return usuario
 
 
-def _evento(ticket, fecha, anterior, nuevo, autor_id=None, motivo=None):
-    return TicketEvento(
-        ticket_id=ticket.pk,
-        fecha=fecha,
-        estado_anterior=anterior,
-        estado_nuevo=nuevo,
-        motivo=motivo,
-        autor_tipo=AutorTipo.SISTEMA if autor_id is None else AutorTipo.USUARIO,
-        autor_id=autor_id,
-    )
-
-
-def _entre(azar, desde, hasta):
-    """Instante al azar en ``[desde, hasta)``, con segundos enteros."""
-    segundos = max(1, int((hasta - desde).total_seconds()))
-    return desde + datetime.timedelta(seconds=azar.randrange(segundos))
+_evento, _entre = ficticios.evento, ficticios.entre
 
 
 def _ticket(azar, perfil, cliente, servicios, comunas, una, estado, enviado_en):
-    servicio = azar.choice(servicios)
-    return Ticket(
-        cliente_id=cliente.pk,
-        perfil_maestro_id=perfil.pk,
-        servicio_maestro=servicio,
-        modalidad=servicio.modalidad,
-        monto_publicado=servicio.monto,
-        fecha=una.fecha,
-        inicio_min=una.inicio_min,
-        fin_min=una.fin_min,
-        inicio_en=una.inicio_en,
-        fin_en=una.fin_en,
-        comuna_id=azar.choice(comunas),
+    return ficticios.ticket(
+        perfil=perfil,
+        cliente=cliente,
+        servicio=azar.choice(servicios),
+        comuna=azar.choice(comunas),
+        una=una,
+        estado=estado,
+        enviado_en=enviado_en,
         direccion=f"Calle Ficticia {azar.randint(1, 999)} (datos de prueba)",
         descripcion="Trabajo ficticio del volumen de prueba.",
         materiales=azar.random() < 0.5,
-        estado=estado,
-        enviado_en=enviado_en,
-        vence_en=calcular_vence_en(enviado_en, una.inicio_en),
     )
 
 
@@ -446,7 +359,7 @@ class Command(BaseCommand):
         if not 1 <= maestros <= 999:
             raise CommandError("La cantidad de maestros debe estar entre 1 y 999.")
         cargar_datos_demo()
-        por_oficio = _servicios_por_oficio()
+        por_oficio = ficticios.servicios_por_oficio()
         if len(por_oficio) < 2:
             raise CommandError("El catálogo no tiene servicios suficientes de oficios no regulados.")
         creados = sum(crear_maestro(semilla, numero, por_oficio) for numero in range(maestros))

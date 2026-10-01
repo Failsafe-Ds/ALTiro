@@ -51,6 +51,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | [ADR-025](ADR-025-graphify-herramienta-equipo.md) | graphify como herramienta del equipo | Aceptada (2026-09-29) |
 | [ADR-026](ADR-026-mensajeria-evaluacion-operacion.md) | Precio final, mensajería, evaluación, moderación, indicadores y operación | Aceptada — provisional (2026-09-30) |
 | [ADR-027](ADR-027-cambio-credenciales-recuperacion.md) | Cambio de contraseña, cambio de correo y recuperación de contraseña | Aceptada (2026-09-30) |
+| [ADR-028](ADR-028-datos-demostracion.md) | Datos ficticios de demostración con cuentas para el flujo completo | Borrador (2026-10-01); implementado a pedido del usuario |
 
 ## Plantilla
 

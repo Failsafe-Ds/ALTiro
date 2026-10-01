@@ -289,10 +289,25 @@ const formulario = (() => {
           return;
         }
         limpiarErrores(form);
+        // Cada paso deja una entrada en el historial: Atrás retrocede un paso.
+        history.pushState({ altiroPaso: "paso", numero: actual + 1 }, "", location.href);
         mostrar(actual + 1);
       } else {
         limpiarErrores(form);
-        mostrar(actual - 1);
+        if (history.state && history.state.altiroPaso === "paso") {
+          history.back();
+        } else {
+          mostrar(actual - 1);
+        }
+      }
+    });
+
+    window.addEventListener("popstate", (evento) => {
+      const estado = evento.state;
+      const indice = estado && estado.altiroPaso === "paso" ? estado.numero : 0;
+      if (indice !== actual && indice >= 0 && indice < pasos.length && !form.hidden) {
+        limpiarErrores(form);
+        mostrar(indice);
       }
     });
 

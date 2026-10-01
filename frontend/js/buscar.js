@@ -187,11 +187,28 @@
     resumen.hidden = false;
   }
 
-  irCuando.addEventListener("click", () => mostrarPaso(pasoCuando, true));
-  document.getElementById("volver-que").addEventListener("click", () => {
+  // Cada paso del formulario deja una entrada en el historial: el botón Atrás
+  // del teléfono y «← Volver» retroceden un paso dentro de la página.
+  function enPasoCuando() {
+    return Boolean(history.state && history.state.altiroPaso === "cuando");
+  }
+
+  // Deja el paso del día y el horario: si tiene entrada propia, retrocede en el
+  // historial (popstate muestra el primer paso); si no, lo muestra directamente.
+  function volverAlPrimerPaso() {
+    if (enPasoCuando()) {
+      history.back();
+      return;
+    }
     actualizarResumenCuando();
     mostrarPaso(pasoQue, true);
+  }
+
+  irCuando.addEventListener("click", () => {
+    history.pushState({ altiroPaso: "cuando" }, "", location.href);
+    mostrarPaso(pasoCuando, true);
   });
+  document.getElementById("volver-que").addEventListener("click", volverAlPrimerPaso);
   document.getElementById("quitar-cuando").addEventListener("click", () => {
     selectFecha.value = "";
     hora24.poner(inicioHora, inicioMinutos, "");
@@ -202,10 +219,12 @@
     for (const campo of pasoCuando.querySelectorAll("select")) {
       campo.removeAttribute("aria-invalid");
     }
-    actualizarResumenCuando();
-    mostrarPaso(pasoQue, true);
+    volverAlPrimerPaso();
   });
-  document.getElementById("cambiar-busqueda").addEventListener("click", () => desplegarFormulario(pasoQue, true));
+  document.getElementById("cambiar-busqueda").addEventListener("click", () => {
+    history.pushState({ altiroPaso: "formulario" }, "", location.href);
+    desplegarFormulario(pasoQue, true);
+  });
   form.addEventListener("change", actualizarResumenCuando);
 
   // --- Listas: oficios, regiones y comunas ---
@@ -433,7 +452,7 @@
       actual = filtros;
       formulario.limpiarErrores(form);
       if (origen === "formulario" || origen === "pagina") {
-        history.pushState(null, "", direccionDe(filtros));
+        history.pushState({ altiroPaso: "resultados" }, "", direccionDe(filtros));
       }
       pintarResultados(filtros, datos);
       plegarFormulario();
@@ -480,8 +499,25 @@
   // Atrás y adelante del navegador: se repite la búsqueda de esa dirección.
   // Si la búsqueda anterior es de otra región, se vuelve a cargar la página
   // para llenar de nuevo la lista de comunas de esa región.
-  window.addEventListener("popstate", () => {
+  window.addEventListener("popstate", (evento) => {
+    const paso = evento.state && evento.state.altiroPaso;
+    if (paso === "cuando") {
+      desplegarFormulario(pasoCuando, true);
+      return;
+    }
     const filtros = leerDireccion();
+    // Lo escrito se conserva (RNF-20): no se recarga el formulario desde la dirección.
+    if (paso === "formulario" || (!actual && !hayBusqueda(filtros))) {
+      actualizarResumenCuando();
+      desplegarFormulario(pasoQue, true);
+      return;
+    }
+    // Se vuelve a la misma búsqueda que ya está en pantalla: solo se pliega el formulario.
+    if (actual && hayBusqueda(filtros) && consultaDe(filtros, PARAMETROS_API) === consultaDe(actual, PARAMETROS_API)) {
+      plegarFormulario();
+      tituloResultados.focus();
+      return;
+    }
     if (filtros.region !== selectRegion.value && selectRegion.options.length > 1) {
       location.reload();
       return;

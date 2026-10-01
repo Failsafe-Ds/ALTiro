@@ -386,4 +386,6 @@ def cambiar_correo(usuario, correo):
     usuario.correo = correo
     _guardar(usuario, update_fields=["correo"])
     _exigir_invariantes(usuario)
+    # Un enlace ya enviado al correo anterior no debe servir para tomar la cuenta.
+    anular_enlaces_de_recuperacion(usuario)
     return usuario, anterior

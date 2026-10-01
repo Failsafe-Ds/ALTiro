@@ -17,7 +17,7 @@
 ## Stack y cómo correr
 - Docker Compose: `init`, `db` (PostgreSQL 16), `app` (Django 5.2 + gunicorn), `proxy` (Nginx, TLS autofirmado, gzip), `planificador` (cada 300 s) y `respaldo` (postgres:16, diario).
 - Frontend estático en HTML, CSS y JS, sin framework y con CSP estricta (sin inline).
-- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" --entrypoint pytest app -q`. Tarda unos 10 min y hoy pasan 1920.
+- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" -v "$(pwd -W)/frontend:/frontend:ro" --entrypoint pytest app -q` (el montaje de `frontend/` lo usa `test_frontend_pie_volver.py`; sin él esa prueba se omite). Tarda unos 10 min y hoy pasan 1985.
 - **Durante el desarrollo**, solo pruebas dirigidas: el mismo comando con `tests/test_x.py -k nombre`.
 - Migrar: `docker compose exec app python manage.py migrate`. Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
 
@@ -91,6 +91,7 @@
   - `POST /api/recuperacion {identificador}` (pública): siempre 202 con el mismo mensaje; 5 por origen en 15 min → 429; 3 enlaces por cuenta y hora. `POST /api/recuperacion/contrasena {token, contrasena_nueva}` (pública): un solo uso, 30 min, no inicia sesión. Tabla `solicitud_recuperacion` (solo el SHA-256 del token; borra lo de más de 24 h);
   - enlace `…/nueva-contrasena.html#t=<token>` (fragmento: no llega al proxy); correos en el volumen `buzon` (backend de archivos, solo en `app`); recuperación asistida con `manage.py crear_enlace_recuperacion --cuenta`. Sin bitácora (M-03), evento de aplicación sin token. Reglas A-26 a A-30;
   - pantallas `recuperar.html`, `nueva-contrasena.html` y «Seguridad de mi cuenta» en `cuenta.html`.
+- **Datos de demostración (ADR-028, Borrador, 2026-10-01):** `cargar_datos_demo --con-cuentas [--restablecer-contrasenas]` crea 10 maestros publicados (RUT 49.990.001+), 2 clientes y 4 tickets; contraseña aleatoria impresa una vez; reglas compartidas en `busqueda/ficticios.py` (también las usa `generar_volumen_prueba`); `limpiar_oficios_de_prueba [--confirmo]` para los oficios que dejó QA del S3 (no ejecutado). Pruebas en `tests/test_cuentas_demo.py`.
 - **Ayudas compartidas (revisión de redundancias, 2026-09-30):** `frontend/js/dom.js` (`dom.elemento`, `dom.opcion`) en lugar de las copias por página; `comun.api.respuesta_json` (JSON con `no-store`); `perfil.ocurrencias.iso_local`; `identidad.autenticacion.buscar_usuario`; `TextChoices.values` en los CHECK de los modelos.
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
 - **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre, operación, indicadores y anonimización; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04; conversación: A-09 a A-15). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).

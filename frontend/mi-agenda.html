@@ -12,10 +12,14 @@
   <script src="js/expediente.js" defer></script>
   <script src="js/hora24.js" defer></script>
   <script src="js/agenda.js" defer></script>
+  <script src="js/version.js" defer></script>
+  <script src="js/pie.js" defer></script>
+  <script src="js/volver.js" defer></script>
 </head>
 <body>
   <header class="encabezado">
     <a class="marca" href="index.html">AlTiro</a>
+    <a class="enlace-encabezado" data-volver href="mi-perfil.html">← Volver</a>
     <a class="enlace-encabezado" href="mi-perfil.html">Mi perfil</a>
   </header>
   <main>
@@ -121,5 +125,9 @@
       </div>
     </div>
   </main>
+  <footer class="pie" role="contentinfo">
+    <p>AlTiro <span id="pie-version"></span> · © 2026 Equipo AlTiro.</p>
+    <p>Prueba de concepto académica; no es un servicio comercial. Los datos de demostración son ficticios.</p>
+  </footer>
 </body>
 </html>

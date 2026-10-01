@@ -232,6 +232,18 @@ def test_un_enlace_nuevo_o_un_cambio_de_contrasena_anulan_los_anteriores(client,
     assert post_json(Client(), URL_RESTABLECER, {"token": nuevo, "contrasena_nueva": "y otra más todavía"}).status_code == 400
 
 
+@pytest.mark.regla("A-30")
+def test_cambiar_el_correo_anula_el_enlace_enviado_al_anterior(client, cliente, mailoutbox):
+    _pedir_enlace(client, CORREO_CLIENTE)
+    token = _token_del_correo(mailoutbox[0])
+
+    iniciar_sesion(client, CORREO_CLIENTE)
+    assert post_json(client, URL_CORREO, {"contrasena": CONTRASENA, "correo": "nuevo.correo@example.com"}).status_code == 200
+
+    assert post_json(Client(), URL_RESTABLECER, {"token": token, "contrasena_nueva": NUEVA}).status_code == 400
+    assert iniciar_sesion(Client(), "nuevo.correo@example.com").status_code == 200
+
+
 def test_una_contrasena_invalida_no_gasta_el_enlace(client, cliente, mailoutbox):
     _pedir_enlace(client, CORREO_CLIENTE)
     token = _token_del_correo(mailoutbox[0])

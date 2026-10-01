@@ -53,10 +53,25 @@
     return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
   }
 
+  // El borrador vence a las 2 h del último cambio, como el progreso de los
+  // formularios (ADR-002 E-1): en un teléfono compartido no queda indefinidamente.
+  const VIGENCIA_BORRADOR_MS = 2 * 60 * 60 * 1000;
+
   function leerBorrador() {
     try {
-      return window.localStorage.getItem(claveBorrador) || "";
+      const previo = JSON.parse(window.localStorage.getItem(claveBorrador));
+      const edad = previo && typeof previo.guardado === "number" ? Date.now() - previo.guardado : -1;
+      if (previo && typeof previo.texto === "string" && edad >= 0 && edad <= VIGENCIA_BORRADOR_MS) {
+        return previo.texto;
+      }
+      window.localStorage.removeItem(claveBorrador);
+      return "";
     } catch (error) {
+      try {
+        window.localStorage.removeItem(claveBorrador);
+      } catch (otro) {
+        // Sin almacenamiento.
+      }
       return "";
     }
   }
@@ -64,7 +79,7 @@
   function guardarBorrador(texto) {
     try {
       if (texto) {
-        window.localStorage.setItem(claveBorrador, texto);
+        window.localStorage.setItem(claveBorrador, JSON.stringify({ texto, guardado: Date.now() }));
       } else {
         window.localStorage.removeItem(claveBorrador);
       }

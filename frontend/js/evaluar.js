@@ -32,10 +32,25 @@
   const claveNotas = `altiro.evaluar.${refTicket}`;
   const claveMotivo = `altiro.evaluar.${refTicket}.denuncia`;
 
+  // Cada borrador vence a las 2 h del último cambio (ADR-002 E-1): en un
+  // teléfono compartido no queda indefinidamente.
+  const VIGENCIA_BORRADOR_MS = 2 * 60 * 60 * 1000;
+
   function leerBorrador(clave) {
     try {
-      return window.localStorage.getItem(clave);
+      const previo = JSON.parse(window.localStorage.getItem(clave));
+      const edad = previo && typeof previo.guardado === "number" ? Date.now() - previo.guardado : -1;
+      if (previo && typeof previo.texto === "string" && edad >= 0 && edad <= VIGENCIA_BORRADOR_MS) {
+        return previo.texto;
+      }
+      window.localStorage.removeItem(clave);
+      return null;
     } catch (error) {
+      try {
+        window.localStorage.removeItem(clave);
+      } catch (otro) {
+        // Sin almacenamiento.
+      }
       return null;
     }
   }
@@ -43,7 +58,7 @@
   function escribirBorrador(clave, valor) {
     try {
       if (valor) {
-        window.localStorage.setItem(clave, valor);
+        window.localStorage.setItem(clave, JSON.stringify({ texto: valor, guardado: Date.now() }));
       } else {
         window.localStorage.removeItem(clave);
       }

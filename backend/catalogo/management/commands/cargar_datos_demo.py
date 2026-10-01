@@ -12,12 +12,19 @@
   ejecuta el comando y no se inventa un autor ni se usa el actor Sistema
   (ADR-010). Emite un evento de aplicación con el conteo.
 
+Con ``--con-cuentas`` (ADR-028) también crea maestros publicados, clientes y
+tickets ficticios para probar el flujo completo (``busqueda.cuentas_demo``).
+Las cuentas con ingreso reciben una contraseña aleatoria que se imprime **una
+sola vez** en la consola (nunca en el registro). Las existentes conservan la
+suya salvo ``--restablecer-contrasenas``.
+
 Uso dentro del contenedor:
     python manage.py cargar_datos_demo
+    python manage.py cargar_datos_demo --con-cuentas [--restablecer-contrasenas]
 """
 import logging
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.db.models import Max
 
@@ -68,9 +75,54 @@ def cargar_datos_demo():
 
 
 class Command(BaseCommand):
-    help = "Carga servicios FICTICIOS de demostración en el catálogo (idempotente)."
+    help = "Carga servicios FICTICIOS de demostración en el catálogo (idempotente); con --con-cuentas, también cuentas."
 
-    def handle(self, *args, **opciones):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--con-cuentas", action="store_true", dest="con_cuentas",
+            help="Crea también maestros publicados, clientes y tickets ficticios (ADR-028).",
+        )
+        parser.add_argument(
+            "--restablecer-contrasenas", action="store_true", dest="restablecer",
+            help="Con --con-cuentas: da una contraseña nueva a las cuentas demo que ya existen.",
+        )
+
+    def handle(self, *args, con_cuentas=False, restablecer=False, **opciones):
+        if restablecer and not con_cuentas:
+            raise CommandError("--restablecer-contrasenas solo se usa junto con --con-cuentas.")
         creados = cargar_datos_demo()
         logger.info("Datos de demostración del catálogo cargados por comando de consola: %s servicios nuevos.", creados)
         self.stdout.write(f"Servicios de demostración creados: {creados} (datos ficticios, rotulados «(demo)»).")
+        if con_cuentas:
+            self._cuentas(restablecer)
+        else:
+            self.stdout.write("Para crear también maestros, clientes y tickets con los que ingresar: agrega --con-cuentas.")
+
+    def _cuentas(self, restablecer):
+        from busqueda.cuentas_demo import cargar_cuentas_demo
+
+        try:
+            maestros, tickets, cuentas = cargar_cuentas_demo(restablecer=restablecer)
+        except ValueError as error:
+            raise CommandError(str(error)) from None
+        # El registro solo lleva conteos: nunca identificadores ni contraseñas.
+        logger.info(
+            "Cuentas de demostración cargadas por comando de consola: %s maestros nuevos, %s tickets nuevos.",
+            maestros, tickets,
+        )
+        self.stdout.write(f"Maestros de demostración nuevos: {maestros}. Tickets de demostración nuevos: {tickets}.")
+        if not cuentas:
+            return
+        self.stdout.write("Cuentas de demostración (datos ficticios). Ingresa en «Ingresar» con:")
+        for cuenta in cuentas:
+            self.stdout.write(f"  - {cuenta.rol}: {cuenta.identificador}")
+        claves = {c.contrasena for c in cuentas if c.contrasena}
+        if claves:
+            self.stdout.write(f"Contraseña de las cuentas nuevas o restablecidas: {claves.pop()}")
+            self.stdout.write("  Anótala ahora: no se guarda en ningún archivo ni registro y no se vuelve a mostrar.")
+        conservadas = [c.identificador for c in cuentas if not c.contrasena]
+        if conservadas:
+            self.stdout.write(
+                "Conservan la contraseña que tenían: " + ", ".join(conservadas)
+                + ". Para darles una nueva: cargar_datos_demo --con-cuentas --restablecer-contrasenas."
+            )
