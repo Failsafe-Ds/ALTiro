@@ -11,6 +11,10 @@ CERT_DIR=/certificados
 # "postgres" de la imagen oficial postgres:*-bookworm.
 APP_UID=10001
 PG_GID=999
+# UID del servicio "migrador" (ADR-030, B8): distinto del de la app, para que
+# la app no pueda leer la contraseña del rol dueño de las tablas. Corre con el
+# grupo 10001 para leer la clave de Django y la de documentos (modo 0440).
+MIGRADOR_UID=10002
 
 SAN="${ALTIRO_TLS_SAN:-DNS:localhost,IP:127.0.0.1}"
 NOMBRE_CERT="AlTiro demo local, autofirmado"
@@ -41,14 +45,22 @@ generar_secreto "$SECRETOS_DIR/db_admin_password" "0:$PG_GID" 0440
 # Contraseña del rol de la aplicación: la leen la app (dueño) y el script de
 # inicialización de la base (grupo postgres).
 generar_secreto "$SECRETOS_DIR/db_app_password" "$APP_UID:$PG_GID" 0440
-# Clave de Django: solo la app.
-generar_secreto "$SECRETOS_DIR/django_secret_key" "$APP_UID:$APP_UID" 0400
+# Contraseña del rol dueño de las tablas (ADR-030, B8): la leen el migrador
+# (dueño) y la base y el servicio roles_db (grupo postgres). La app NO.
+generar_secreto "$SECRETOS_DIR/db_migrador_password" "$MIGRADOR_UID:$PG_GID" 0440
+# Clave de Django: la app y el migrador (grupo 10001; ADR-030, B8).
+generar_secreto "$SECRETOS_DIR/django_secret_key" "$APP_UID:$APP_UID" 0440
 # Clave de cifrado de los documentos del maestro (ADR-015, D-4): 32 bytes
 # aleatorios escritos en hexadecimal (64 caracteres), solo para la app (y el
 # planificador, que corre con el mismo UID). Nunca se regenera si ya existe:
 # perderla o cambiarla deja ilegibles los documentos guardados. Se respalda
-# aparte de los datos (RNF-19).
-generar_secreto "$SECRETOS_DIR/documentos_clave" "$APP_UID:$APP_UID" 0400
+# aparte de los datos (RNF-19). Grupo 10001 con lectura para el migrador, que
+# carga los mismos settings (ADR-030, B8).
+generar_secreto "$SECRETOS_DIR/documentos_clave" "$APP_UID:$APP_UID" 0440
+# Clave de cifrado de los respaldos (ADR-030, B6): la lee solo root (servicio
+# "respaldo" y la restauración). Vive en este volumen, nunca junto a los
+# respaldos; sin ella un respaldo no se puede restaurar. Nunca se regenera.
+generar_secreto "$SECRETOS_DIR/respaldo_clave" "0:0" 0400
 
 # Certificado: se regenera si falta, si cambió el SAN o si vence en menos de un día.
 regenerar=0

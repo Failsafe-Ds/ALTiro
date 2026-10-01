@@ -6,12 +6,19 @@
   ``pendiente``, todavía no existe (P-31).
 - ``clave_envio``: un reenvío con la misma clave devuelve el mismo mensaje.
 - Cada mensaje deja (o reactiva) el aviso ``mensaje_nuevo`` a la otra parte.
+- Frecuencia (ADR-007, E-1): cada parte puede enviar en un ticket hasta
+  ``REGLAS_ENVIO`` (ráfaga y tope por hora); lo que pase da ``DemasiadosMensajes``.
+  Se cuenta desde la propia tabla ``mensaje``, bajo el bloqueo del ticket. Un
+  reenvío con la misma ``clave_envio`` no cuenta. Leer no tiene este límite.
 """
+from datetime import timedelta
+
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
 from expediente.errores import ErrorEstado
+from identidad import frecuencia
 from mensajeria.models import Mensaje
 from perfil import ocurrencias
 from tickets import avisos
@@ -27,8 +34,30 @@ AVISO_FINALIZADO = "Este trabajo terminó. Puedes leer la conversación, pero ya
 AVISO_CERRADO = "No hubo conversación: este pedido se cerró antes de que el maestro lo aceptara."
 
 
+# (límite, ventana) por parte y por ticket (ADR-007, E-1).
+REGLAS_ENVIO = ((5, timedelta(seconds=10)), (60, timedelta(hours=1)))
+
+
 class ReferenciaDesconocida(Exception):
     """``despues`` no es un mensaje de esta conversación."""
+
+
+class DemasiadosMensajes(Exception):
+    """La parte superó la frecuencia de envío; ``espera`` es un ``timedelta``."""
+
+    def __init__(self, espera):
+        super().__init__(espera)
+        self.espera = espera
+
+
+def _espera_envio(ticket, usuario, ahora):
+    mayor = max(ventana for _, ventana in REGLAS_ENVIO)
+    fechas = list(
+        Mensaje.objects.filter(ticket_id=ticket.pk, autor_id=usuario.pk, enviado_en__gt=ahora - mayor)
+        .order_by("enviado_en")
+        .values_list("enviado_en", flat=True)
+    )
+    return frecuencia.espera_segun(fechas, REGLAS_ENVIO, ahora)
 
 
 def _autor(mensaje, usuario, ticket):
@@ -90,6 +119,9 @@ def enviar(ticket, usuario, texto, clave_envio):
         if actual.estado != EstadoTicket.ACEPTADO:
             raise ErrorEstado(MENSAJE_CERRADO)
         ahora = timezone.now()
+        espera = _espera_envio(actual, usuario, ahora)
+        if espera is not None:
+            raise DemasiadosMensajes(espera)
         try:
             with transaction.atomic():
                 mensaje = Mensaje.objects.create(

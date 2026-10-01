@@ -51,3 +51,23 @@ Respuestas del equipo a las preguntas abiertas:
 8. **Respuestas 400:** no cuentan como fallo. El 401 sí cuenta.
 
 Tabla `intento_autenticacion(origen, clave, fecha)`: solo guarda fallos 401. Nunca se deshabilita la cuenta (M-07) y el limitador no lee `acceso_denegado` (M-08).
+
+## Enmiendas
+
+### E-1 — Limitación de frecuencia fuera del inicio de sesión
+- **Fecha:** 2026-10-01.
+- **Motivo:** auditoría de seguridad (hallazgos B1 y B9) y pedido del usuario de protegerse contra el envío masivo de solicitudes. Las rutas públicas de registro permitían enumerar correos y RUT y crear cuentas en masa; la conversación y la tabla `acceso_denegado` podían crecer sin límite por las acciones de un solo usuario. El límite por IP de Nginx (ADR-029) es una capa aparte; esta es la de la aplicación.
+- **Mecanismo:** tabla `evento_frecuencia(ambito, clave, fecha)` y módulo `identidad/frecuencia.py`. Ventana móvil por `(ambito, clave)`, bloqueo consultivo de PostgreSQL por clave (dos peticiones simultáneas no superan el límite), los 429 no se cuentan (punto 2), hora de Python (ADR-014) y borrado de eventos de más de 24 horas al registrar uno (punto 7). No guarda correo, RUT ni rutas, no lee `acceso_denegado` y nunca deshabilita una cuenta (M-07, M-08). El origen se obtiene igual que en el inicio de sesión (`ALTIRO_CONFIAR_X_REAL_IP`, punto 5).
+- **Umbrales:**
+  | Qué | Clave | Límite | Respuesta |
+  |---|---|---|---|
+  | Registro sin sesión: `POST /api/clientes` y `POST /api/maestros/postulaciones` (cupo compartido) | origen | 20 en 1 hora | 429, "Se registraron varias cuentas seguidas desde esta conexión. Por seguridad, espera N minutos…" |
+  | Envío de mensajes (`POST /api/tickets/<ref>/mensajes`) | parte y ticket | 5 en 10 segundos y 60 en 1 hora | 429, "Enviaste muchos mensajes seguidos. Espera N segundos…" |
+  | Denegaciones (404 de recurso ajeno o inexistente, 403 de rol, conflicto o parte equivocada) | usuario autenticado | 20 en 10 minutos | 429, "Abriste muchas páginas que no existen o no son tuyas…" |
+- **Detalles:**
+  - Registro: cuenta cada intento que pasa la validación de formato, termine en 201 o en "ya registrado" (CA-11.3 se mantiene: el RUT repetido se rechaza indicándolo). Los 400 de formato no cuentan. Agregar un perfil con sesión no usa este cupo. Se eligió 20 y no 10 porque en Docker Desktop todos los clientes llegan con la IP del gateway (ver «Verificación de la pregunta 5») y una demostración con varias personas no debe bloquearse.
+  - Mensajes: se cuentan desde la tabla `mensaje`, bajo el bloqueo del ticket que ya toma el envío; no hay filas nuevas. Un reenvío con la misma `clave_envio` no cuenta. Leer la conversación no tiene límite.
+  - Denegaciones: con el límite alcanzado, la respuesta es 429 **en lugar** del 404 o 403, idéntica para un recurso ajeno y uno inexistente (no revela existencia, ADR-011, punto 2), y no se inserta en `acceso_denegado`. Los primeros 20 intentos conservan el 404 idéntico y su registro. Los visitantes sin sesión no cuentan (reciben 401 y no generan filas).
+  - Todo 429 usa el formato `{mensaje, errores}` (ADR-013), sin códigos internos, con `Retry-After` en segundos.
+- **No se agrega** un limitador general de escrituras por usuario autenticado: las escrituras que crecen sin otra regla de negocio eran la conversación y `acceso_denegado` (cubiertas arriba); el resto ya está acotado por estado o propiedad (un ticket por bloque, una evaluación por parte, documentos por tipo) y la inundación por IP la cubre el proxy (ADR-029). Queda como riesgo residual que un usuario cree muchos tickets pendientes dentro de las reglas.
+- **Aprobación:** pendiente de ratificación del equipo de desarrollo; implementado a pedido del usuario el 2026-10-01.

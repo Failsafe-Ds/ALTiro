@@ -16,6 +16,13 @@ reintentan (ADR-011, E-1 y E-2).
 Solo se registra si hay un usuario autenticado (``request.usuario``). El
 recurso es el método más el **patrón** de la ruta, nunca la ruta cruda ni la
 cadena de consulta (ADR-011, punto 4).
+
+Frecuencia (ADR-007, E-1): cada denegación de un usuario autenticado, y cada
+referencia inexistente que pide, cuenta en ``identidad.frecuencia`` (ámbito
+``denegado``). Con ``REGLAS_DENEGADO`` alcanzado responde 429 **en lugar** de
+cualquiera de estas respuestas y no inserta en ``acceso_denegado``: así la
+tabla no crece sin límite y el 429 es igual para un recurso ajeno y uno
+inexistente (no revela existencia). El conteo no lee ``acceso_denegado`` (M-08).
 """
 from autorizacion import acceso_denegado
 from autorizacion.excepciones import (
@@ -26,6 +33,7 @@ from autorizacion.excepciones import (
     RolRequerido,
 )
 from comun.api import respuesta_error, respuesta_no_encontrado
+from identidad import frecuencia
 
 MENSAJE_SIN_ROL = (
     "No tienes permiso para esta sección. Vuelve al inicio o ingresa con una cuenta que tenga acceso."
@@ -38,6 +46,20 @@ MENSAJE_CONFLICTO = (
 
 # Entidad registrada cuando falta el rol: lo denegado es la ruta, no un recurso.
 ENTIDAD_RUTA = "ruta"
+
+MENSAJE_DEMASIADAS_DENEGACIONES = (
+    "Abriste muchas páginas que no existen o no son tuyas. Por seguridad, espera {} y vuelve al inicio."
+)
+
+_DENEGACIONES = (RecursoNoEncontrado, AccesoDenegado, RolRequerido, ConflictoDeInteres, ParteEquivocada)
+
+
+def _respuesta_espera(espera):
+    minutos = frecuencia.minutos(espera)
+    texto = "1 minuto" if minutos == 1 else f"{minutos} minutos"
+    respuesta = respuesta_error(429, MENSAJE_DEMASIADAS_DENEGACIONES.format(texto))
+    respuesta["Retry-After"] = str(minutos * 60)
+    return respuesta
 
 
 def _recurso(request):
@@ -55,6 +77,10 @@ class AutorizacionMiddleware:
 
     def process_exception(self, request, excepcion):
         usuario = getattr(request, "usuario", None)
+        if usuario is not None and isinstance(excepcion, _DENEGACIONES):
+            espera = frecuencia.consumir("denegado", usuario.pk, frecuencia.REGLAS_DENEGADO)
+            if espera is not None:
+                return _respuesta_espera(espera)
         if isinstance(excepcion, RecursoNoEncontrado):
             return respuesta_no_encontrado()
         if isinstance(excepcion, AccesoDenegado):

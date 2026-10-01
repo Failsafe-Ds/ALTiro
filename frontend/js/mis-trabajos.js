@@ -466,14 +466,17 @@
     icono.setAttribute("aria-hidden", "true");
     // Nunca solo el color: lo no visto lleva además la palabra "Nuevo" (RNF-16).
     const detalleTexto = elemento("span", "detalle-aviso", aviso.visto ? "" : "Nuevo: ", aviso.texto);
-    if (aviso.enlace && aviso.enlace.startsWith("/buscar.html")) {
+    // Solo enlaces del mismo origen y de rutas conocidas (hallazgo B-4).
+    const destinoBuscar = dom.enlaceInterno(aviso.enlace, ["/buscar.html"]);
+    if (destinoBuscar) {
       const enlace = elemento("a", "boton boton-secundario", "Buscar otro maestro");
-      enlace.href = aviso.enlace;
+      enlace.href = destinoBuscar;
       detalleTexto.append(" ", enlace);
     }
-    if (aviso.enlace && aviso.enlace.startsWith("/conversacion.html")) {
+    const destinoConversacion = dom.enlaceInterno(aviso.enlace, ["/conversacion.html"]);
+    if (destinoConversacion) {
       const enlace = elemento("a", "boton boton-secundario", "Ver conversación");
-      enlace.href = aviso.enlace;
+      enlace.href = destinoConversacion;
       detalleTexto.append(" ", enlace);
     }
     item.append(icono, detalleTexto);

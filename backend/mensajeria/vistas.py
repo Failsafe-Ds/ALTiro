@@ -32,6 +32,7 @@ from comun.api import (
     respuesta_json,
 )
 from expediente.errores import ErrorEstado
+from identidad import frecuencia
 from mensajeria import conversacion
 from mensajeria.models import LARGO_MAXIMO
 from tickets.models import Ticket
@@ -43,6 +44,7 @@ MENSAJE_TEXTO_VACIO = "Escribe tu mensaje antes de enviarlo."
 MENSAJE_TEXTO_LARGO = f"Tu mensaje puede tener hasta {LARGO_MAXIMO} caracteres. Acórtalo o envíalo en dos partes."
 MENSAJE_CLAVE_INVALIDA = "No pudimos enviar tu mensaje. Vuelve a cargar la página e inténtalo de nuevo."
 MENSAJE_DESPUES_INVALIDO = "No pudimos actualizar la conversación. Vuelve a cargar la página."
+MENSAJE_DEMASIADOS = "Enviaste muchos mensajes seguidos. Espera {} y vuelve a enviarlo."
 
 _NO_VACIO = re.compile(r"\S")
 
@@ -96,8 +98,22 @@ def _leer(request, ticket):
     return respuesta_json(datos)
 
 
+def _texto_espera(espera):
+    segundos = frecuencia.segundos(espera)
+    if segundos < 60:
+        return "1 segundo" if segundos == 1 else f"{segundos} segundos"
+    minutos = frecuencia.minutos(espera)
+    return "1 minuto" if minutos == 1 else f"{minutos} minutos"
+
+
 def _enviar(request, ticket, texto, clave):
-    mensaje, creado = conversacion.enviar(ticket, request.usuario, texto, clave)
+    try:
+        mensaje, creado = conversacion.enviar(ticket, request.usuario, texto, clave)
+    except conversacion.DemasiadosMensajes as error:
+        # ADR-007, E-1: 429 con Retry-After, sin códigos internos.
+        respuesta = respuesta_error(429, MENSAJE_DEMASIADOS.format(_texto_espera(error.espera)))
+        respuesta["Retry-After"] = str(frecuencia.segundos(error.espera))
+        return respuesta
     return respuesta_json({"mensaje": conversacion.datos_mensaje(mensaje, request.usuario, ticket)}, 201 if creado else 200)
 
 

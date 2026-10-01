@@ -15,9 +15,14 @@ de tickets vencidos (``tickets.transiciones.cerrar_vencidos``, ADR-016 E-1) cada
 - Apagado limpio con SIGTERM o SIGINT: termina la tarea en curso y sale.
 - Mientras espera, renueva un archivo de latido que usa el healthcheck del
   servicio en ``docker-compose.yml``.
-- No aplica migraciones: las aplica ``app`` antes de declararse sana.
+- No aplica migraciones: las aplica el servicio ``migrador`` antes de que
+  ``app`` arranque (ADR-030, B8).
+- ADR-030: también purga las sesiones expiradas (B5) y los correos viejos del
+  buzón local (B9).
 """
+import datetime
 import logging
+import os
 import signal
 import tempfile
 import threading
@@ -25,6 +30,7 @@ import time
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.sessions.models import Session
 from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections, connection, connections
 from django.utils import timezone
@@ -35,7 +41,56 @@ from tickets import transiciones as tareas_tickets
 
 logger = logging.getLogger("expediente.planificador")
 
-# (nombre del conteo, tarea). El orden es el de ADR-016, punto 1.
+
+def purgar_sesiones_expiradas(ahora):
+    """Borra las sesiones vencidas de ``django_session`` (ADR-030, B5). Idempotente.
+
+    Equivale a ``manage.py clearsessions`` con el motor de base de datos
+    (``SESSION_ENGINE``), pero devuelve el conteo para el registro de la
+    corrida. Una sesión vencida ya no sirve para autenticar (Django la ignora
+    al leerla): borrarla no cierra ninguna sesión vigente. Usa el índice de
+    ``expire_date``, así que correrla en cada corrida es barato.
+    """
+    borradas, _ = Session.objects.filter(expire_date__lt=ahora).delete()
+    return borradas
+
+
+def antiguedad_maxima_buzon():
+    """Vigencia del enlace de recuperación más el margen del buzón (ADR-030, B9)."""
+    return datetime.timedelta(
+        minutes=settings.ALTIRO_RECUPERACION_MINUTOS, hours=settings.ALTIRO_BUZON_MARGEN_HORAS
+    )
+
+
+def purgar_buzon(ahora):
+    """Borra los correos del buzón local más antiguos que ``antiguedad_maxima_buzon`` (ADR-030, B9).
+
+    Los correos (ADR-027, punto 4) llevan nombre y correo del destinatario y el
+    enlace de recuperación. Pasado el vencimiento del enlace no sirven para
+    recuperar la cuenta; el margen deja tiempo para revisarlos en una
+    demostración. Solo borra archivos ``*.log`` regulares del primer nivel
+    (los que escribe el backend de archivos de Django); nunca sigue enlaces.
+    Si el directorio no existe, no hace nada.
+    """
+    limite = (ahora - antiguedad_maxima_buzon()).timestamp()
+    borrados = 0
+    try:
+        entradas = list(os.scandir(settings.ALTIRO_BUZON_DIR))
+    except FileNotFoundError:
+        return 0
+    for entrada in entradas:
+        if not entrada.name.endswith(".log") or not entrada.is_file(follow_symlinks=False):
+            continue
+        try:
+            if entrada.stat(follow_symlinks=False).st_mtime < limite:
+                os.unlink(entrada.path)
+                borrados += 1
+        except FileNotFoundError:
+            continue
+    return borrados
+
+
+# (nombre del conteo, tarea). El orden es el de ADR-016, punto 1; ADR-030 agrega las dos últimas.
 TAREAS = (
     ("avisos_creados", tareas.emitir_avisos_por_vencer),
     # ADR-016 E-1: cierre de tickets pendientes vencidos (RF-21, RF-22, RF-24).
@@ -44,6 +99,9 @@ TAREAS = (
     # ADR-026, E-9: retención de documentos (RNF-26), con autor Sistema en la bitácora.
     ("documentos_eliminados_retencion", retencion.aplicar_retencion),
     ("archivos_huerfanos_borrados", tareas.limpiar_archivos_huerfanos),
+    # ADR-030, B5 y B9.
+    ("sesiones_expiradas_purgadas", purgar_sesiones_expiradas),
+    ("correos_buzon_purgados", purgar_buzon),
 )
 
 # Latido para el healthcheck: se renueva al menos cada LATIDO_SEGUNDOS.

@@ -8,11 +8,18 @@
   y 3 enlaces por cuenta en una hora (lo que pase de eso no se envía).
 - Los correos se escriben en el buzón local (``ALTIRO_BUZON_DIR``). Nunca se
   registran el token, la contraseña ni el correo (CLAUDE.md §8).
+- Carreras (ADR-027, E-1): la solicitud toma un bloqueo consultivo por origen y
+  bloquea la fila del usuario; dos solicitudes simultáneas no superan los
+  límites ni dejan dos enlaces vigentes.
+- Tiempo de respuesta (ADR-027, E-1): el correo del enlace se escribe en un
+  hilo aparte, después de confirmar la transacción, para que la respuesta no
+  espere la escritura y cueste lo mismo exista o no la cuenta.
 """
 import hashlib
 import logging
 import math
 import secrets
+import threading
 from datetime import timedelta
 
 from django.conf import settings
@@ -20,9 +27,9 @@ from django.core.mail import get_connection, send_mail
 from django.db import transaction
 from django.utils import timezone
 
-from identidad import servicios
+from identidad import frecuencia, servicios
 from identidad.errores import ErrorValidacion
-from identidad.models import SolicitudRecuperacion, ViaRecuperacion
+from identidad.models import SolicitudRecuperacion, Usuario, ViaRecuperacion
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +79,10 @@ def _emitir(usuario, origen, via, ahora):
 @transaction.atomic
 def _registrar_solicitud(usuario, origen):
     """Registra la solicitud y devuelve el token si corresponde enviar un enlace, o ``None``."""
+    # Orden fijo de bloqueos: primero el origen, después la cuenta (sin interbloqueos).
+    frecuencia.bloquear("recuperacion", origen)
+    if usuario is not None:
+        usuario = Usuario.objects.select_for_update().get(pk=usuario.pk)
     ahora = timezone.now()
     SolicitudRecuperacion.objects.filter(creada_en__lt=ahora - RETENCION).delete()
     del_origen = list(
@@ -100,7 +111,8 @@ def solicitar(usuario, origen):
     if token is None:
         return
     minutos = settings.ALTIRO_RECUPERACION_MINUTOS
-    enviar_correo(
+    _en_segundo_plano(
+        enviar_correo,
         usuario.correo,
         "Crea una contraseña nueva para AlTiro",
         "Hola:\n\n"
@@ -114,6 +126,7 @@ def solicitar(usuario, origen):
 def crear_enlace_asistido(usuario):
     """Enlace para la recuperación asistida (comando de consola). Devuelve el enlace."""
     with transaction.atomic():
+        usuario = Usuario.objects.select_for_update().get(pk=usuario.pk)
         token = _emitir(usuario, ORIGEN_CONSOLA, ViaRecuperacion.ASISTIDA, timezone.now())
     return enlace(token)
 
@@ -141,6 +154,21 @@ def restablecer(token, contrasena_nueva):
 
 
 # --- Avisos por correo ---
+
+
+def _en_segundo_plano(funcion, *args):
+    """Ejecuta ``funcion`` en un hilo aparte (ADR-027, E-1). Devuelve el hilo, o ``None`` si fue en línea.
+
+    ``ALTIRO_CORREO_EN_SEGUNDO_PLANO=False`` (solo en las pruebas) la ejecuta en
+    línea para que el buzón se pueda leer de inmediato. El hilo no usa la base
+    de datos: solo escribe el archivo del correo.
+    """
+    if not getattr(settings, "ALTIRO_CORREO_EN_SEGUNDO_PLANO", True):
+        funcion(*args)
+        return None
+    hilo = threading.Thread(target=funcion, args=args, name="altiro-correo")
+    hilo.start()
+    return hilo
 
 
 def enviar_correo(destino, asunto, cuerpo):

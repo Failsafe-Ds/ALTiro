@@ -1,0 +1,14 @@
+# Cabeceras de seguridad comunes (ADR-008; hallazgo B-3, ADR-029).
+# Se incluyen en el server y en cada location que usa su propio add_header:
+# en Nginx un add_header dentro de un location anula todos los heredados, así
+# que esas locations repiten este archivo. Sin Strict-Transport-Security en la
+# demostración (ADR-008).
+# Permissions-Policy: la página nunca usa la cámara ni el micrófono desde el
+# navegador. La foto de la cédula o del perfil se toma con <input type="file">
+# (con o sin "capture"), que abre la cámara del sistema y no depende de esta
+# política.
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "same-origin" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), display-capture=(), magnetometer=(), gyroscope=(), accelerometer=()" always;
+add_header Cross-Origin-Opener-Policy "same-origin" always;

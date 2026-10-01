@@ -39,6 +39,9 @@ services:
       # Rol de la aplicación, sin superusuario; lo crea infra/db/initdb.
       ALTIRO_DB_APP_USER: ${ALTIRO_DB_APP_USER:-altiro_app}
       ALTIRO_DB_APP_PASSWORD_FILE: /secretos/db_app_password
+      # Rol dueño de las tablas (ADR-030, B8); solo lo usa el servicio "migrador".
+      ALTIRO_DB_MIGRADOR_USER: ${ALTIRO_DB_MIGRADOR_USER:-altiro_migrador}
+      ALTIRO_DB_MIGRADOR_PASSWORD_FILE: /secretos/db_migrador_password
     volumes:
       - datos_db:/var/lib/postgresql/data
       - secretos:/secretos:ro
@@ -58,10 +61,89 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  app:
-    build: ./backend
-    image: altiro-app:local
+  # ADR-030, B8: en CADA arranque (volumen nuevo o existente) deja los roles
+  # con su reparto: altiro_migrador dueño del esquema, altiro_app solo DML.
+  # Mismo script que initdb, por TCP con el superusuario. Idempotente.
+  roles_db:
+    image: postgres:16.15-bookworm
+    entrypoint: ["sh", "/initdb/10-rol-app.sh"]
     environment:
+      PGHOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-altiro}
+      POSTGRES_USER: ${POSTGRES_USER:-altiro_admin}
+      ALTIRO_DB_ADMIN_PASSWORD_FILE: /run/secretos/db_admin_password
+      ALTIRO_DB_APP_USER: ${ALTIRO_DB_APP_USER:-altiro_app}
+      ALTIRO_DB_APP_PASSWORD_FILE: /run/secretos/db_app_password
+      ALTIRO_DB_MIGRADOR_USER: ${ALTIRO_DB_MIGRADOR_USER:-altiro_migrador}
+      ALTIRO_DB_MIGRADOR_PASSWORD_FILE: /run/secretos/db_migrador_password
+    volumes:
+      - ./infra/db/initdb:/initdb:ro
+      # Solo las tres contraseñas; nunca las claves de documentos ni de respaldo.
+      - type: volume
+        source: secretos
+        target: /run/secretos/db_admin_password
+        read_only: true
+        volume:
+          subpath: db_admin_password
+      - type: volume
+        source: secretos
+        target: /run/secretos/db_app_password
+        read_only: true
+        volume:
+          subpath: db_app_password
+      - type: volume
+        source: secretos
+        target: /run/secretos/db_migrador_password
+        read_only: true
+        volume:
+          subpath: db_migrador_password
+    networks:
+      - interna
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # ADR-030, B8: aplica las migraciones con el rol dueño (altiro_migrador) y
+  # termina. La app ya no migra: solo comprueba que no falte ninguna. UID 10002
+  # (no puede leer db_app_password) con grupo 10001 (lee la clave de Django y
+  # la de documentos, que settings exige al cargar). Para migrar a mano:
+  #   docker compose up -d   (o: docker compose run --rm migrador)
+  migrador:
+    image: altiro-app:local
+    user: "10002:10001"
+    entrypoint: ["python", "manage.py", "migrate", "--noinput"]
+    environment:
+      DJANGO_SECRET_KEY_FILE: /secretos/django_secret_key
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://localhost,https://127.0.0.1}
+      ALTIRO_DB_HOST: db
+      ALTIRO_DB_PORT: "5432"
+      ALTIRO_DB_NAME: ${POSTGRES_DB:-altiro}
+      ALTIRO_DB_USER: ${ALTIRO_DB_MIGRADOR_USER:-altiro_migrador}
+      ALTIRO_DB_PASSWORD_FILE: /secretos/db_migrador_password
+      ALTIRO_DOCUMENTOS_CLAVE_FILE: /secretos/documentos_clave
+      ALTIRO_DOCUMENTOS_DIR: /documentos
+      ALTIRO_FOTOS_DIR: /fotos
+    volumes:
+      - secretos:/secretos:ro
+    networks:
+      - interna
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      roles_db:
+        condition: service_completed_successfully
+    restart: "no"
+
+  app:
+    build:
+      context: ./backend
+      # ADR-030, B7: imagen de ejecución, sin pytest ni dependencias de pruebas.
+      target: ejecucion
+    image: altiro-app:local
+    environment: &entorno_app
       DJANGO_SECRET_KEY_FILE: /secretos/django_secret_key
       DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
@@ -106,6 +188,8 @@ services:
         condition: service_completed_successfully
       db:
         condition: service_healthy
+      migrador:
+        condition: service_completed_successfully
     healthcheck:
       test:
         - CMD
@@ -119,9 +203,10 @@ services:
     restart: unless-stopped
 
   # Actor Sistema (ADR-016; E-1: cada 5 minutos por defecto) corre tareas idempotentes (avisos de
-  # RF-35, purga de acceso_denegado y archivos huérfanos). Misma imagen que app,
-  # sin puertos, solo en la red interna. No aplica migraciones: espera a que app
-  # (que las aplica al arrancar) esté sana.
+  # RF-35, purga de acceso_denegado y archivos huérfanos; ADR-030: sesiones
+  # expiradas y correos viejos del buzón). Misma imagen que app, sin puertos,
+  # solo en la red interna. No aplica migraciones (las aplica "migrador"):
+  # espera a que app esté sana.
   planificador:
     image: altiro-app:local
     entrypoint: ["python", "manage.py", "planificador"]
@@ -143,6 +228,11 @@ services:
       # directorio vacío de la imagen.
       ALTIRO_FOTOS_DIR: /fotos
       ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS: ${ALTIRO_PLANIFICADOR_INTERVALO_SEGUNDOS:-300}
+      # Purga del buzón (ADR-030, B9): borra los correos con más de
+      # ALTIRO_RECUPERACION_MINUTOS + ALTIRO_BUZON_MARGEN_HORAS de antigüedad.
+      ALTIRO_BUZON_DIR: /buzon
+      ALTIRO_RECUPERACION_MINUTOS: ${ALTIRO_RECUPERACION_MINUTOS:-30}
+      ALTIRO_BUZON_MARGEN_HORAS: ${ALTIRO_BUZON_MARGEN_HORAS:-24}
       # Retención de documentos en días (RNF-26; ADR-026, E-9). Vacío = sin
       # plazo: no se elimina nada y se registra una advertencia (P-30).
       # Plazos pendientes de V-04/P-07: docs/alcance/plazos-retencion.md.
@@ -153,6 +243,8 @@ services:
       - secretos:/secretos:ro
       # Para la limpieza de archivos huérfanos (ADR-015, D-3: app y planificador).
       - documentos:/documentos
+      # Para la purga de correos viejos (ADR-030, B9; enmienda a ADR-027, punto 4).
+      - buzon:/buzon
     networks:
       - interna
     depends_on:
@@ -181,10 +273,12 @@ services:
   # Enmienda a ADR-015 (E-7.2): "documentos" va de SOLO LECTURA y la clave de
   # cifrado (secretos/documentos_clave) NUNCA se monta aquí; del volumen de
   # secretos solo se monta la contraseña del rol administrativo.
-  # Respaldo inmediato: docker compose exec respaldo sh /usr/local/bin/altiro-respaldo.sh --una-vez
+  # ADR-030, B6: base, fotos y documentos se cifran con GnuPG simétrico
+  # (AES-256, con MDC) y la clave secretos/respaldo_clave, que init genera.
+  # Respaldo inmediato: docker compose exec respaldo bash /usr/local/bin/altiro-respaldo.sh --una-vez
   respaldo:
     image: postgres:16.15-bookworm
-    entrypoint: ["sh", "/usr/local/bin/altiro-respaldo.sh"]
+    entrypoint: ["bash", "/usr/local/bin/altiro-respaldo.sh"]
     command: ["--bucle"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-altiro}
@@ -200,6 +294,14 @@ services:
         read_only: true
         volume:
           subpath: db_admin_password
+      # Clave de cifrado de los respaldos (ADR-030, B6): del volumen de
+      # secretos, NUNCA en el directorio de respaldos.
+      - type: volume
+        source: secretos
+        target: /run/secretos/respaldo_clave
+        read_only: true
+        volume:
+          subpath: respaldo_clave
       - fotos:/volumenes/fotos:ro
       - documentos:/volumenes/documentos:ro
       # Fuera del repositorio por defecto (RNF-24: la ruta se cambia en .env).
@@ -210,6 +312,25 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+
+  # Suite de pruebas (ADR-014; ADR-030, B7): imagen aparte con pytest; no se
+  # levanta con "up" (perfil "pruebas"). Mismo entorno que app. Uso en
+  # docs/estado-actual.md y README.md.
+  pruebas:
+    profiles: ["pruebas"]
+    build:
+      context: ./backend
+      target: pruebas
+    image: altiro-app-pruebas:local
+    environment: *entorno_app
+    volumes:
+      - secretos:/secretos:ro
+    networks:
+      - interna
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
 
   proxy:
     image: nginx:1.30.5-alpine
@@ -258,5 +379,6 @@ volumes:
   # publicado. Nombres UUID; sin datos en el nombre.
   fotos: {}
   # Buzón local de correos (ADR-027, punto 4). No se respalda: los enlaces
-  # vencen en 30 minutos.
+  # vencen en 30 minutos. El planificador borra los correos con más de 24 h
+  # y 30 min (ADR-030, B9).
   buzon: {}

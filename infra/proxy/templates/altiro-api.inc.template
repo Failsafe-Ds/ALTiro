@@ -1,0 +1,29 @@
+# Paso de una ruta /api/ a la app (ADR-002, ADR-008). Lo comparten todas las
+# locations de la API.
+# El nombre "app" se resuelve con el DNS de Docker en cada petición (vigencia
+# 10 s): si el contenedor de la app se recrea y cambia de IP, el proxy no
+# queda apuntando a la anterior (antes respondía 502 hasta reiniciarlo).
+# Con variable, proxy_pass reenvía la URI original sin cambios.
+resolver 127.0.0.11 valid=10s ipv6=off;
+resolver_timeout 5s;
+set $altiro_app_upstream http://app:8000;
+proxy_pass $altiro_app_upstream;
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-Proto $scheme;
+# Origen del intento para el limitador (RNF-10, ADR-007). Se sobrescribe
+# siempre: el cliente no puede inyectar su propio X-Real-IP.
+proxy_set_header X-Real-IP $remote_addr;
+
+# Evita cabeceras duplicadas: estas las emite Nginx (altiro-cabeceras.inc).
+proxy_hide_header X-Content-Type-Options;
+proxy_hide_header Referrer-Policy;
+proxy_hide_header Strict-Transport-Security;
+proxy_hide_header Cross-Origin-Opener-Policy;
+proxy_hide_header Permissions-Policy;
+
+# Errores que genera el propio Nginx: JSON con el formato común
+# { mensaje, errores } que entiende js/api.js (DEF-QA-006, RNF-15). Sin
+# proxy_intercept_errors, las respuestas de la app (incluidos sus 429 de
+# ADR-007) pasan sin cambios; el 429 de aquí es solo el del proxy (ADR-029).
+error_page 429 @api_429;
+error_page 500 502 503 504 @api_no_disponible;

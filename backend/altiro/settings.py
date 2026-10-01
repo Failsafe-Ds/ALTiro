@@ -157,6 +157,9 @@ DEFAULT_FROM_EMAIL = leer_opcional("ALTIRO_CORREO_REMITENTE", "AlTiro <no-respon
 ALTIRO_URL_PUBLICA = leer_opcional("ALTIRO_URL_PUBLICA", "https://localhost").rstrip("/")
 # Vigencia del enlace de recuperación, en minutos.
 ALTIRO_RECUPERACION_MINUTOS = leer_entero("ALTIRO_RECUPERACION_MINUTOS", por_defecto=30)
+# Margen, en horas, que un correo del buzón se conserva después de vencer el
+# enlace de recuperación; luego lo borra el planificador (ADR-030, B9).
+ALTIRO_BUZON_MARGEN_HORAS = leer_entero("ALTIRO_BUZON_MARGEN_HORAS", por_defecto=24)
 
 # --- Planificador del actor Sistema (ADR-016) ---
 # Cada cuántos segundos corre las tareas idempotentes (por defecto, cada 5 minutos:

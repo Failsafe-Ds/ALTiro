@@ -16,7 +16,7 @@ from comun.api import (
     publica,
     respuesta_error,
 )
-from identidad import limitador, recuperacion, servicios
+from identidad import frecuencia, limitador, recuperacion, servicios
 from identidad.autenticacion import (
     autenticar,
     buscar_usuario,
@@ -92,6 +92,23 @@ def _respuesta_espera(minutos, plantilla):
     respuesta = respuesta_error(429, plantilla.format(texto))
     respuesta["Retry-After"] = str(minutos * 60)
     return respuesta
+
+
+MENSAJE_REGISTROS_SEGUIDOS = (
+    "Se registraron varias cuentas seguidas desde esta conexión. Por seguridad, espera {} e inténtalo de nuevo."
+)
+
+
+def _limitar_registro(request):
+    """Tope de registros sin sesión por origen (ADR-007, E-1). Devuelve un 429 o ``None``.
+
+    Cuenta cada intento que pasa la validación de formato, termine creando la
+    cuenta o en "ya registrado" (CA-11.3): así acota también la enumeración.
+    """
+    espera = frecuencia.consumir("registro", limitador.origen_de(request), frecuencia.REGLAS_REGISTRO)
+    if espera is None:
+        return None
+    return _respuesta_espera(frecuencia.minutos(espera), MENSAJE_REGISTROS_SEGUIDOS)
 
 
 def datos_cuenta(usuario):
@@ -302,6 +319,9 @@ def clientes(request):
                 "contrasena": validar_contrasena_nueva,
             },
         )
+        bloqueo = _limitar_registro(request)
+        if bloqueo:
+            return bloqueo
         _ejecutar(
             servicios.crear_cuenta_cliente,
             nombre=datos["nombre"],
@@ -347,6 +367,9 @@ def postulaciones(request):
         if "correo" in datos:
             validadores["correo"] = normalizar_correo
         _validar_todos(datos, validadores)
+        bloqueo = _limitar_registro(request)
+        if bloqueo:
+            return bloqueo
         _ejecutar(
             servicios.crear_cuenta_maestro,
             nombre=datos["nombre"],

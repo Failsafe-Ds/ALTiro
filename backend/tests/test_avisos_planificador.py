@@ -456,7 +456,7 @@ def _tareas_simuladas(monkeypatch, fallan=()):
     return llamadas
 
 
-def test_el_planificador_tiene_las_cinco_tareas_en_orden():
+def test_el_planificador_tiene_las_siete_tareas_en_orden():
     assert planificador.TAREAS == (
         ("avisos_creados", tareas.emitir_avisos_por_vencer),
         ("tickets_cerrados", transiciones.cerrar_vencidos),
@@ -464,11 +464,14 @@ def test_el_planificador_tiene_las_cinco_tareas_en_orden():
         # S5, incremento 3 (ADR-026, E-9).
         ("documentos_eliminados_retencion", retencion.aplicar_retencion),
         ("archivos_huerfanos_borrados", tareas.limpiar_archivos_huerfanos),
+        # ADR-030, B5 y B9.
+        ("sesiones_expiradas_purgadas", planificador.purgar_sesiones_expiradas),
+        ("correos_buzon_purgados", planificador.purgar_buzon),
     )
 
 
 @pytest.mark.django_db
-def test_una_vez_corre_las_cinco_tareas_con_el_mismo_ahora(monkeypatch, reloj, salida_consola):
+def test_una_vez_corre_todas_las_tareas_con_el_mismo_ahora(monkeypatch, reloj, salida_consola):
     llamadas = _tareas_simuladas(monkeypatch)
 
     call_command("planificador", "--una-vez")
@@ -477,7 +480,8 @@ def test_una_vez_corre_las_cinco_tareas_con_el_mismo_ahora(monkeypatch, reloj, s
     assert {ahora for _, ahora in llamadas} == {AHORA}
     assert (
         "Planificador: corrida terminada. avisos_creados=7 tickets_cerrados=7 accesos_denegados_purgados=7 "
-        "documentos_eliminados_retencion=7 archivos_huerfanos_borrados=7 tareas_fallidas=0"
+        "documentos_eliminados_retencion=7 archivos_huerfanos_borrados=7 sesiones_expiradas_purgadas=7 "
+        "correos_buzon_purgados=7 tareas_fallidas=0"
     ) in salida_consola.getvalue()
 
 
@@ -511,7 +515,8 @@ def test_un_error_de_base_de_datos_en_una_tarea_se_registra_sin_datos(monkeypatc
 
     assert fallidas == ["duplicar"]
     assert set(conteos) == {
-        "tickets_cerrados", "accesos_denegados_purgados", "documentos_eliminados_retencion", "archivos_huerfanos_borrados"
+        "tickets_cerrados", "accesos_denegados_purgados", "documentos_eliminados_retencion", "archivos_huerfanos_borrados",
+        "sesiones_expiradas_purgadas", "correos_buzon_purgados",
     }
     texto = salida_consola.getvalue()
     assert "restriccion=aviso_una_vez" in texto
@@ -532,6 +537,7 @@ def test_los_registros_del_planificador_no_tienen_datos_personales(maestro, dire
     assert conteos == {
         "avisos_creados": 2, "tickets_cerrados": 0, "accesos_denegados_purgados": 1,
         "documentos_eliminados_retencion": 0, "archivos_huerfanos_borrados": 1,
+        "sesiones_expiradas_purgadas": 0, "correos_buzon_purgados": 0,
     }
     texto = salida_consola.getvalue()
     assert "Avisos de documentos por vencer creados: 2." in texto

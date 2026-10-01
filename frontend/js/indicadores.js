@@ -1,12 +1,14 @@
 // Indicadores base y exportación agregada (HU-22, RF-38, CA-22.1, CA-22.2; ADR-026, E-6).
 // - GET /api/gestion/indicadores?desde=&hasta=: los tres indicadores con su definición.
 // - GET /api/gestion/exportacion?desde=&hasta=: archivo CSV agregado (se descarga).
-// El servidor exige el rol control_gestion y valida el período (31 a 366 días);
-// sus errores por campo se muestran junto a cada fecha.
+// El servidor exige el rol control_gestion y valida el período: meses completos
+// y ya terminados, de 1 a 12 (AAAA-MM; ADR-026, E-6.6); sus errores por campo se
+// muestran junto a cada mes. Un indicador con menos de 5 casos llega «suprimido».
 "use strict";
 
 (() => {
-  const DIAS_POR_DEFECTO = 90;
+  const MESES_EN_LISTA = 36;
+  const MESES_POR_DEFECTO = 3;
   const form = document.getElementById("formulario-periodo");
   const desde = document.getElementById("desde");
   const hasta = document.getElementById("hasta");
@@ -15,17 +17,22 @@
   const resultados = document.getElementById("resultados");
   formulario.prepararBoton(form);
 
-  function fechaIso(fecha) {
-    // Fecha local del teléfono o computador, en AAAA-MM-DD.
-    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-    const dia = String(fecha.getDate()).padStart(2, "0");
-    return `${fecha.getFullYear()}-${mes}-${dia}`;
+  function mesIso(fecha) {
+    // Mes local del teléfono o computador, en AAAA-MM.
+    return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
   }
 
+  // Solo meses terminados: del mes pasado hacia atrás.
   const hoy = new Date();
-  const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - (DIAS_POR_DEFECTO - 1));
-  hasta.value = fechaIso(hoy);
-  desde.value = fechaIso(inicio);
+  for (let i = 1; i <= MESES_EN_LISTA; i += 1) {
+    const mes = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const nombre = mes.toLocaleString("es-CL", { month: "long", year: "numeric" });
+    for (const lista of [desde, hasta]) {
+      lista.append(new Option(nombre, mesIso(mes)));
+    }
+  }
+  hasta.selectedIndex = 0;
+  desde.selectedIndex = MESES_POR_DEFECTO - 1;
 
   function consulta() {
     return new URLSearchParams({ desde: desde.value, hasta: hasta.value }).toString();
@@ -61,20 +68,39 @@
     formulario.mostrarErrores(form, datos || { mensaje: "No pudimos completar la acción. Inténtalo de nuevo.", errores: {} });
   }
 
+  // Indicador suprimido (E-6.6): se dice con texto, no solo con color.
+  function suprimido(id, umbral) {
+    escribir(`valor-${id}`, `Menos de ${umbral} casos`);
+    escribir(`detalle-${id}`, `No se muestra para proteger la privacidad: hay menos de ${umbral} casos o personas en algún mes del período. Prueba con otro período.`);
+  }
+
   function pintar(datos) {
+    const umbral = datos.umbral;
     const c = datos.concrecion;
-    escribir("valor-concrecion", c.porcentaje === null ? "Sin pedidos en el período" : `${numero(c.porcentaje, 1)} %`);
-    escribir("detalle-concrecion", `${numero(c.concretados)} de ${numero(c.enviados)} pedidos enviados.`);
+    if (c.suprimido) {
+      suprimido("concrecion", umbral);
+    } else {
+      escribir("valor-concrecion", c.porcentaje === null ? "Sin pedidos en el período" : `${numero(c.porcentaje, 1)} %`);
+      escribir("detalle-concrecion", `${numero(c.concretados)} de ${numero(c.enviados)} pedidos enviados.`);
+    }
     escribir("definicion-concrecion", c.definicion);
 
     const r = datos.primera_respuesta;
-    escribir("valor-primera-respuesta", r.mediana_minutos === null ? "Sin respuestas en el período" : duracion(r.mediana_minutos));
-    escribir("detalle-primera-respuesta", `Mediana de ${numero(r.cantidad)} pedidos respondidos: la mitad se respondió en menos tiempo que este y la otra mitad en más.`);
+    if (r.suprimido) {
+      suprimido("primera-respuesta", umbral);
+    } else {
+      escribir("valor-primera-respuesta", r.mediana_minutos === null ? "Sin respuestas en el período" : duracion(r.mediana_minutos));
+      escribir("detalle-primera-respuesta", `Mediana de ${numero(r.cantidad)} pedidos respondidos: la mitad se respondió en menos tiempo que este y la otra mitad en más.`);
+    }
     escribir("definicion-primera-respuesta", r.definicion);
 
     const v = datos.vigencia_documental;
-    escribir("valor-vigencia", v.porcentaje === null ? "Sin maestros aprobados" : `${numero(v.porcentaje, 1)} %`);
-    escribir("detalle-vigencia", `${numero(v.vigentes)} de ${numero(v.aprobados)} maestros aprobados, a la fecha de hoy.`);
+    if (v.suprimido) {
+      suprimido("vigencia", umbral);
+    } else {
+      escribir("valor-vigencia", v.porcentaje === null ? "Sin maestros aprobados" : `${numero(v.porcentaje, 1)} %`);
+      escribir("detalle-vigencia", `${numero(v.vigentes)} de ${numero(v.aprobados)} maestros aprobados, a la fecha de hoy.`);
+    }
     escribir("definicion-vigencia", v.definicion);
 
     resultados.hidden = false;
@@ -125,7 +151,10 @@
       return;
     }
     const disposicion = respuesta.headers.get("Content-Disposition") || "";
-    const nombre = (disposicion.match(/filename="([^"]+)"/) || [])[1] || "altiro-agregado.csv";
+    // Nombre de descarga solo con [A-Za-z0-9._-] (hallazgo B-4): sin rutas ni
+    // caracteres de control aunque la cabecera venga alterada.
+    const propuesto = ((disposicion.match(/filename="([^"]+)"/) || [])[1] || "").replace(/[^A-Za-z0-9._-]/g, "");
+    const nombre = /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(propuesto) ? propuesto : "altiro-agregado.csv";
     const url = URL.createObjectURL(await respuesta.blob());
     const enlace = document.createElement("a");
     enlace.href = url;

@@ -109,6 +109,11 @@ cambio) se escriben como archivos en el volumen `buzon`. Para leer el último:
 docker compose exec app sh -c 'cat "/buzon/$(ls -t /buzon | head -1)"'
 ```
 
+Los correos llevan datos personales. El planificador borra los que tienen más
+de **30 min (vigencia del enlace) + 24 h** de antigüedad (`ALTIRO_BUZON_MARGEN_HORAS`;
+ADR-030, B9). También purga cada 5 minutos las sesiones expiradas de
+`django_session` (B5). Solo registra conteos.
+
 Una persona sin correo en su cuenta (por ejemplo, un maestro que ingresa con RUT)
 recupera su contraseña con ayuda. **Antes**, verifique su identidad fuera del
 sistema (llamada al teléfono registrado). Después genere el enlace y hágaselo llegar:
@@ -144,13 +149,28 @@ navegador mostrará una advertencia: es esperado en esta demostración.
 - Por defecto solo se publica en `127.0.0.1`; para exponerlo a la red local
   defina `ALTIRO_BIND_ADDR` y agregue la IP al SAN y a `DJANGO_ALLOWED_HOSTS`.
 
+> **Demo en red local con Docker Desktop (ADR-030, B4).** En Windows y macOS
+> los puertos publicados pasan por el proxy de red de Docker Desktop (NAT).
+> Nginx y la app pueden ver a **todos** los teléfonos con una misma IP, la del
+> gateway de Docker. Como los límites de intentos y de solicitudes son por
+> origen (ADR-007, ADR-029), esos clientes **comparten** el cupo: si uno
+> bloquea, se bloquean todos. Antes de la demo, revise en
+> `docker compose logs proxy` qué IP llega. Si es siempre la misma, demuestre
+> la limitación desde un solo equipo o use un host Linux, que conserva la IP
+> de origen.
+
 ## Servicios
 
 | Servicio | Función | Puertos publicados |
 |---|---|---|
 | `init` | Genera secretos y certificado si no existen (se ejecuta y termina) | ninguno |
 | `db` | PostgreSQL 16 | ninguno |
-| `app` | Backend Django (API JSON bajo `/api/`) | ninguno |
+| `roles_db` | Deja los roles y dueños de la base (ADR-030, B8); se ejecuta y termina en cada `up` | ninguno |
+| `migrador` | Aplica las migraciones con el rol dueño `altiro_migrador`; se ejecuta y termina | ninguno |
+| `app` | Backend Django (API JSON bajo `/api/`); solo comprueba que no falten migraciones | ninguno |
+| `planificador` | Tareas del actor Sistema cada 5 min (avisos, cierres, purgas) | ninguno |
+| `respaldo` | Respaldo diario cifrado (ver «Respaldo y restauración») | ninguno |
+| `pruebas` | Suite de pruebas (perfil `pruebas`; no se levanta con `up`) | ninguno |
 | `proxy` | Nginx: HTTPS y frontend estático | 80, 443 en `127.0.0.1` |
 
 Secretos (contraseñas de la base y clave de Django) y certificado viven en los
@@ -163,35 +183,36 @@ La aplicación **no** se conecta como superusuario.
 | Rol | Uso | Atributos |
 |---|---|---|
 | `altiro_admin` (`POSTGRES_USER`) | Solo inicializa la base; la app no conoce su contraseña | superusuario de la imagen |
+| `altiro_migrador` (`ALTIRO_DB_MIGRADOR_USER`) | Dueño de tablas, secuencias y funciones; solo lo usa el servicio `migrador` | `NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS` |
 | `altiro_app` (`ALTIRO_DB_APP_USER`) | Conexión de Django | `NOSUPERUSER NOCREATEROLE NOREPLICATION NOBYPASSRLS CREATEDB` |
 
-- En la base `altiro`, `altiro_app` tiene `CONNECT` y `TEMPORARY`, y en el
-  esquema `public`, `USAGE` y `CREATE`: las tablas que crean las migraciones
-  quedan a su nombre.
+- En la base `altiro`, `altiro_app` tiene `CONNECT` y `TEMPORARY`. En el
+  esquema `public` tiene **solo `USAGE`** y, en tablas y secuencias, solo DML
+  (`SELECT`, `INSERT`, `UPDATE`, `DELETE`; sin `TRUNCATE` ni `TRIGGER`). **No es
+  dueña de nada** (ADR-030, B8), así que no puede desactivar los triggers de
+  solo inserción de `bitacora`, `ticket_evento`, `acceso_denegado`, etc.
+- `altiro_migrador` es el dueño y aplica las migraciones. Su contraseña
+  (`secretos/db_migrador_password`) no la puede leer la app. Para migrar:
+  `docker compose up -d` o `docker compose run --rm migrador`
+  (`docker compose exec app python manage.py migrate` ya no sirve para crear o
+  alterar tablas).
 - Se quita `CONNECT` a `PUBLIC` en `postgres`, `template1` y `altiro`: la app no
   puede conectarse a otras bases.
 - `CREATEDB` existe solo para que pytest-django cree la base de pruebas
   `test_altiro`, que se conserva entre ejecuciones (`pytest --create-db` la recrea).
 
-Lo hace `infra/db/initdb/10-rol-app.sh`, que la imagen de PostgreSQL ejecuta
-**solo cuando el volumen `datos_db` está vacío**.
+Lo hace `infra/db/initdb/10-rol-app.sh`, que es idempotente. Corre en dos
+momentos: lo ejecuta la imagen de PostgreSQL cuando el volumen `datos_db` está
+vacío, y lo ejecuta el servicio `roles_db` en **cada** `docker compose up`.
+Así un volumen ya existente queda con el mismo reparto, sin borrar datos: las
+tablas que eran de `altiro_app` pasan a `altiro_migrador`.
 
-> **Volumen `datos_db` ya existente** (creado antes de este cambio o con otros
-> nombres de rol): el script no se ejecuta solo. Como es idempotente, puede
-> aplicarse a mano sin borrar datos:
->
-> ```sh
-> docker compose up -d db
-> docker compose exec -u postgres db sh /docker-entrypoint-initdb.d/10-rol-app.sh
-> docker compose up -d
-> ```
->
-> Esto requiere que el volumen se haya creado con el mismo `POSTGRES_USER`. Si
+> **Volumen `datos_db` ya existente:** basta con `docker compose up -d`. Esto requiere que el volumen se haya creado con el mismo `POSTGRES_USER`. Si
 > no es así, habrá que decidir explícitamente si se recrea el volumen (se
 > pierden los datos).
 >
 > Las contraseñas de la base se aplican al inicializar el volumen `datos_db`
-> (la de `altiro_app`, también al volver a ejecutar el script). Si se elimina
+> (las de `altiro_app` y `altiro_migrador`, también en cada `up` con `roles_db`). Si se elimina
 > el volumen `secretos` y se conserva `datos_db`, la aplicación no podrá
 > conectarse a la base.
 
@@ -207,8 +228,47 @@ y repita el comando.
 docker compose ps
 curl -k https://127.0.0.1/api/health/        # {"estado": "ok", "base_datos": "ok"}
 curl -I http://127.0.0.1/                     # 307 hacia https://
-docker compose exec app pytest                # pruebas del backend
 ```
+
+**Pruebas** (ADR-014; ADR-030, B7). La imagen `app` de la demo no trae pytest.
+La suite corre en el servicio `pruebas`. Desde Git Bash, en la raíz:
+
+```sh
+MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" -v "$(pwd -W)/frontend:/frontend:ro" pruebas -q
+# una prueba dirigida: ... pruebas -q tests/test_planificador_purgas.py -k b5
+# tras cambiar requirements-pruebas.txt: docker compose build pruebas
+```
+
+## Respaldo y restauración (RNF-19; ADR-026 E-7; ADR-030 B6)
+
+- El servicio `respaldo` corre todos los días a las 03:00 (`ALTIRO_RESPALDO_HORA`)
+  y conserva 7 días en `ALTIRO_RESPALDO_DIR` (por defecto `../altiro-respaldos`,
+  fuera del repositorio). Para un respaldo inmediato:
+  `docker compose exec respaldo bash /usr/local/bin/altiro-respaldo.sh --una-vez`.
+- Cada respaldo tiene `base.dump.gpg`, `fotos.tar.gz.gpg`, `documentos.tar.gpg`
+  (GnuPG simétrico, AES-256 con control de integridad), `conteos.tsv`, `CIFRADO`
+  y `SHA256SUMS`. Nada con datos personales queda en claro en el host.
+- **La clave** es el archivo `respaldo_clave` del volumen Docker `altiro_secretos`.
+  La genera `init` y **no** está junto a los respaldos. **Sin esa clave, un
+  respaldo no se puede restaurar.** Guarde una copia del volumen `secretos`
+  aparte de los respaldos (lleva también la clave de documentos). Dónde se
+  guarda esa copia sigue pendiente (ADR-026, E-7.2).
+- **Restaurar** en un proyecto vacío (se niega si ya existe algún volumen del
+  destino; nunca sobrescribe):
+
+  ```sh
+  ALTIRO_RESTAURAR_SECRETOS_VOLUMEN=altiro_secretos scripts/restaurar.sh ../altiro-respaldos/altiro-AAAAMMDDTHHMMSSZ [proyecto]
+  ```
+
+  Comprueba las sumas y descifra completos los tres archivos. Un archivo
+  alterado o una clave incorrecta lo detienen antes de crear nada. Después
+  restaura y espera a que `app` esté sana.
+- **Simulacro verificado** (sin tocar la base de la demo, proyecto
+  `altiro-restauracion`): `scripts/simulacro-restauracion.sh` compara conteos y
+  descifra los documentos. El 2026-10-01 tardó 25 s (umbral RNF-19: 30 min o menos).
+- Los respaldos **anteriores** al 2026-10-01 (`altiro-20260930T*`) están **en
+  claro**. No se borran a mano. La retención de 7 días los elimina sola, y
+  `restaurar.sh` todavía los acepta con un aviso.
 
 > **Cambios en `infra/proxy/templates/`**: Nginx lee la plantilla al arrancar.
 > Como está montada (no se copia a la imagen), `docker compose up -d` no la

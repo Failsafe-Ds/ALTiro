@@ -9,23 +9,29 @@
 - ``mediana_monto_final`` solo se publica si la fila tiene ``K`` o más órdenes
   finalizadas con monto y, entre ellas, ``K`` o más maestros y ``K`` o más
   clientes distintos; si no, la celda queda vacía (DEF-QA-014; enmienda
-  E-6.5 de ADR-026, provisional). ``ordenes_finalizadas`` se publica igual.
+  E-6.5 de ADR-026, provisional).
+- ``ordenes_finalizadas`` entre 1 y ``K - 1`` queda vacía (y su mediana
+  también). Si en un mes queda **una sola** de esas celdas vacía, se vacía
+  además la menor de las demás de ese mes (supresión complementaria): el total
+  del mes que da el indicador de concreción no permite despejarla (E-6.6).
+- El período son meses calendario completos y cerrados (``vistas.leer_periodo``):
+  dos exportaciones no se solapan a medias (E-6.6).
 - Las celdas que empiezan con ``= + - @`` (y tabulador o retorno) se
   neutralizan con un apóstrofo inicial (inyección de fórmulas).
 """
 import csv
 import io
+from collections import defaultdict
 
 from django.db.models import Count, F
 from django.db.models.functions import TruncMonth
 
 from expediente.vigencia import ZONA_NEGOCIO
-from gestion.indicadores import FILTRO_CONCRETADO, Mediana, tickets_del_periodo
+from gestion.indicadores import FILTRO_CONCRETADO, K, Mediana, pequeno, tickets_del_periodo
 
 COLUMNAS = (
     "mes", "region", "comuna", "oficio", "tickets_enviados", "ordenes_finalizadas", "mediana_monto_final",
 )
-K = 5
 _PELIGROSOS = ("=", "+", "-", "@", "\t", "\r")
 
 
@@ -67,17 +73,34 @@ def _mediana_publicable(grupo):
     )
 
 
-def generar(inicio, fin):
-    """Devuelve ``(texto_csv, filas, suprimidas)``."""
-    salida = io.StringIO()
-    escritor = csv.writer(salida, lineterminator="\r\n")
-    escritor.writerow(COLUMNAS)
-    filas = suprimidas = 0
-    for grupo in _grupos(inicio, fin):
+def _publicables(grupos):
+    """Filas que superan la supresión (P-29) y marca de celdas ``finalizadas`` ocultas (E-6.6)."""
+    publicadas, suprimidas = [], 0
+    for grupo in grupos:
         if grupo["maestros"] < K or grupo["clientes"] < K:
             suprimidas += 1
             continue
-        mediana = grupo["mediana"] if _mediana_publicable(grupo) else None
+        grupo["oculta"] = pequeno(grupo["finalizadas"])
+        publicadas.append(grupo)
+    por_mes = defaultdict(list)
+    for grupo in publicadas:
+        por_mes[grupo["mes"]].append(grupo)
+    for del_mes in por_mes.values():
+        visibles = [g for g in del_mes if not g["oculta"]]
+        if len(del_mes) - len(visibles) == 1 and visibles:
+            min(visibles, key=lambda g: g["finalizadas"])["oculta"] = True  # supresión complementaria
+    return publicadas, suprimidas
+
+
+def generar(inicio, fin):
+    """Devuelve ``(texto_csv, filas, filas_suprimidas, celdas_suprimidas)``."""
+    salida = io.StringIO()
+    escritor = csv.writer(salida, lineterminator="\r\n")
+    escritor.writerow(COLUMNAS)
+    publicadas, suprimidas = _publicables(_grupos(inicio, fin))
+    for grupo in publicadas:
+        oculta = grupo["oculta"]
+        mediana = grupo["mediana"] if not oculta and _mediana_publicable(grupo) else None
         escritor.writerow([
             neutralizar(valor)
             for valor in (
@@ -86,9 +109,9 @@ def generar(inicio, fin):
                 grupo["comuna_nombre"],
                 grupo["oficio_nombre"],
                 grupo["enviados"],
-                grupo["finalizadas"],
+                "" if oculta else grupo["finalizadas"],
                 "" if mediana is None else int(mediana + 0.5),  # mitad hacia arriba
             )
         ])
-        filas += 1
-    return salida.getvalue(), filas, suprimidas
+    celdas = sum(grupo["oculta"] for grupo in publicadas)
+    return salida.getvalue(), len(publicadas), suprimidas, celdas

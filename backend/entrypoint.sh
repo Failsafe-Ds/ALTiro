@@ -3,7 +3,10 @@
 # contenedor no arranca (ADR-009).
 set -eu
 
-python manage.py migrate --noinput
+# Las migraciones las aplica el servicio "migrador" con el rol dueño de las
+# tablas (ADR-030, B8); este rol solo tiene DML. Si quedan migraciones sin
+# aplicar, la app no arranca (en vez de fallar a medias más tarde).
+python manage.py migrate --check --noinput >/dev/null     || { echo "Hay migraciones sin aplicar: ejecute docker compose up -d (servicio migrador)." >&2; exit 1; }
 
 # --no-control-socket: el usuario sin privilegios no tiene home (/nonexistent)
 # y la interfaz de control de gunicorn no se usa.

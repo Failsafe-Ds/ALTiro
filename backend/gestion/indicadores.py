@@ -11,11 +11,20 @@
 - ``vigencia_documental``: porcentaje de maestros con expediente aprobado cuyos
   documentos obligatorios están vigentes hoy. Carga en lote (tres consultas) y
   aplica las reglas puras de ``expediente/vigencia.py``; no las duplica.
+
+Protección de celdas pequeñas (R-08; enmienda E-6.6 de ADR-026, provisional):
+``calcular`` no publica un indicador si alguno de sus conteos queda entre 1 y
+``K - 1``; lo marca ``suprimido`` y deja sus números en ``None``. En concreción
+y primera respuesta el conteo se mira **mes a mes** (si un mes del período es
+pequeño, todo el período se suprime: restar dos períodos no despeja ese mes).
+La mediana de primera respuesta exige además ``K`` o más maestros distintos.
+El cero no se suprime: no describe a ninguna persona.
 """
 import datetime
 from collections import defaultdict
 
 from django.db.models import Aggregate, Count, F, FloatField, Func, OuterRef, Q, Subquery
+from django.db.models.functions import TruncMonth
 
 from expediente import vigencia
 from expediente.models import Documento, EstadoDocumento, EstadoExpediente, Expediente, OficioMaestro
@@ -34,6 +43,14 @@ DEFINICION_VIGENCIA = (
     "Porcentaje de maestros aprobados que hoy tienen vigentes todos sus documentos obligatorios "
     "(cédula, certificado de antecedentes y licencia de cada oficio regulado)."
 )
+
+
+K = 5  # umbral mínimo de personas o casos por celda publicada (P-29; E-6.2, E-6.6)
+
+
+def pequeno(conteo):
+    """Conteo publicable solo si es 0 o ``K`` o más (E-6.6)."""
+    return 0 < conteo < K
 
 
 class Mediana(Aggregate):
@@ -98,11 +115,17 @@ def _primera_respuesta_del_maestro():
     )
 
 
-def primera_respuesta(inicio, fin):
-    datos = (
+def _respondidos(inicio, fin):
+    return (
         tickets_del_periodo(inicio, fin)
         .annotate(respondido_en=Subquery(_primera_respuesta_del_maestro()))
         .filter(respondido_en__isnull=False)
+    )
+
+
+def primera_respuesta(inicio, fin):
+    datos = (
+        _respondidos(inicio, fin)
         .annotate(demora=Segundos(F("respondido_en") - F("enviado_en")))
         .aggregate(mediana=Mediana("demora"), cantidad=Count("id"))
     )
@@ -154,10 +177,42 @@ def vigencia_documental(hoy=None):
     }
 
 
+def _algun_mes_pequeno(consulta, **conteos):
+    """Algún mes (de ``enviado_en``, zona de negocio) con un conteo entre 1 y ``K - 1``."""
+    filas = (
+        consulta.annotate(mes=TruncMonth("enviado_en", tzinfo=vigencia.ZONA_NEGOCIO))
+        .values("mes")
+        .annotate(**conteos)
+        .order_by()
+    )
+    return any(pequeno(fila[nombre]) for fila in filas for nombre in conteos)
+
+
+def _publicar(datos, suprimir, *numeros):
+    if suprimir:
+        datos.update(dict.fromkeys(numeros))
+    datos["suprimido"] = suprimir
+    return datos
+
+
 def calcular(desde, hasta):
+    """Los tres indicadores con la protección de celdas pequeñas (E-6.6)."""
     inicio, fin = periodo(desde, hasta)
+    mensual = _algun_mes_pequeno(
+        tickets_del_periodo(inicio, fin), enviados=Count("id"), concretados=Count("id", filter=FILTRO_CONCRETADO)
+    )
+    respondidos = _respondidos(inicio, fin)
+    maestros = respondidos.aggregate(n=Count("perfil_maestro_id", distinct=True))["n"]
+    respuesta_pequena = pequeno(maestros) or _algun_mes_pequeno(respondidos, cantidad=Count("id"))
+    documental = vigencia_documental()
     return {
-        "concrecion": concrecion(inicio, fin),
-        "primera_respuesta": primera_respuesta(inicio, fin),
-        "vigencia_documental": vigencia_documental(),
+        "concrecion": _publicar(concrecion(inicio, fin), mensual, "porcentaje", "concretados", "enviados"),
+        "primera_respuesta": _publicar(
+            primera_respuesta(inicio, fin), respuesta_pequena, "mediana_minutos", "cantidad"
+        ),
+        "vigencia_documental": _publicar(
+            documental,
+            pequeno(documental["vigentes"]) or pequeno(documental["aprobados"]),
+            "porcentaje", "vigentes", "aprobados",
+        ),
     }

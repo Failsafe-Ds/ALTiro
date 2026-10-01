@@ -17,7 +17,7 @@ from autorizacion.models import RegistroAccesoDenegado
 from bitacora.models import Bitacora
 from catalogo.models import Oficio
 from expediente.models import Documento, EstadoDocumento, EstadoExpediente, Expediente, TipoDocumento
-from gestion import exportacion
+from gestion import exportacion, indicadores
 from identidad.models import PerfilMaestro, Rol, Usuario
 from tests import busqueda_ayudas as ay
 from tests import tickets_ayudas as tk
@@ -32,7 +32,7 @@ ZONA = AHORA.tzinfo
 URL_IND = "/api/gestion/indicadores"
 URL_EXP = "/api/gestion/exportacion"
 CORREO_GESTION = "gestion@example.com"
-PERIODO = {"desde": "2026-09-01", "hasta": "2026-10-06"}
+PERIODO = {"desde": "2026-09", "hasta": "2026-09"}  # último mes cerrado (E-6.6)
 BASE = datetime.datetime(2026, 9, 10, 10, 0, tzinfo=ZONA)
 
 
@@ -114,6 +114,11 @@ def _al_dia(maestro, cedula_vence=datetime.date(2030, 1, 1)):
     _documento(maestro, TipoDocumento.CERTIFICADO_ANTECEDENTES)  # sin vencimiento: siempre vigente
 
 
+def _crudo(funcion):
+    """Fórmula sin la protección de celdas pequeñas (E-6.6), sobre septiembre de 2026."""
+    return funcion(*indicadores.periodo(datetime.date(2026, 9, 1), datetime.date(2026, 9, 30)))
+
+
 def _csv(respuesta):
     return list(csv.reader(io.StringIO(respuesta.content.decode("utf-8-sig"))))
 
@@ -150,7 +155,8 @@ def test_control_de_gestion_consulta_los_tres_indicadores(sesion_gestion):
 
     assert respuesta.status_code == 200 and respuesta["Cache-Control"] == "no-store"
     datos = respuesta.json()
-    assert set(datos) == {"periodo", "concrecion", "primera_respuesta", "vigencia_documental"}
+    assert set(datos) == {"periodo", "umbral", "concrecion", "primera_respuesta", "vigencia_documental"}
+    assert datos["periodo"] == {"desde": "2026-09", "hasta": "2026-09"} and datos["umbral"] == 5
     for clave in ("concrecion", "primera_respuesta", "vigencia_documental"):
         assert datos[clave]["definicion"]
     assert datos["concrecion"]["porcentaje"] is None  # sin pedidos no hay división
@@ -164,12 +170,14 @@ def test_control_de_gestion_consulta_los_tres_indicadores(sesion_gestion):
 @pytest.mark.parametrize(
     "periodo, campos",
     [
-        ({"desde": "2026-09-01", "hasta": "2026-09-30"}, {"hasta"}),  # 30 días
-        ({"desde": "2025-09-01", "hasta": "2026-09-02"}, {"hasta"}),  # 367 días
-        ({"desde": "2026-10-01", "hasta": "2026-09-01"}, {"hasta"}),  # al revés
-        ({"desde": "2026-02-30", "hasta": "2026-06-01"}, {"desde"}),  # no existe
-        ({"desde": "01-09-2026", "hasta": "2026-12-01"}, {"desde"}),
-        ({"desde": "2026-09-01"}, {"hasta"}),
+        ({"desde": "2026-09", "hasta": "2026-10"}, {"hasta"}),  # mes en curso: todavía abierto
+        ({"desde": "2026-10", "hasta": "2026-10"}, {"hasta"}),
+        ({"desde": "2025-09", "hasta": "2026-09"}, {"hasta"}),  # 13 meses
+        ({"desde": "2026-09", "hasta": "2026-08"}, {"hasta"}),  # al revés
+        ({"desde": "2026-13", "hasta": "2026-09"}, {"desde"}),  # no existe
+        ({"desde": "2026-08-15", "hasta": "2026-09"}, {"desde"}),  # día suelto: solo meses completos
+        ({"desde": "09-2026", "hasta": "2026-09"}, {"desde"}),
+        ({"desde": "2026-09"}, {"hasta"}),
         ({}, {"desde", "hasta"}),
     ],
 )
@@ -184,11 +192,11 @@ def test_periodo_fuera_de_rango_o_invalido_da_400_en_el_campo(sesion_gestion, ur
 @pytest.mark.regla("I-04")
 @pytest.mark.parametrize("url", [URL_IND, URL_EXP])
 def test_limites_del_periodo_y_claves_desconocidas(sesion_gestion, url):
-    assert sesion_gestion.get(url, {"desde": "2026-09-01", "hasta": "2026-10-01"}).status_code == 200  # 31
-    assert sesion_gestion.get(url, {"desde": "2025-10-01", "hasta": "2026-10-01"}).status_code == 200  # 366
+    assert sesion_gestion.get(url, {"desde": "2026-09", "hasta": "2026-09"}).status_code == 200  # 1 mes
+    assert sesion_gestion.get(url, {"desde": "2025-10", "hasta": "2026-09"}).status_code == 200  # 12 meses
     otra = sesion_gestion.get(url, {**PERIODO, "comuna": "8101"})
     assert otra.status_code == 400 and otra.json()["errores"] == {}
-    repetida = sesion_gestion.get(f"{url}?desde=2026-09-01&desde=2026-09-02&hasta=2026-10-06")
+    repetida = sesion_gestion.get(f"{url}?desde=2026-08&desde=2026-09&hasta=2026-09")
     assert repetida.status_code == 400 and repetida.json()["errores"] == {}
 
 
@@ -206,7 +214,7 @@ def test_tasa_de_concrecion(sesion_gestion, catalogo):
     # Fuera del período (por enviado_en): no cuenta.
     _ticket(cliente, maestro, EstadoTicket.FINALIZADO, enviado_en=datetime.datetime(2026, 8, 31, 23, 0, tzinfo=ZONA))
 
-    datos = sesion_gestion.get(URL_IND, PERIODO).json()["concrecion"]
+    datos = _crudo(indicadores.concrecion)
 
     assert (datos["porcentaje"], datos["concretados"], datos["enviados"]) == (25.0, 1, 4)
 
@@ -229,7 +237,7 @@ def test_primera_respuesta_mediana_y_cantidad(sesion_gestion, catalogo):
     cancelado = _ticket(cliente, maestro, EstadoTicket.CERRADO, motivo=MotivoCierre.CANCELADO_CLIENTE)
     _evento(cancelado, 2, EstadoTicket.CERRADO, MotivoCierre.CANCELADO_CLIENTE, autor_id=cliente.pk)
 
-    datos = sesion_gestion.get(URL_IND, PERIODO).json()["primera_respuesta"]
+    datos = _crudo(indicadores.primera_respuesta)
 
     assert (datos["mediana_minutos"], datos["cantidad"]) == (60, 3)
 
@@ -242,7 +250,7 @@ def test_primera_respuesta_mediana_par(sesion_gestion, catalogo):
         ticket = _ticket(cliente, maestro, EstadoTicket.ACEPTADO)
         _evento(ticket, minutos, EstadoTicket.ACEPTADO)
 
-    datos = sesion_gestion.get(URL_IND, PERIODO).json()["primera_respuesta"]
+    datos = _crudo(indicadores.primera_respuesta)
 
     assert (datos["mediana_minutos"], datos["cantidad"]) == (30, 2)
 
@@ -263,7 +271,7 @@ def test_vigencia_documental(sesion_gestion, catalogo):
     # No aprobado: no entra en el denominador.
     _al_dia(ay.maestro(6, catalogo, estado=EstadoExpediente.EN_REVISION))
 
-    datos = sesion_gestion.get(URL_IND, PERIODO).json()["vigencia_documental"]
+    datos = indicadores.vigencia_documental()
 
     assert (datos["porcentaje"], datos["vigentes"], datos["aprobados"]) == (40.0, 2, 5)
 
@@ -323,21 +331,21 @@ def test_supresion_con_menos_de_5_maestros_o_clientes(sesion_gestion, catalogo):
     assert len(filas) == 2 and filas[1][2] == "Hualpén"
 
 
-def _escenario_mediana(catalogo, finalizadas, maestros_fin=5, clientes_fin=5):
+def _escenario_mediana(catalogo, finalizadas, maestros_fin=5, clientes_fin=5, comuna=None, mes=BASE):
     """Grupo que supera la supresión de fila (5 maestros y 5 clientes con pedidos pendientes) y
     ``finalizadas`` órdenes con monto repartidas entre ``maestros_fin`` maestros y ``clientes_fin`` clientes."""
     maestros = _maestros(catalogo, 5, desde=next(_personas))
     clientes = _clientes(5, desde=next(_personas))
     for i in range(5):
-        _ticket(clientes[i], maestros[i], enviado_en=BASE + datetime.timedelta(hours=i))
+        _ticket(clientes[i], maestros[i], enviado_en=mes + datetime.timedelta(hours=i), comuna=comuna)
     for i in range(finalizadas):
         _ticket(clientes[i % clientes_fin], maestros[i % maestros_fin], EstadoTicket.FINALIZADO,
-                enviado_en=BASE + datetime.timedelta(hours=10 + i), monto_final=12000 + 1000 * i)
+                enviado_en=mes + datetime.timedelta(hours=10 + i), monto_final=12000 + 1000 * i, comuna=comuna)
 
 
 @pytest.mark.regla("N-06")
 @pytest.mark.parametrize("finalizadas, maestros_fin, clientes_fin, mediana", [
-    (1, 1, 1, ""),  # una sola orden: la mediana sería su precio exacto
+    (1, 1, 1, ""),  # una sola orden: la mediana sería su precio exacto (y el conteo se vacía, E-6.6)
     (5, 4, 5, ""),  # 5 órdenes, pero de 4 maestros distintos
     (5, 5, 4, ""),  # 5 órdenes, pero de 4 clientes distintos
     (5, 5, 5, "14000"),
@@ -349,17 +357,17 @@ def test_mediana_solo_con_5_finalizadas_de_5_maestros_y_5_clientes(sesion_gestio
     filas = _csv(sesion_gestion.get(URL_EXP, PERIODO))
 
     assert len(filas) == 2  # la fila se publica: 5 maestros y 5 clientes entre los enviados
-    assert filas[1][4:] == [str(5 + finalizadas), str(finalizadas), mediana]
+    assert filas[1][4:] == [str(5 + finalizadas), str(finalizadas) if finalizadas >= 5 else "", mediana]
 
 
 @pytest.mark.regla("N-03")
 def test_sin_totales_minimos_ni_maximos(sesion_gestion, catalogo):
     _escenario_exportable(catalogo)
-    _escenario_exportable(catalogo, mes=datetime.datetime(2026, 10, 2, 10, 0, tzinfo=ZONA))
+    _escenario_exportable(catalogo, mes=datetime.datetime(2026, 8, 2, 10, 0, tzinfo=ZONA))
 
-    filas = _csv(sesion_gestion.get(URL_EXP, PERIODO))
+    filas = _csv(sesion_gestion.get(URL_EXP, {"desde": "2026-08", "hasta": "2026-09"}))
 
-    assert [f[0] for f in filas[1:]] == ["2026-09", "2026-10"]  # una fila por grupo, ninguna de totales
+    assert [f[0] for f in filas[1:]] == ["2026-08", "2026-09"]  # una fila por grupo, ninguna de totales
     assert not [c for f in filas for c in f if re.search(r"total|m[ií]nim|m[aá]xim", c, re.I)]
     assert all(len(f) == len(exportacion.COLUMNAS) for f in filas)
 
@@ -390,5 +398,107 @@ def test_cada_exportacion_escribe_la_bitacora_sin_datos_personales(sesion_gestio
     entrada = entradas.first()
     autor = Usuario.objects.get(correo=CORREO_GESTION)
     assert (entrada.autor_tipo, entrada.autor_id, entrada.entidad) == ("usuario", autor.pk, "exportacion")
-    assert entrada.valor_nuevo == {"desde": "2026-09-01", "hasta": "2026-10-06", "filas": 1, "filas_suprimidas": 1}
+    assert entrada.valor_nuevo == {
+        "desde": "2026-09", "hasta": "2026-09", "filas": 1, "filas_suprimidas": 1, "celdas_suprimidas": 0,
+    }
     assert "@" not in str(entrada.valor_nuevo) + entrada.motivo + entrada.entidad_ref
+
+
+# --- Celdas pequeñas y diferenciación (R-08; ADR-026, E-6.6) ---
+
+
+@pytest.mark.regla("N-07")
+def test_finalizadas_bajo_5_se_vacia_con_supresion_complementaria(sesion_gestion, catalogo):
+    _escenario_mediana(catalogo, 2, comuna=ay.CONCEPCION)  # 2 finalizadas: celda vacía
+    _escenario_mediana(catalogo, 7, comuna=ay.CORONEL)  # la menor de las demás: complementaria
+    _escenario_mediana(catalogo, 9, comuna=ay.HUALPEN)  # se publica
+    # Agosto: una sola celda pequeña y ninguna otra fila (no hay complementaria posible).
+    _escenario_mediana(catalogo, 3, mes=datetime.datetime(2026, 8, 3, 10, 0, tzinfo=ZONA))
+
+    filas = _csv(sesion_gestion.get(URL_EXP, {"desde": "2026-08", "hasta": "2026-09"}))
+
+    por_comuna = {(f[0], f[2]): f[4:] for f in filas[1:]}
+    assert por_comuna == {
+        ("2026-08", "Concepción"): ["8", "", ""],
+        ("2026-09", "Concepción"): ["7", "", ""],
+        ("2026-09", "Coronel"): ["12", "", ""],  # complementaria: también sin mediana
+        ("2026-09", "Hualpén"): ["14", "9", "16000"],
+    }
+    entrada = Bitacora.objects.get(accion="exportacion_agregada")
+    assert entrada.valor_nuevo["celdas_suprimidas"] == 3
+    # El total del mes (concreción) menos lo publicado ya no despeja la celda de 2.
+    concretados = sesion_gestion.get(URL_IND, PERIODO).json()["concrecion"]["concretados"]
+    publicadas = sum(int(f[5]) for f in filas[1:] if f[0] == "2026-09" and f[5])
+    assert concretados - publicadas == 2 + 7
+
+
+@pytest.mark.regla("N-08")
+def test_ventanas_solapadas_no_aislan_dias(sesion_gestion, catalogo):
+    """Los períodos son meses cerrados: dos exportaciones solapadas traen las mismas filas del mes común."""
+    _escenario_exportable(catalogo)
+    _escenario_exportable(catalogo, mes=datetime.datetime(2026, 8, 20, 10, 0, tzinfo=ZONA))
+    _escenario_exportable(catalogo, mes=datetime.datetime(2026, 9, 15, 10, 0, tzinfo=ZONA))  # un solo día
+
+    dos_meses = _csv(sesion_gestion.get(URL_EXP, {"desde": "2026-08", "hasta": "2026-09"}))
+    un_mes = _csv(sesion_gestion.get(URL_EXP, PERIODO))
+
+    assert [f for f in dos_meses[1:] if f[0] == "2026-09"] == un_mes[1:]
+    for desde, hasta in (("2026-08-15", "2026-09-15"), ("2026-08-16", "2026-09-16"), ("2026-09", "2026-10")):
+        assert sesion_gestion.get(URL_EXP, {"desde": desde, "hasta": hasta}).status_code == 400
+    # El 30 de septiembre a las 23:30 en Santiago, septiembre todavía está abierto.
+    with time_machine.travel(datetime.datetime(2026, 9, 30, 23, 30, tzinfo=ZONA), tick=False):
+        assert set(sesion_gestion.get(URL_EXP, PERIODO).json()["errores"]) == {"hasta"}
+
+
+@pytest.mark.regla("I-05")
+def test_indicadores_con_menos_de_5_se_suprimen(sesion_gestion, catalogo):
+    maestro = ay.maestro(1, catalogo)
+    cliente = tk.cliente()
+    for minutos in (10, 20, 30, 40, 50):  # 5 respuestas, pero de un solo maestro
+        _evento(_ticket(cliente, maestro, EstadoTicket.FINALIZADO), minutos, EstadoTicket.ACEPTADO)
+    _al_dia(maestro)  # 1 maestro aprobado y vigente
+
+    datos = sesion_gestion.get(URL_IND, PERIODO).json()
+
+    assert datos["concrecion"]["suprimido"] is False and datos["concrecion"]["enviados"] == 5
+    respuesta = datos["primera_respuesta"]
+    assert respuesta == {**respuesta, "suprimido": True, "mediana_minutos": None, "cantidad": None}
+    vigencia = datos["vigencia_documental"]
+    assert vigencia == {**vigencia, "suprimido": True, "porcentaje": None, "vigentes": None, "aprobados": None}
+    assert _crudo(indicadores.primera_respuesta)["cantidad"] == 5  # la fórmula no cambia
+
+
+@pytest.mark.regla("I-05")
+def test_primera_respuesta_con_5_maestros_se_publica(sesion_gestion, catalogo):
+    cliente = tk.cliente()
+    for n, minutos in enumerate((10, 20, 30, 40, 50), start=1):
+        _evento(_ticket(cliente, ay.maestro(n, catalogo), EstadoTicket.ACEPTADO), minutos, EstadoTicket.ACEPTADO)
+
+    datos = sesion_gestion.get(URL_IND, PERIODO).json()["primera_respuesta"]
+
+    assert (datos["suprimido"], datos["mediana_minutos"], datos["cantidad"]) == (False, 30, 5)
+
+
+@pytest.mark.regla("I-05")
+def test_un_mes_pequeno_suprime_todo_el_periodo(sesion_gestion, catalogo):
+    """Restar [ago..sep] menos [ago..ago] no despeja septiembre si septiembre tiene de 1 a 4 pedidos."""
+    maestro = ay.maestro(1, catalogo)
+    cliente = tk.cliente()
+    agosto = datetime.datetime(2026, 8, 5, 10, 0, tzinfo=ZONA)
+    for horas in range(10):
+        _ticket(cliente, maestro, enviado_en=agosto + datetime.timedelta(hours=horas))
+    for _ in range(2):
+        _ticket(cliente, maestro, EstadoTicket.FINALIZADO)  # septiembre: 2 pedidos
+
+    def concrecion(desde, hasta):
+        return sesion_gestion.get(URL_IND, {"desde": desde, "hasta": hasta}).json()["concrecion"]
+
+    solo_agosto = concrecion("2026-08", "2026-08")
+    ambos = concrecion("2026-08", "2026-09")
+    septiembre = concrecion("2026-09", "2026-09")
+    julio = concrecion("2026-07", "2026-07")
+
+    assert (solo_agosto["suprimido"], solo_agosto["enviados"], solo_agosto["porcentaje"]) == (False, 10, 0.0)
+    assert ambos["suprimido"] is True and ambos["enviados"] is None and ambos["concretados"] is None
+    assert septiembre["suprimido"] is True and septiembre["porcentaje"] is None
+    assert (julio["suprimido"], julio["enviados"]) == (False, 0)  # el cero no se suprime

@@ -83,3 +83,13 @@ RNF-09 fija "Reautenticación al cambiar contraseña o correo", pero ninguna HU 
 - RNF-09 queda con evidencia completa: expiración (S1) y reautenticación (este ADR). DA-09 se cierra y P-11 se responde con "A, más recuperación".
 - **Riesgo aceptado:** la diferencia de tiempo de respuesta entre una cuenta con correo, que escribe un archivo, y una sin correo podría insinuar qué cuentas existen. En la prueba de concepto se acepta. Con un SMTP real, el envío debería ir a una cola.
 - Quien controle el correo de una cuenta puede tomarla. Es el modelo habitual de recuperación y no tiene mitigación adicional en la prueba de concepto.
+
+## Enmiendas
+
+### E-1 — Carreras y tiempo de respuesta en la recuperación
+- **Fecha:** 2026-10-01.
+- **Motivo:** auditoría de seguridad, hallazgos B2 (enumeración de cuentas por el tiempo de respuesta, el riesgo aceptado en «Consecuencias») y B3 (dos solicitudes simultáneas podían superar los límites del punto 3 o dejar dos enlaces vigentes).
+- **Cambio B3:** la solicitud toma, dentro de su transacción, un bloqueo consultivo de PostgreSQL por origen y después bloquea la fila del usuario (`select_for_update`), siempre en ese orden. Las solicitudes simultáneas del mismo origen o de la misma cuenta se ordenan: no se supera el tope de 5 por origen ni el de 3 enlaces por cuenta, y "un token nuevo anula los anteriores" se cumple también en paralelo. El enlace asistido bloquea la misma fila.
+- **Cambio B2:** el correo del enlace se escribe en un hilo aparte, después de confirmar la transacción; la respuesta 202 no espera la escritura del archivo (ni, en el futuro, la de un SMTP). Las pruebas lo ejecutan en línea (`ALTIRO_CORREO_EN_SEGUNDO_PLANO=False` en `settings_pruebas`) para leer el buzón, y una prueba verifica el hilo.
+- **Riesgo residual:** la cuenta existente con correo hace todavía algunas consultas más (bloqueo de la fila, anulación y creación del token), del orden de un milisegundo en la red interna, por debajo de la variación normal de una red móvil. Se acepta en la prueba de concepto. Un hilo que falla al escribir solo registra el error sin datos (punto 4).
+- **Aprobación:** pendiente de ratificación del equipo de desarrollo; implementado a pedido del usuario el 2026-10-01.

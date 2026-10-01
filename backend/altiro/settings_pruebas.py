@@ -12,3 +12,8 @@ from altiro.settings import INSTALLED_APPS as _APPS_BASE
 INSTALLED_APPS = [*_APPS_BASE, "tests.recurso_prueba"]
 
 ROOT_URLCONF = "tests.recurso_prueba.urls"
+
+# El correo de recuperación se escribe en línea para leer el buzón sin esperar
+# un hilo (identidad.recuperacion._en_segundo_plano; ADR-027, E-1). Una prueba
+# lo activa para verificar el hilo.
+ALTIRO_CORREO_EN_SEGUNDO_PLANO = False

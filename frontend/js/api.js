@@ -5,6 +5,9 @@
 // - Sin conexión devuelve estado 0 y un mensaje accionable (RNF-20). Al leer
 //   (GET) no hay nada escrito que conservar: el mensaje pide tocar «Reintentar»,
 //   y cada página que muestra ese error ofrece ese botón (hallazgo UX E-2).
+// - 429 (demasiadas solicitudes): el de la app (ADR-007) y el del proxy
+//   (ADR-029) traen { mensaje, errores } en español. Si el cuerpo no se puede
+//   leer, el mensaje se arma con Retry-After (segundos) para decir cuánto esperar.
 "use strict";
 
 const api = (() => {
@@ -20,6 +23,30 @@ const api = (() => {
     mensaje: "Tuvimos un problema al procesar tu solicitud. Inténtalo de nuevo en unos minutos.",
     errores: {},
   };
+
+  function demasiadasSolicitudes(retryAfter) {
+    const segundos = Number.parseInt(retryAfter || "", 10);
+    let espera = "un momento";
+    if (Number.isFinite(segundos) && segundos > 0) {
+      const minutos = Math.ceil(segundos / 60);
+      espera = segundos < 60 ? `${segundos} segundos` : minutos === 1 ? "1 minuto" : `${minutos} minutos`;
+    }
+    return {
+      mensaje: `Recibimos demasiadas solicitudes seguidas. Espera ${espera} y vuelve a intentarlo. Lo que escribiste sigue aquí.`,
+      errores: {},
+    };
+  }
+
+  // Cuerpo de respuesta a entregar a la página cuando no trae { mensaje }.
+  function cuerpoOFalla(cuerpo, estado, retryAfter) {
+    if (cuerpo && typeof cuerpo.mensaje === "string") {
+      return cuerpo;
+    }
+    if (estado === 429) {
+      return demasiadasSolicitudes(retryAfter);
+    }
+    return cuerpo || RESPUESTA_ILEGIBLE;
+  }
 
   function leerCookie(nombre) {
     const par = document.cookie.split("; ").find((c) => c.startsWith(nombre + "="));
@@ -56,7 +83,8 @@ const api = (() => {
       return { estado: 204, datos: null, rechazoCsrf };
     }
     const cuerpo = await respuesta.json().catch(() => null);
-    return { estado: respuesta.status, datos: cuerpo || RESPUESTA_ILEGIBLE, rechazoCsrf };
+    const cuerpoFinal = cuerpoOFalla(cuerpo, respuesta.status, respuesta.headers.get("Retry-After"));
+    return { estado: respuesta.status, datos: cuerpoFinal, rechazoCsrf };
   }
 
   async function pedir(metodo, ruta, datos) {
@@ -112,7 +140,8 @@ const api = (() => {
           resolver({ estado: 0, datos: SIN_CONEXION });
           return;
         }
-        resolver({ estado: xhr.status, datos: cuerpo || RESPUESTA_ILEGIBLE, rechazoCsrf });
+        const cuerpoFinal = cuerpoOFalla(cuerpo, xhr.status, xhr.getResponseHeader("Retry-After"));
+        resolver({ estado: xhr.status, datos: cuerpoFinal, rechazoCsrf });
       });
       for (const falla of ["error", "abort", "timeout"]) {
         xhr.addEventListener(falla, () => resolver({ estado: 0, datos: SIN_CONEXION }));

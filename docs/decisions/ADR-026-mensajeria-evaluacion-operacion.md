@@ -90,6 +90,13 @@ Se mantiene y se extiende a las rutas de precio final. Quien la recibe ya es par
    - con 1 a 4 órdenes finalizadas, `ordenes_finalizadas` se sigue publicando, porque es un conteo sin monto;
    - motivo: con pocas órdenes la mediana revela el precio exacto de un trabajo (divulgación de atributos, R-08; CLAUDE.md §8).
 
+6. **Enmienda (hallazgo M2 de auditoría, 2026-10-01). Estado: Aceptada — PROVISIONAL** (se revisa con P-29). El informe solo fija «umbral mínimo de registros por grupo y exclusión de identificadores» (M-06, R-08); lo que sigue es concreción técnica de ese umbral. Reemplaza el período del punto 3 y el segundo guion del punto 5:
+   - **período en meses calendario completos y cerrados**: `desde` y `hasta` en `AAAA-MM`, de 1 a 12 meses, con `hasta` anterior al mes en curso (zona `America/Santiago`). Dos consultas ya no se solapan a medias ni cambian dentro de un mes abierto, así que restarlas no aísla los pedidos de un día (diferenciación);
+   - **exportación**: `ordenes_finalizadas` entre 1 y 4 queda vacía (y su mediana). Si en un mes queda una sola celda así, se vacía además la menor `ordenes_finalizadas` de las otras filas de ese mes, con su mediana (supresión complementaria), para que el total del mes del indicador de concreción no la despeje. La bitácora agrega `celdas_suprimidas`;
+   - **indicadores**: un indicador se publica `suprimido: true`, con sus números en `null`, si alguno de sus conteos queda entre 1 y 4: en concreción, enviados o concretados de algún mes del período; en primera respuesta, la cantidad de algún mes o menos de 5 maestros distintos; en vigencia, vigentes o aprobados. La respuesta incluye `umbral` (5) y la pantalla dice «Menos de 5 casos» con texto;
+   - el **cero no se suprime**: no describe a ninguna persona;
+   - riesgos residuales aceptados: el estado de un pedido puede cambiar después de cerrado su mes (dos exportaciones del mismo mes en fechas distintas muestran esa diferencia); con dos o más celdas vacías en un mes se conoce su suma; la suma de las filas suprimidas de un mes se deduce del indicador, sin saber a qué comuna u oficio pertenece.
+
 ### E-7. Respaldo y restauración (RNF-19, R-04)
 1. **Servicio `respaldo`.** Usa la misma imagen `postgres:16` y no agrega imágenes. Una vez al día, a la hora configurada (RNF-24), ejecuta:
    - `pg_dump -Fc`;

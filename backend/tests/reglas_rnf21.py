@@ -116,7 +116,9 @@ REGLAS = {
         "I-02": "RF-38 / E-6.1 (P-32): primera respuesta = mediana hasta la primera respuesta del maestro, "
                 "sin bloque_tomado ni cierres del Sistema",
         "I-03": "RF-38 / E-6.1: vigencia documental = aprobados con todos sus documentos obligatorios vigentes",
-        "I-04": "E-6.3 / ADR-013: período fuera de 31..366 días o fecha inválida, 400 en el campo",
+        "I-04": "E-6.3 / E-6.6 / ADR-013: período fuera de 1..12 meses cerrados o mes inválido, 400 en el campo",
+        "I-05": "R-08 / E-6.6: un indicador con un conteo de 1 a 4 (mes a mes, o menos de 5 maestros en la "
+                "mediana) se publica suprimido",
     },
     "anonimizacion": {
         "N-01": "CA-22.2 / RF-38: el CSV solo trae las columnas de la lista y ningún RUT, nombre, teléfono, correo "
@@ -127,6 +129,8 @@ REGLAS = {
         "N-05": "RF-37 / E-6: cada exportación escribe la bitácora con autor, período y cantidades, sin datos personales",
         "N-06": "DEF-QA-014 / E-6.5: la mediana solo se publica con 5 o más finalizadas de 5 o más maestros y 5 o más "
                 "clientes distintos; si no, la celda queda vacía",
+        "N-07": "R-08 / E-6.6: ordenes_finalizadas de 1 a 4 queda vacía, con supresión complementaria en el mes",
+        "N-08": "R-08 / E-6.6: períodos en meses cerrados; dos exportaciones solapadas no aíslan días",
     },
 }
 

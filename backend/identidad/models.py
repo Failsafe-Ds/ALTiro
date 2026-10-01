@@ -200,6 +200,30 @@ class IntentoAutenticacion(models.Model):
         return f"Intento fallido {self.pk}"
 
 
+class EventoFrecuencia(models.Model):
+    """Evento contado por el limitador de frecuencia (ADR-007, E-1).
+
+    ``ambito`` dice qué se limita (registro por origen, denegaciones por
+    usuario); ``clave`` es el origen o el id del usuario. No guarda correo,
+    RUT ni la ruta pedida. Se borra a las 24 horas y solo lo lee
+    ``identidad.frecuencia``; nunca se usa para deshabilitar una cuenta (M-07, M-08).
+    """
+
+    ambito = models.CharField(max_length=20)
+    clave = models.CharField(max_length=64)
+    fecha = models.DateTimeField()
+
+    class Meta:
+        db_table = "evento_frecuencia"
+        indexes = [
+            models.Index(fields=["ambito", "clave", "fecha"], name="frecuencia_ambito_clave"),
+            models.Index(fields=["fecha"], name="frecuencia_fecha"),
+        ]
+
+    def __str__(self):
+        return f"Evento de frecuencia {self.pk}"
+
+
 class ViaRecuperacion(models.TextChoices):
     """Cómo se pidió el enlace de recuperación (ADR-027, punto 3)."""
 

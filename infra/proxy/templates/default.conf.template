@@ -24,6 +24,65 @@ log_format altiro_sin_consulta '$remote_addr - $remote_user [$time_local] '
                                '"$request_method $altiro_ruta_sin_consulta $server_protocol" '
                                '$status $body_bytes_sent "$altiro_referer_sin_consulta" "$http_user_agent"';
 
+# --- Limitación de solicitudes contra inundación (ADR-029) ---
+# Capa extra frente a ráfagas y fuerza bruta. NO reemplaza el limitador de
+# intentos fallidos por cuenta y origen de la app (RNF-10, ADR-007), que sigue
+# igual. Clave: la IP de quien conecta al proxy. En Docker Desktop todos los
+# clientes del equipo anfitrión llegan con la IP del gateway, así que los
+# umbrales son holgados (ver ADR-029).
+# - general: todo el sitio (páginas, JS, CSS y API). 100 solicitudes/s con
+#   ráfaga de 200 sin espera: sobre el pico legítimo medido (RNF-01: 10 hilos
+#   de búsqueda, unas 50/s; una página con sus JS y CSS son unas 12) y bajo una
+#   inundación desde un solo origen.
+# - estricta: solo POST de inicio de sesión, registro y recuperación. 20 por
+#   minuto con ráfaga de 30 sin espera: 10 personas tras la misma IP pueden
+#   ingresar a la vez, y la ráfaga es mayor que los 20 fallos por origen de
+#   ADR-007, para que el bloqueo de la app siga siendo el primero en actuar.
+#   Los GET de esas rutas usan clave vacía y no se cuentan.
+map $request_method $altiro_clave_estricta {
+    POST    $binary_remote_addr;
+    default "";
+}
+limit_req_zone $binary_remote_addr     zone=altiro_general:10m  rate=100r/s;
+limit_req_zone $altiro_clave_estricta  zone=altiro_estricta:10m rate=20r/m;
+limit_conn_zone $binary_remote_addr    zone=altiro_conexiones:10m;
+limit_req_status 429;
+limit_conn_status 429;
+# El aviso de Nginx en error_log incluiría la línea de petición con su
+# consulta, la IP y el Referer: se baja a "info" (no se escribe con el nivel
+# "notice" de la imagen). El rechazo se registra en access_log, abajo.
+limit_req_log_level info;
+limit_conn_log_level info;
+
+# Registro de rechazos (429) sin IP, sin agente ni consulta: solo fecha,
+# método, ruta y qué limitador actuó (REJECTED en req o conn = proxy; PASSED
+# en ambos = 429 propio de la app, ADR-007). Las demás respuestas van al
+# formato altiro_sin_consulta.
+map $status $altiro_es_429 {
+    429     1;
+    default 0;
+}
+map $status $altiro_no_es_429 {
+    429     0;
+    default 1;
+}
+log_format altiro_limitacion '[$time_local] limitacion 429 '
+                             '"$request_method $altiro_ruta_sin_consulta" '
+                             'req=$limit_req_status conn=$limit_conn_status';
+
+# Redirección http->https (hallazgo B-2, ADR-029): el nombre de destino no se
+# toma tal cual de la petición. Solo se conservan localhost y las IPv4 de
+# loopback o de red privada (acceso desde teléfonos de la red local con
+# ALTIRO_BIND_ADDR, ADR-008); cualquier otro Host redirige a localhost.
+map $host $altiro_host_redireccion {
+    "localhost"                                         "localhost";
+    "~^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$"                 $host;
+    "~^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$"                  $host;
+    "~^192\.168\.\d{1,3}\.\d{1,3}$"                     $host;
+    "~^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$"      $host;
+    default                                             "localhost";
+}
+
 # Puerto 80: solo redirige a HTTPS. 307 (temporal) para no quedar en la caché
 # del navegador como ocurriría con un 301.
 server {
@@ -31,24 +90,43 @@ server {
     server_name _;
     access_log /var/log/nginx/access.log altiro_sin_consulta;
 
-    return 307 https://$host:${ALTIRO_HTTPS_PORT}$request_uri;
+    client_header_timeout 10s;
+    client_body_timeout 10s;
+    keepalive_timeout 15s;
+
+    return 307 https://$altiro_host_redireccion:${ALTIRO_HTTPS_PORT}$request_uri;
 }
 
 server {
     listen 443 ssl default_server;
     http2 on;
     server_name _;
-    access_log /var/log/nginx/access.log altiro_sin_consulta;
+    access_log /var/log/nginx/access.log altiro_sin_consulta if=$altiro_no_es_429;
+    access_log /var/log/nginx/access.log altiro_limitacion if=$altiro_es_429;
 
     ssl_certificate     /etc/nginx/certificados/cert.pem;
     ssl_certificate_key /etc/nginx/certificados/key.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
 
-    # Cabeceras de seguridad emitidas en un solo lugar (ADR-008).
-    # Sin Strict-Transport-Security en la demostración.
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "same-origin" always;
+    # Cabeceras de seguridad emitidas en un solo lugar (ADR-008; B-3, ADR-029).
+    include /etc/nginx/conf.d/altiro-cabeceras.inc;
+
+    # Limitación por origen (ADR-029). Las locations sin limit_req propio
+    # heredan estas; las rutas estrictas repiten la general.
+    limit_req zone=altiro_general burst=200 nodelay;
+    limit_conn altiro_conexiones 50;
+
+    # Conexiones lentas (ADR-029). Los tiempos de cuerpo y de envío se miden
+    # entre dos lecturas o escrituras sucesivas, no en total: una foto de 8 MB
+    # con señal débil sigue subiendo mientras avance (RNF-20).
+    client_header_timeout 10s;
+    client_body_timeout 30s;
+    send_timeout 30s;
+    keepalive_timeout 30s;
+    reset_timedout_connection on;
+    # Cuerpo máximo general: 1 MB (JSON). Solo las subidas de documentos
+    # (17 MB) y de la foto (9 MB) lo amplían en su location.
+    client_max_body_size 1m;
 
     root  /usr/share/nginx/html;
     index index.html;
@@ -73,32 +151,54 @@ server {
     error_page 403 =404 /errores/404.html;
     error_page 404 /errores/404.html;
     error_page 500 502 503 504 /errores/50x.html;
+    error_page 429 /errores/429.html;
 
     # Solo se entregan como respuesta a un error, no al pedirlas directamente.
+    # Nunca quedan en caché: al reintentar debe verse la página real.
     location ^~ /errores/ {
         internal;
+        include /etc/nginx/conf.d/altiro-cabeceras.inc;
+        add_header Cache-Control "no-store" always;
+    }
+
+    # Inicio de sesión, registro y recuperación (ADR-029): límite estricto por
+    # origen para POST, además del general. Rutas de backend/altiro/urls.py.
+    location = /api/sesion {
+        limit_req zone=altiro_general burst=200 nodelay;
+        limit_req zone=altiro_estricta burst=30 nodelay;
+        error_page 413 @api_413;
+        include /etc/nginx/conf.d/altiro-api.inc;
+    }
+    location = /api/clientes {
+        limit_req zone=altiro_general burst=200 nodelay;
+        limit_req zone=altiro_estricta burst=30 nodelay;
+        error_page 413 @api_413;
+        include /etc/nginx/conf.d/altiro-api.inc;
+    }
+    location = /api/maestros/postulaciones {
+        limit_req zone=altiro_general burst=200 nodelay;
+        limit_req zone=altiro_estricta burst=30 nodelay;
+        error_page 413 @api_413;
+        include /etc/nginx/conf.d/altiro-api.inc;
+    }
+    location = /api/recuperacion {
+        limit_req zone=altiro_general burst=200 nodelay;
+        limit_req zone=altiro_estricta burst=30 nodelay;
+        error_page 413 @api_413;
+        include /etc/nginx/conf.d/altiro-api.inc;
+    }
+    location = /api/recuperacion/contrasena {
+        limit_req zone=altiro_general burst=200 nodelay;
+        limit_req zone=altiro_estricta burst=30 nodelay;
+        error_page 413 @api_413;
+        include /etc/nginx/conf.d/altiro-api.inc;
     }
 
     # API JSON (ADR-002).
+    # Paso a la app, cabeceras y errores 429/50x en JSON: altiro-api.inc.
     location /api/ {
-        proxy_pass http://app:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        # Origen del intento para el limitador (RNF-10, ADR-007). Se sobrescribe
-        # siempre: el cliente no puede inyectar su propio X-Real-IP.
-        proxy_set_header X-Real-IP $remote_addr;
-
-        # Evita cabeceras duplicadas: estas las emite Nginx arriba.
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header Referrer-Policy;
-        proxy_hide_header Strict-Transport-Security;
-
-        # Errores que genera el propio Nginx (cuerpo demasiado grande, app caída
-        # o que no responde): JSON con el formato común { mensaje, errores } que
-        # entiende js/api.js (DEF-QA-006, RNF-15). Sin proxy_intercept_errors,
-        # las respuestas de la app (400, 404, 500 en JSON) pasan sin cambios.
+        include /etc/nginx/conf.d/altiro-api.inc;
         error_page 413 @api_413;
-        error_page 500 502 503 504 @api_no_disponible;
     }
 
     # Subida de documentos del maestro (ADR-015, D-5): la única ruta con más de
@@ -111,17 +211,9 @@ server {
         client_max_body_size 17m;
         client_body_buffer_size 17m;
 
-        proxy_pass http://app:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Real-IP $remote_addr;
-
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header Referrer-Policy;
-        proxy_hide_header Strict-Transport-Security;
+        include /etc/nginx/conf.d/altiro-api.inc;
 
         error_page 413 @api_413_documentos;
-        error_page 500 502 503 504 @api_no_disponible;
     }
 
     # Enlaces firmados de 600 s de un documento (RNF-06, ADR-015; ADR-017, E-3):
@@ -129,16 +221,8 @@ server {
     location ~ ^/api/(curatoria/)?documentos/[^/]+/enlace$ {
         gzip off;
 
-        proxy_pass http://app:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Real-IP $remote_addr;
+        include /etc/nginx/conf.d/altiro-api.inc;
 
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header Referrer-Policy;
-        proxy_hide_header Strict-Transport-Security;
-
-        error_page 500 502 503 504 @api_no_disponible;
     }
 
     # Descarga de la foto de un documento (RNF-06, ADR-015; DEF-QA-009). Es la
@@ -164,16 +248,8 @@ server {
         proxy_buffers 32 256k;
         proxy_busy_buffers_size 512k;
 
-        proxy_pass http://app:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Real-IP $remote_addr;
+        include /etc/nginx/conf.d/altiro-api.inc;
 
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header Referrer-Policy;
-        proxy_hide_header Strict-Transport-Security;
-
-        error_page 500 502 503 504 @api_no_disponible;
     }
 
     # Subida de la foto del maestro (ADR-021, punto 4; patrón de ADR-015, D-5):
@@ -186,17 +262,9 @@ server {
         client_max_body_size 9m;
         client_body_buffer_size 9m;
 
-        proxy_pass http://app:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Real-IP $remote_addr;
-
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header Referrer-Policy;
-        proxy_hide_header Strict-Transport-Security;
+        include /etc/nginx/conf.d/altiro-api.inc;
 
         error_page 413 @api_413_foto;
-        error_page 500 502 503 504 @api_no_disponible;
     }
 
     # Foto pública de un maestro publicado (ADR-021, punto 3). Variantes de
@@ -207,16 +275,8 @@ server {
         proxy_buffers 16 64k;
         proxy_busy_buffers_size 128k;
 
-        proxy_pass http://app:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Real-IP $remote_addr;
+        include /etc/nginx/conf.d/altiro-api.inc;
 
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header Referrer-Policy;
-        proxy_hide_header Strict-Transport-Security;
-
-        error_page 500 502 503 504 @api_no_disponible;
     }
 
     location @api_413_foto {
@@ -234,13 +294,28 @@ server {
         return 413 '{"mensaje": "Lo que enviaste es demasiado grande. Reduce su tamaño e inténtalo de nuevo.", "errores": {}}';
     }
 
+    # Rechazo del limitador del proxy (ADR-029). Retry-After fijo: 30 s bastan
+    # para recuperar la ráfaga general y 10 cupos de la estricta.
+    location @api_429 {
+        include /etc/nginx/conf.d/altiro-cabeceras.inc;
+        add_header Retry-After "30" always;
+        add_header Cache-Control "no-store" always;
+        default_type application/json;
+        return 429 '{"mensaje": "Recibimos demasiadas solicitudes seguidas desde tu conexión. Espera 30 segundos y vuelve a intentarlo. Lo que escribiste sigue aquí.", "errores": {}}';
+    }
+
     location @api_no_disponible {
         default_type application/json;
         return 503 '{"mensaje": "AlTiro no está disponible en este momento. Espera unos minutos e inténtalo de nuevo.", "errores": {}}';
     }
 
-    # Frontend estático (HTML, CSS, JS).
+    # Frontend estático (HTML, CSS, JS). Hallazgo B-1 (ADR-029): "no-cache"
+    # obliga a revalidar con ETag/Last-Modified (que Nginx envía siempre); si
+    # el archivo no cambió, la respuesta es un 304 sin cuerpo (RNF-02). Los
+    # nombres de JS y CSS no llevan versión, por eso no se usa max-age.
     location / {
+        include /etc/nginx/conf.d/altiro-cabeceras.inc;
+        add_header Cache-Control "no-cache" always;
         try_files $uri $uri/ =404;
     }
 }
