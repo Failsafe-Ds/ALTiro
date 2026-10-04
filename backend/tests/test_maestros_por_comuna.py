@@ -2,6 +2,8 @@
 
 Se usa la región de Arica y Parinacota (15: 4 comunas) para que las pruebas sean rápidas.
 """
+import io
+
 import pytest
 from django.core.management import CommandError, call_command
 from django.test import Client
@@ -140,10 +142,44 @@ def test_rut_sin_choques_con_otras_cargas():
     assert mayor < cuentas_demo.RUT_BASE_DEMO < RUT_BASE_VOLUMEN
 
 
+def test_e2_comuna_con_decenas_de_maestros_por_opcion():
+    """ADR-028, E-2: --comuna limita la carga y admite más de 10 por comuna."""
+    call_command("cargar_datos_demo", "--maestros-por-comuna", "12", "--comuna", "8101", stdout=io.StringIO())
+    conteo = maestros_por_comuna.demo_publicados_por_comuna([8101, 8102])
+    assert conteo.get(8101) == 12 and not conteo.get(8102)
+    assert maestros_por_comuna.MAXIMO_POR_COMUNA < maestros_por_comuna.PUESTOS
+
+
+def test_e2_zona_densa_cubre_varias_comunas_pedidas(monkeypatch):
+    """ADR-028, E-2: desde PUESTO_ZONA_DENSA, de 3 a 6 comunas más, primero las de --comuna."""
+    monkeypatch.setattr(maestros_por_comuna, "PUESTO_ZONA_DENSA", 2)
+    foco = [8101, 8102, 8103, 8108, 8110, 8112]  # Gran Concepción, misma provincia
+    maestros_por_comuna.cargar_maestros_por_comuna(4, comunas=foco)
+    for base in foco:
+        perfiles = PerfilMaestro.objects.filter(coberturas__comuna_id=base, coberturas__es_base=True)
+        assert perfiles.count() == 4
+        for perfil in perfiles:
+            puesto = int(perfil.rut[:-1]) % maestros_por_comuna.PUESTOS
+            cubre = set(Cobertura.objects.filter(maestro=perfil, es_base=False).values_list("comuna_id", flat=True))
+            if puesto >= 2:
+                # De 3 a 6, pero solo hay 5 comunas pedidas además de la base.
+                assert 3 <= len(cubre) <= 5 and cubre <= set(foco) - {base}
+            else:
+                assert len(cubre) <= 2
+
+
 def test_opciones_invalidas():
     with pytest.raises(CommandError, match="--maestros-por-comuna"):
         call_command("cargar_datos_demo", "--region", "15")
     with pytest.raises(CommandError, match="entre 1 y"):
         call_command("cargar_datos_demo", "--maestros-por-comuna", "0")
+    with pytest.raises(CommandError, match="entre 1 y 99"):
+        call_command("cargar_datos_demo", "--maestros-por-comuna", "100")
+    with pytest.raises(CommandError, match="--maestros-por-comuna"):
+        call_command("cargar_datos_demo", "--comuna", "8101")
+    with pytest.raises(CommandError, match="comuna no existe"):
+        call_command("cargar_datos_demo", "--maestros-por-comuna", "--comuna", "99999")
+    with pytest.raises(CommandError, match="comuna no existe"):
+        call_command("cargar_datos_demo", "--maestros-por-comuna", "--region", "13", "--comuna", "8101")
     with pytest.raises(CommandError, match="región"):
         call_command("cargar_datos_demo", "--maestros-por-comuna", "--region", "99")

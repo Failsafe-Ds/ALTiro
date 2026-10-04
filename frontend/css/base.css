@@ -1413,3 +1413,141 @@ button.boton-quitar {
 .pie p {
   margin: 0 0 0.25rem;
 }
+
+/* --- Menú principal del encabezado (ADR-002, E-2) --- */
+.encabezado {
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--borde);
+  margin-bottom: 1rem;
+}
+
+.encabezado .marca {
+  margin-right: auto;
+}
+
+.menu {
+  position: relative;
+}
+
+.menu-boton,
+.menu-salir {
+  min-height: 44px;
+  padding: 0 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--primario);
+  background: var(--fondo);
+  border: 2px solid var(--primario);
+  border-radius: var(--radio);
+  cursor: pointer;
+}
+
+/* Sin esto, "button:hover" pinta el fondo azul oscuro bajo el texto azul y
+   «Menú» queda ilegible (RNF-17). */
+.menu-boton:hover {
+  color: var(--primario-oscuro);
+  background: var(--fondo-suave);
+}
+
+.menu-boton[aria-expanded="true"],
+.menu-boton[aria-expanded="true"]:hover {
+  color: #fff;
+  background: var(--primario);
+}
+
+.menu-lista {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  min-width: 15rem;
+  max-width: calc(100vw - 2rem);
+  margin: 0.25rem 0 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--fondo);
+  border: 2px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+.menu-lista a,
+.menu-salir {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  text-align: left;
+  text-decoration: none;
+  color: var(--texto);
+}
+
+.menu-salir {
+  border: 0;
+  color: var(--error);
+}
+
+.menu-lista a:hover,
+.menu-salir:hover {
+  background: var(--fondo-suave);
+}
+
+.menu-lista a[aria-current="page"] {
+  font-weight: 700;
+  border-left: 4px solid var(--primario);
+}
+
+.menu-lista a:focus-visible,
+.menu-boton:focus-visible,
+.menu-salir:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* --- Opciones de la cuenta: listas en vez de tarjetas --- */
+.grupo-opciones h3 {
+  margin: 1rem 0 0.25rem;
+  font-size: 1rem;
+  color: var(--texto-suave);
+}
+
+.lista-opciones {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-opciones li {
+  border-top: 1px solid var(--fondo-suave);
+}
+
+.lista-opciones a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lista-opciones a::after {
+  content: "›";
+  font-size: 1.5rem;
+}
+
+.seccion {
+  margin: 0 0 1.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--borde);
+}
+
+details.tarjeta > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}

@@ -5,7 +5,7 @@ La documentación funcional está en `docs/` (`docs/informe-altiro.md`) y las
 decisiones técnicas en `docs/decisions/`. Los desplazamientos de alcance
 (informe §5.3.6) se registran en `docs/alcance/bitacora-de-alcance.md`.
 
-Versión actual: **0.5.6** (se ve en el pie de cada página; `frontend/js/version.js`).
+Versión actual: **0.5.7** (se ve en el pie de cada página; `frontend/js/version.js`).
 Estado: **los cinco sprints del informe están construidos** (etiquetas `sprint-1` a
 `sprint-5`; cierres en `docs/testing/cierre-sprint-*.md`). Después del S5 se agregaron
 cambio y recuperación de contraseña (ADR-027), datos de demostración (ADR-028),
@@ -132,22 +132,31 @@ Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
    `crear_usuario_administrativo` (ver "Crear una cuenta administrativa").
 
 6. **Recomendado para probar el buscador.** Los 10 maestros del paso 2 son pocos: la mayoría
-   de las combinaciones de oficio y comuna quedan vacías. Para probar los filtros con volumen
-   (oficio, comuna y bloque horario; RF-09 a RF-12), carga al menos 3 maestros ficticios con
-   comuna base en **cada** comuna (unos 1.040 en todo el país, unos 2,5 min; ADR-028, Enmienda E-1):
+   de las combinaciones de oficio y comuna quedan vacías. La carga de la demo deja unos 3.500
+   maestros ficticios, con **50 a 70 por oficio en el Gran Concepción y el Gran Santiago**
+   (unos 7 minutos; ADR-028, Enmiendas E-1 y E-2):
 
    ```sh
-   docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 3
-   docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 3 --region 8   # solo una región
+   d() { docker compose exec app python manage.py cargar_datos_demo "$@"; }
+   d --maestros-por-comuna 5                                   # todo el país
+   d --maestros-por-comuna 12 --region 8                       # Biobío
+   d --maestros-por-comuna 12 --region 13                      # Metropolitana
+   d --maestros-por-comuna 99 --comuna 8101 --comuna 8102 --comuna 8103 --comuna 8107 --comuna 8108 --comuna 8110 --comuna 8112
+   d --maestros-por-comuna 99 --comuna 13101 --comuna 13110 --comuna 13114 --comuna 13119 --comuna 13120 --comuna 13123 --comuna 13201
    ```
 
+   Gran Concepción: Concepción 8101, Coronel 8102, Chiguayante 8103, Penco 8107, San Pedro de
+   la Paz 8108, Talcahuano 8110 y Hualpén 8112. Gran Santiago: Santiago 13101, La Florida 13110,
+   Las Condes 13114, Maipú 13119, Ñuñoa 13120, Providencia 13123 y Puente Alto 13201. Con las
+   comunas de una misma zona en un solo comando, los maestros extra de cada una atienden también
+   varias de las otras (zona densa).
+
    Es idempotente: cuenta los maestros demo que ya tiene cada comuna y crea solo los que faltan
-   (N entre 1 y 10; sin número, 3). Se llaman "Maestro Demo NNNN (datos de prueba)", no tienen
+   (N entre 1 y 99; sin número, 3). Se llaman "Maestro Demo NNNN (datos de prueba)", no tienen
    correo ni contraseña con la que ingresar, ofrecen oficios distintos en cada comuna (algunas
    combinaciones oficio + comuna quedan vacías a propósito para ver las sugerencias), con agendas
    de mañana, tarde, jornada o vespertino, algunos bloques ocupados y algunas evaluaciones. Los de
    gas y electricidad llevan una licencia SEC vigente sintética, cifrada como cualquier documento.
-   La carga del país completo tarda unos minutos.
 
 Si la base tiene oficios `oficio_prueba_s3_…` u `oficio_qa3_…` (restos de pruebas de navegador
 del S3), `docker compose exec app python manage.py limpiar_oficios_de_prueba` los lista.

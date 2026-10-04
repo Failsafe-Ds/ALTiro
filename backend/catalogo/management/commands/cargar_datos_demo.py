@@ -21,13 +21,14 @@ administrativa por rol administrativo (ADR-028, Enmienda E-1).
 
 Con ``--maestros-por-comuna [N]`` (ADR-028, Enmienda E-1; por defecto 3)
 garantiza al menos N maestros ficticios publicados con comuna base en cada
-comuna, o solo en las de ``--region R`` (``busqueda.maestros_por_comuna``), para
-probar los filtros de la búsqueda. Esos maestros no tienen ingreso.
+comuna, o solo en las de ``--region R``, o solo en las ``--comuna C`` (se puede
+repetir; ADR-028, E-2) (``busqueda.maestros_por_comuna``), para probar los
+filtros de la búsqueda. N va de 1 a 99. Esos maestros no tienen ingreso.
 
 Uso dentro del contenedor:
     python manage.py cargar_datos_demo
     python manage.py cargar_datos_demo --con-cuentas [--restablecer-contrasenas]
-    python manage.py cargar_datos_demo --maestros-por-comuna [N] [--region R]
+    python manage.py cargar_datos_demo --maestros-por-comuna [N] [--region R] [--comuna C ...]
 """
 import logging
 import time
@@ -102,12 +103,17 @@ class Command(BaseCommand):
             "--region", type=int, default=None, metavar="CODIGO",
             help="Con --maestros-por-comuna: solo las comunas de esa región (código CUT, por ejemplo 8).",
         )
+        parser.add_argument(
+            "--comuna", type=int, action="append", default=None, dest="comunas", metavar="CODIGO",
+            help="Con --maestros-por-comuna: solo esa comuna (código CUT, por ejemplo 8101). Se puede repetir.",
+        )
 
-    def handle(self, *args, con_cuentas=False, restablecer=False, por_comuna=None, region=None, **opciones):
+    def handle(self, *args, con_cuentas=False, restablecer=False, por_comuna=None, region=None, comunas=None,
+               **opciones):
         if restablecer and not con_cuentas:
             raise CommandError("--restablecer-contrasenas solo se usa junto con --con-cuentas.")
-        if region is not None and por_comuna is None:
-            raise CommandError("--region solo se usa junto con --maestros-por-comuna.")
+        if (region is not None or comunas) and por_comuna is None:
+            raise CommandError("--region y --comuna solo se usan junto con --maestros-por-comuna.")
         creados = cargar_datos_demo()
         logger.info("Datos de demostración del catálogo cargados por comando de consola: %s servicios nuevos.", creados)
         self.stdout.write(f"Servicios de demostración creados: {creados} (datos ficticios, rotulados «(demo)»).")
@@ -116,14 +122,14 @@ class Command(BaseCommand):
         elif por_comuna is None:
             self.stdout.write("Para crear también maestros, clientes y tickets con los que ingresar: agrega --con-cuentas.")
         if por_comuna is not None:
-            self._por_comuna(por_comuna, region)
+            self._por_comuna(por_comuna, region, comunas)
 
-    def _por_comuna(self, n, region):
+    def _por_comuna(self, n, region, comunas=None):
         from busqueda.maestros_por_comuna import cargar_maestros_por_comuna
 
         inicio = time.monotonic()
         try:
-            resumen = cargar_maestros_por_comuna(n, region=region, avance=self.stdout.write)
+            resumen = cargar_maestros_por_comuna(n, region=region, comunas=comunas, avance=self.stdout.write)
         except ValueError as error:
             raise CommandError(str(error)) from None
         segundos = time.monotonic() - inicio

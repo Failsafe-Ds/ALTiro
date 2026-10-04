@@ -40,3 +40,13 @@ Con frontend estático, el HTML de una página privada puede descargarse sin ses
 - Pie `<footer class="pie" role="contentinfo">` estático en todas las páginas (también `errores/`) con copyright y aviso de prueba de concepto. La versión sale de un solo archivo, `frontend/js/version.js` (`ALTIRO_VERSION`, se cambia en cada iteración), y `js/pie.js` la escribe en el pie.
 - Enlace `← Volver` (`a[data-volver]`, `href` de respaldo real) en el encabezado de todas las páginas salvo `index.html`, `errores/*` y las tres que ya tienen enlace a su padre (`conversacion`, `evaluar`, `curatoria-expediente`). `js/volver.js` usa `history.back()` si el origen anterior es del mismo sitio o si hay un paso interno; si no, sigue el respaldo.
 - Pasos internos con `history.pushState({altiroPaso})`: `buscar.js` (formulario, horario, resultados) y `formulario.porPasos` (postulación, pedir trabajo). Atrás del teléfono retrocede un paso sin perder lo escrito (RNF-20).
+
+### E-2 — Estructura header/main/footer y menú principal por sesión y rol
+- **Fecha:** 2026-10-04.
+- **Motivo:** las opciones de «Mi cuenta» salían como tarjetas con párrafos y botones; no había navegación común. Pedido del usuario: header, cuerpo y pie, y un menú.
+- **Cambio (solo presentación):**
+  - Todas las páginas (salvo `errores/`) tienen `<header class="encabezado">`, `<main>` y el pie existente. `index.html` suma el encabezado con la marca. «← Volver» queda como estaba.
+  - `frontend/js/menu.js` (un solo archivo, sin dependencias) agrega al encabezado un botón «Menú» (`aria-expanded`, `aria-controls`, Escape cierra, objetivos de 44 px) con la lista de enlaces según `GET /api/cuenta`: sin sesión (Buscar, Ingresar, Crear mi cuenta, Postular); cliente (Mis pedidos); maestro (Mis trabajos, Mi perfil, Mi agenda, Mis servicios); curatoría, comercial, moderación y control de gestión (su bandeja); todos con sesión: Mi cuenta y Salir. Es un botón desplegable en todos los anchos.
+  - `cuenta.html`: las tarjetas de accesos pasan a listas de enlaces agrupadas por sección (mismos ids `accesos-*` y misma lógica de `cuenta.js`); «Seguridad de mi cuenta» queda plegada en `<details>`; los formularios de agregar perfil pierden el recuadro.
+- **Seguridad:** el menú no autoriza; cada ruta de la API sigue exigiendo identidad, rol y propiedad. «Salir» usa `DELETE /api/sesion` y `formulario.olvidarTodo()`, igual que «Cerrar sesión».
+- **Costo:** una consulta `GET /api/cuenta` por página para armar el menú (RNF-02: JS nuevo ~4 KB).

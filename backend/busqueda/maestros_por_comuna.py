@@ -1,8 +1,10 @@
 """Maestros FICTICIOS publicados en cada comuna, para probar los filtros de la búsqueda (ADR-028, Enmienda E-1).
 
-Lo llama ``python manage.py cargar_datos_demo --maestros-por-comuna N [--region R]``.
+Lo llama ``python manage.py cargar_datos_demo --maestros-por-comuna N [--region R] [--comuna C ...]``.
 Garantiza al menos ``N`` maestros ficticios publicados con **comuna base** en
-cada comuna (o en las de la región ``R``). Es idempotente: cuenta los maestros
+cada comuna (o en las de la región ``R``, o solo en las comunas ``C``). Hasta
+``MAXIMO_POR_COMUNA`` por comuna, para demos con decenas de resultados en las
+comunas grandes (ADR-028, E-2). Es idempotente: cuenta los maestros
 de demostración que ya están publicados con base en cada comuna (los de este
 módulo y los de ``cuentas_demo``) y crea solo los que faltan.
 
@@ -12,7 +14,10 @@ Variedad pensada para RF-09 a RF-12 (ADR-022):
   comuna hay oficios distintos y otros quedan sin maestro con base allí (para
   ver las sugerencias). A veces se agrega un segundo oficio;
 - cobertura: la comuna base y, a veces, 1 o 2 comunas de la misma provincia
-  (cercanía 100 o 60 del puntaje);
+  (cercanía 100 o 60 del puntaje). Desde el puesto ``PUESTO_ZONA_DENSA``
+  (solo con N alto), de 3 a 6 comunas de la provincia, primero las pedidas con
+  ``--comuna``: así una búsqueda en Concepción o Santiago trae decenas de
+  maestros de cada oficio (E-2);
 - agenda: mañana, tarde, jornada completa o vespertino, en días distintos;
   algunos maestros tienen un bloque próximo **ocupado** por un ticket aceptado;
 - modalidad y monto variados según lo que admite el catálogo;
@@ -49,7 +54,12 @@ from perfil.models import Cobertura, Disponibilidad, PerfilPublico, ServicioMaes
 from territorio.models import Comuna, Region
 from tickets.models import EstadoTicket, Ticket, TicketEvento
 
-MAXIMO_POR_COMUNA = 10
+MAXIMO_POR_COMUNA = 99  # ADR-028, E-2; siempre menor que PUESTOS
+# Zona densa (ADR-028, E-2): desde este puesto, el maestro atiende de 3 a 6
+# comunas más de su provincia, primero las de la lista ``--comuna``, como un
+# maestro de una ciudad grande que se mueve por varias comunas.
+PUESTO_ZONA_DENSA = 40
+EXTRA_ZONA_DENSA = (3, 6)
 POR_DEFECTO = 3
 RUT_BASE = 48_000_000
 # Cuerpos de RUT de los maestros de demostración (este módulo y cuentas_demo).
@@ -221,7 +231,7 @@ def cargar_maestros_por_comuna(n=POR_DEFECTO, region=None, ahora=None, comunas=N
     """Crea los maestros ficticios que faltan para tener al menos ``n`` con base en cada comuna.
 
     ``region`` (código) limita a sus comunas; ``comunas`` (códigos) limita aún
-    más (lo usan las pruebas). ``avance(texto)`` recibe una línea por región.
+    más (opción ``--comuna`` y las pruebas). ``avance(texto)`` recibe una línea por región.
     Devuelve un ``Resumen``. Cada maestro se crea en su propia transacción; sus
     tickets y evaluaciones, en lotes.
     """
@@ -235,6 +245,9 @@ def cargar_maestros_por_comuna(n=POR_DEFECTO, region=None, ahora=None, comunas=N
     if comunas is not None:
         consulta = consulta.filter(codigo__in=comunas)
     lista = list(consulta)
+    foco = frozenset(comunas or ())
+    if comunas is not None and len(lista) != len(set(comunas)):
+        raise ValueError("Alguna comuna no existe o no es de esa región (usa el código CUT, por ejemplo 8101).")
     por_oficio = ficticios.servicios_por_oficio(incluir_regulados=True)
     if len(por_oficio) < 2:
         raise ValueError("El catálogo no tiene servicios suficientes: ejecuta antes cargar_datos_demo.")
@@ -264,12 +277,18 @@ def cargar_maestros_por_comuna(n=POR_DEFECTO, region=None, ahora=None, comunas=N
         while faltan > 0:
             while cuerpo_rut(comuna.codigo, puesto) in usados:
                 puesto += 1
+            if puesto >= PUESTOS:
+                raise ValueError(f"La comuna {comuna.codigo} no tiene más RUT de demostración disponibles.")
             cuerpo = cuerpo_rut(comuna.codigo, puesto)
             azar = random.Random(f"demo-comuna-{comuna.codigo}-{puesto}")
             servicios = _servicios(azar, comuna.codigo, puesto, oficios, por_oficio)
             modalidades, montos = _precios(azar, servicios, admitidas)
             otras = [c for c in vecinas[comuna.provincia_id] if c != comuna.codigo]
-            extra = azar.sample(otras, min(len(otras), azar.choice((0, 0, 1, 2))))
+            if puesto >= PUESTO_ZONA_DENSA:
+                densas = [c for c in otras if c in foco] or otras
+                extra = azar.sample(densas, min(len(densas), azar.randint(*EXTRA_ZONA_DENSA)))
+            else:
+                extra = azar.sample(otras, min(len(otras), azar.choice((0, 0, 1, 2))))
             numero += 1
             usuario = ficticios.crear_maestro_publicado(
                 nombre=f"{'Maestro' if numero % 2 else 'Maestra'} Demo {numero:04d} (datos de prueba)",

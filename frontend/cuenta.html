@@ -11,6 +11,7 @@
   <script src="js/cuenta.js" defer></script>
   <script src="js/version.js" defer></script>
   <script src="js/pie.js" defer></script>
+  <script src="js/menu.js" defer></script>
   <script src="js/volver.js" defer></script>
 </head>
 <body>
@@ -33,62 +34,54 @@
       </dl>
     </section>
 
-    <nav id="accesos-maestro" class="tarjeta oculto" aria-labelledby="titulo-accesos-maestro">
-      <h2 id="titulo-accesos-maestro">Mi trabajo como maestro</h2>
-      <p>Envía las fotos de tus documentos, revisa cómo va tu postulación y arma tu perfil: tu foto, tus comunas, tus horarios y los servicios que ofreces.</p>
-      <div class="acciones">
-        <a class="boton" href="mis-trabajos.html">Mis trabajos</a>
-        <a class="boton boton-secundario" href="mi-perfil.html">Mi perfil</a>
-        <a class="boton boton-secundario" href="mi-postulacion.html">Mi postulación</a>
-        <a class="boton boton-secundario" href="mis-documentos.html">Mis documentos</a>
-        <a class="boton boton-secundario" href="mi-cobertura.html">Mi cobertura</a>
-        <a class="boton boton-secundario" href="mi-agenda.html">Mi agenda</a>
-        <a class="boton boton-secundario" href="mis-servicios.html">Mis servicios</a>
-      </div>
-    </nav>
+    <section class="tarjeta" aria-labelledby="titulo-opciones">
+      <h2 id="titulo-opciones">¿Qué quieres hacer?</h2>
+      <nav id="accesos-maestro" class="grupo-opciones oculto" aria-labelledby="titulo-accesos-maestro">
+        <h3 id="titulo-accesos-maestro">Mi trabajo como maestro</h3>
+        <ul class="lista-opciones">
+          <li><a href="mis-trabajos.html">Mis trabajos</a></li>
+          <li><a href="mi-perfil.html">Mi perfil</a></li>
+          <li><a href="mi-postulacion.html">Mi postulación</a></li>
+          <li><a href="mis-documentos.html">Mis documentos</a></li>
+          <li><a href="mi-cobertura.html">Mi cobertura</a></li>
+          <li><a href="mi-agenda.html">Mi agenda</a></li>
+          <li><a href="mis-servicios.html">Mis servicios</a></li>
+        </ul>
+      </nav>
+      <nav id="accesos-cliente" class="grupo-opciones oculto" aria-labelledby="titulo-accesos-cliente">
+        <h3 id="titulo-accesos-cliente">Mis pedidos de trabajo</h3>
+        <ul class="lista-opciones">
+          <li><a href="mis-pedidos.html">Mis pedidos</a></li>
+          <li><a href="buscar.html">Buscar un maestro</a></li>
+        </ul>
+      </nav>
+      <nav id="accesos-curatoria" class="grupo-opciones oculto" aria-labelledby="titulo-accesos-curatoria">
+        <h3 id="titulo-accesos-curatoria">Curatoría</h3>
+        <ul class="lista-opciones">
+          <li><a href="curatoria.html">Expedientes de maestros</a></li>
+        </ul>
+      </nav>
+      <nav id="accesos-comercial" class="grupo-opciones oculto" aria-labelledby="titulo-accesos-comercial">
+        <h3 id="titulo-accesos-comercial">Área comercial</h3>
+        <ul class="lista-opciones">
+          <li><a href="comercial.html">Catálogo: oficios, servicios y precios</a></li>
+        </ul>
+      </nav>
+      <nav id="accesos-moderacion" class="grupo-opciones oculto" aria-labelledby="titulo-accesos-moderacion">
+        <h3 id="titulo-accesos-moderacion">Moderación</h3>
+        <ul class="lista-opciones">
+          <li><a href="moderacion.html">Denuncias sobre evaluaciones</a></li>
+        </ul>
+      </nav>
+      <nav id="accesos-gestion" class="grupo-opciones oculto" aria-labelledby="titulo-accesos-gestion">
+        <h3 id="titulo-accesos-gestion">Control de gestión</h3>
+        <ul class="lista-opciones">
+          <li><a href="indicadores.html">Indicadores y exportación</a></li>
+        </ul>
+      </nav>
+    </section>
 
-    <nav id="accesos-cliente" class="tarjeta oculto" aria-labelledby="titulo-accesos-cliente">
-      <h2 id="titulo-accesos-cliente">Mis pedidos de trabajo</h2>
-      <p>Busca un maestro para tu comuna y revisa cómo van los pedidos que enviaste.</p>
-      <div class="acciones">
-        <a class="boton" href="mis-pedidos.html">Mis pedidos</a>
-        <a class="boton boton-secundario" href="buscar.html">Buscar un maestro</a>
-      </div>
-    </nav>
-
-    <nav id="accesos-comercial" class="tarjeta oculto" aria-labelledby="titulo-accesos-comercial">
-      <h2 id="titulo-accesos-comercial">Área comercial</h2>
-      <p>Administra los oficios, los servicios, las formas de cobro y los precios de referencia.</p>
-      <div class="acciones">
-        <a class="boton" href="comercial.html">Catálogo (comercial)</a>
-      </div>
-    </nav>
-
-    <nav id="accesos-moderacion" class="tarjeta oculto" aria-labelledby="titulo-accesos-moderacion">
-      <h2 id="titulo-accesos-moderacion">Moderación</h2>
-      <p>Revisa las denuncias sobre evaluaciones y resuélvelas con un motivo.</p>
-      <div class="acciones">
-        <a class="boton" href="moderacion.html">Denuncias (moderación)</a>
-      </div>
-    </nav>
-
-    <nav id="accesos-gestion" class="tarjeta oculto" aria-labelledby="titulo-accesos-gestion">
-      <h2 id="titulo-accesos-gestion">Control de gestión</h2>
-      <p>Consulta los indicadores del período y exporta datos agregados, sin datos de personas.</p>
-      <div class="acciones">
-        <a class="boton" href="indicadores.html">Indicadores</a>
-      </div>
-    </nav>
-
-    <nav id="accesos-curatoria" class="tarjeta oculto" aria-labelledby="titulo-accesos-curatoria">
-      <h2 id="titulo-accesos-curatoria">Curatoría</h2>
-      <p>Revisa los expedientes de los maestros y sus documentos.</p>
-      <div class="acciones">
-        <a class="boton" href="curatoria.html">Curatoría</a>
-      </div>
-    </nav>
-
-    <section id="seccion-cliente" class="tarjeta oculto" aria-labelledby="titulo-cliente">
+    <section id="seccion-cliente" class="seccion oculto" aria-labelledby="titulo-cliente">
       <h2 id="titulo-cliente">Quiero pedir trabajos</h2>
       <p>Agrega tu comuna para pedir trabajos con esta misma cuenta.</p>
       <form id="agregar-cliente" novalidate>
@@ -121,7 +114,7 @@
       </form>
     </section>
 
-    <section id="seccion-maestro" class="tarjeta oculto" aria-labelledby="titulo-maestro">
+    <section id="seccion-maestro" class="seccion oculto" aria-labelledby="titulo-maestro">
       <h2 id="titulo-maestro">Quiero trabajar como maestro</h2>
       <p>Postula con esta misma cuenta usando tu RUT.</p>
       <form id="agregar-maestro" novalidate>
@@ -143,8 +136,8 @@
       </form>
     </section>
 
-    <section id="seccion-seguridad" class="tarjeta" aria-labelledby="titulo-seguridad">
-      <h2 id="titulo-seguridad">Seguridad de mi cuenta</h2>
+    <details id="seccion-seguridad" class="tarjeta">
+      <summary id="titulo-seguridad">Seguridad de mi cuenta</summary>
       <p>Para cambiar tu contraseña o tu correo te pedimos tu contraseña actual.</p>
 
       <form id="cambiar-contrasena" novalidate>
@@ -184,7 +177,7 @@
         </div>
         <button type="submit">Guardar correo</button>
       </form>
-    </section>
+    </details>
 
     <div id="aviso-cerrar" class="aviso" role="alert" tabindex="-1"></div>
     <div class="acciones">

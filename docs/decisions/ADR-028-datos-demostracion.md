@@ -56,3 +56,19 @@ Pedido del usuario el 2026-10-01: "mínimo 3 maestros por comuna, quiero un volu
 6. **Rendimiento de la carga:** cada maestro en su transacción (la regla atómica de `ficticios`); tickets, historial y evaluaciones con `bulk_create` en lotes. El costo dominante es el hash Argon2id de la contraseña aleatoria antes de inutilizarla (unos 0,13 s por cuenta, ADR-004): no se salta, para no abrir otra vía de alta de cuentas.
 7. **Cuentas administrativas demo** (reemplaza el punto 7 de la Decisión): `--con-cuentas` crea una cuenta por rol administrativo existente (`ROLES_ADMINISTRATIVOS`: curatoría, comercial, moderación y control de gestión), `<rol>.demo@example.com` (`control.gestion.demo@example.com`), con `identidad.servicios.crear_cuenta_administrativa` y el evento de aplicación de `crear_usuario_administrativo`, sin duplicar su lógica. Reciben la misma contraseña aleatoria impresa una vez que las demás cuentas demo y `--restablecer-contrasenas` también las alcanza. `crear_usuario_administrativo` sigue siendo la vía para cuentas reales.
 8. **Pruebas:** `backend/tests/test_maestros_por_comuna.py` (región 15, 4 comunas) y `test_cuentas_demo.py`.
+
+## Enmienda E-2 (2026-10-04) — Decenas de maestros en las comunas grandes
+- **Pedido del usuario:** muchos más datos de prueba, con decenas de maestros en Concepción y Santiago. El tiempo de carga no importa.
+- **Cambio:**
+  - `--maestros-por-comuna N` admite hasta **99** por comuna (antes, 10). Siempre es menor que los 100 puestos de RUT por comuna, así que no hay choques; si una comuna se quedara sin puestos, el comando se detiene con un mensaje;
+  - nueva opción `--comuna CODIGO`, que se puede repetir, para cargar solo esas comunas. Una comuna inexistente, o que no es de la `--region` indicada, detiene el comando;
+  - **zona densa:** desde el puesto 40 de una comuna, cada maestro nuevo atiende de 3 a 6 comunas más de su provincia, primero las pedidas con `--comuna`. Es lo que hace un maestro en una ciudad grande. Sin esto, 60 maestros con base en Concepción, repartidos entre 8 oficios, daban solo 13 a 17 resultados por búsqueda;
+  - todo lo demás sigue igual: datos ficticios rotulados, sin ingreso, idempotente (los maestros ya creados no se modifican).
+- **Carga recomendada para la demo** (unos 3.500 maestros, unos 7 minutos; ver README):
+  - 5 por comuna en todo el país, y 12 en las regiones del Biobío y Metropolitana;
+  - 99 en el Gran Concepción (Concepción, Coronel, Chiguayante, Penco, San Pedro de la Paz, Talcahuano y Hualpén) y en el Gran Santiago (Santiago, La Florida, Las Condes, Maipú, Ñuñoa, Providencia y Puente Alto).
+- **Resultado medido** (2026-10-04, pila de desarrollo):
+  - entre 51 y 69 maestros por oficio en Concepción, Talcahuano, Santiago y Providencia, en 3 o 4 páginas;
+  - cada búsqueda respondió en unos 0,06 s, una consulta a la vez. No es la medición de RNF-01, que exige 10 hilos.
+- **Pruebas:** `tests/test_maestros_por_comuna.py` (carga con `--comuna`, límite de 99, cobertura de la zona densa y opciones inválidas).
+- **No es RNF-03:** el volumen de medición sigue siendo `generar_volumen_prueba`, en una pila aparte.
