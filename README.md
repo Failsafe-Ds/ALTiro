@@ -5,8 +5,12 @@ La documentación funcional está en `docs/` (`docs/informe-altiro.md`) y las
 decisiones técnicas en `docs/decisions/`. Los desplazamientos de alcance
 (informe §5.3.6) se registran en `docs/alcance/bitacora-de-alcance.md`.
 
-Estado actual: **los cinco sprints del informe están construidos** (etiquetas `sprint-1` a
-`sprint-5`; cierres en `docs/testing/cierre-sprint-*.md`). Hoja corta del estado:
+Versión actual: **0.5.5** (se ve en el pie de cada página; `frontend/js/version.js`).
+Estado: **los cinco sprints del informe están construidos** (etiquetas `sprint-1` a
+`sprint-5`; cierres en `docs/testing/cierre-sprint-*.md`). Después del S5 se agregaron
+cambio y recuperación de contraseña (ADR-027), datos de demostración (ADR-028),
+límites de solicitudes (ADR-029), endurecimiento operativo (ADR-030) y validación
+de RUT y correo en pantalla (ADR-031). Hoja corta del estado:
 `docs/estado-actual.md`. Material de defensa: `docs/defensa/guion-defensa.md`.
 Pendientes del equipo: RNF-13 con personas, RNF-18 manual, plazos de RNF-26 y
 preguntas P-01 a P-33.
@@ -18,14 +22,45 @@ preguntas P-01 a P-33.
 
 ## Levantar el sistema (un solo comando)
 
+En cualquier equipo con Docker:
+
 ```sh
+git clone https://github.com/Failsafe-Ds/ALTiro.git
+cd ALTiro
 docker compose up -d --build
 ```
 
-Luego abra <https://127.0.0.1/> (o <https://localhost/>).
+Luego abra <https://127.0.0.1/> (o <https://localhost/>) y cargue los datos de
+demostración (sección «Datos de demostración»). Para mostrar una versión cerrada
+y no la última de `main`, liste las etiquetas con `git tag` y use
+`git checkout <etiqueta>` antes del `up`.
 
 No hace falta crear `.env`: `docker-compose.yml` trae valores por defecto.
 Para cambiarlos, cree un `.env` a partir de `.env.example` (el `.env` no se versiona).
+
+Para reemplazar una copia por una versión nueva: `docker compose down` (sin `-v`
+se conservan los datos), termine de copiar o actualizar los archivos y recién
+entonces `docker compose up -d --build`. Nginx lee sus plantillas al arrancar.
+
+### Copia de desarrollo y copia de demostración en el mismo equipo (ADR-032)
+
+Sin `.env`, toda copia es el proyecto `altiro` y un `up` en una carpeta
+reemplaza los contenedores de la otra. La copia clonada de GitHub para mostrar
+no lleva nada. En la carpeta de **desarrollo** cree este `.env`:
+
+```env
+COMPOSE_PROJECT_NAME=altiro-dev
+ALTIRO_IMAGEN=altiro-dev
+ALTIRO_HTTP_PORT=8080
+ALTIRO_HTTPS_PORT=8443
+DJANGO_CSRF_TRUSTED_ORIGINS=https://localhost:8443,https://127.0.0.1:8443
+ALTIRO_URL_PUBLICA=https://localhost:8443
+ALTIRO_RESPALDO_DIR=../altiro-dev-respaldos
+```
+
+Desarrollo queda en <https://localhost:8443/> y la de demostración en <https://localhost/>,
+con contenedores, volúmenes (base incluida) e imágenes separados. `docker compose
+down -v` en una carpeta solo afecta a su propio proyecto.
 
 ## Pantallas
 
@@ -83,7 +118,8 @@ Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
    | Moderación | `moderacion.demo@example.com` |
    | Control de gestión | `control.gestion.demo@example.com` |
 
-   Entra en `https://localhost/ingresar.html`: el campo acepta correo o RUT.
+   Entra en `https://localhost/ingresar.html` (en la copia de desarrollo,
+   `https://localhost:8443/ingresar.html`): el campo acepta correo o RUT.
    Si perdiste la contraseña, genera otra para esas cuentas con
    `cargar_datos_demo --con-cuentas --restablecer-contrasenas`.
    Esa opción cierra las sesiones abiertas de esas cuentas.
@@ -192,7 +228,7 @@ navegador mostrará una advertencia: es esperado en esta demostración.
 | `planificador` | Tareas del actor Sistema cada 5 min (avisos, cierres, purgas) | ninguno |
 | `respaldo` | Respaldo diario cifrado (ver «Respaldo y restauración») | ninguno |
 | `pruebas` | Suite de pruebas (perfil `pruebas`; no se levanta con `up`) | ninguno |
-| `proxy` | Nginx: HTTPS y frontend estático | 80, 443 en `127.0.0.1` |
+| `proxy` | Nginx: HTTPS y frontend estático | 80, 443 en `127.0.0.1` (8080, 8443 en desarrollo) |
 
 Secretos (contraseñas de la base y clave de Django) y certificado viven en los
 volúmenes `secretos` y `certificados`, nunca en el repositorio.
@@ -269,7 +305,8 @@ MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" -v "$(pwd
 - Cada respaldo tiene `base.dump.gpg`, `fotos.tar.gz.gpg`, `documentos.tar.gpg`
   (GnuPG simétrico, AES-256 con control de integridad), `conteos.tsv`, `CIFRADO`
   y `SHA256SUMS`. Nada con datos personales queda en claro en el host.
-- **La clave** es el archivo `respaldo_clave` del volumen Docker `altiro_secretos`.
+- **La clave** es el archivo `respaldo_clave` del volumen Docker `altiro_secretos`
+  (`altiro-dev_secretos` en la copia de desarrollo).
   La genera `init` y **no** está junto a los respaldos. **Sin esa clave, un
   respaldo no se puede restaurar.** Guarde una copia del volumen `secretos`
   aparte de los respaldos (lleva también la clave de documentos). Dónde se
@@ -293,4 +330,5 @@ MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" -v "$(pwd
 
 > **Cambios en `infra/proxy/templates/`**: Nginx lee la plantilla al arrancar.
 > Como está montada (no se copia a la imagen), `docker compose up -d` no la
-> recarga sola: después de cambiarla ejecute `docker compose restart proxy`.
+> recarga sola: después de cambiarla ejecute `docker compose up -d --force-recreate proxy`.
+> Si `app` se recrea no hace falta: el proxy resuelve su nombre en cada petición.

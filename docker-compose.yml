@@ -2,6 +2,9 @@
 # Comando único (RNF-23, ADR-009): docker compose up -d --build
 # No depende de que exista .env: cada variable tiene un valor por defecto aquí.
 # Solo el servicio "proxy" publica puertos (ADR-003, ADR-008).
+# Copia de desarrollo junto a la estable en el mismo equipo (ADR-032):
+# COMPOSE_PROJECT_NAME y ALTIRO_IMAGEN en .env separan contenedores,
+# volúmenes e imágenes; los puertos también deben ser otros.
 
 name: altiro
 
@@ -10,7 +13,7 @@ services:
   # si no existen (ADR-008, ADR-009). No tiene red.
   init:
     build: ./infra/init
-    image: altiro-init:local
+    image: ${ALTIRO_IMAGEN:-altiro}-init:local
     environment:
       ALTIRO_TLS_SAN: ${ALTIRO_TLS_SAN:-DNS:localhost,IP:127.0.0.1}
     volumes:
@@ -110,7 +113,7 @@ services:
   # la de documentos, que settings exige al cargar). Para migrar a mano:
   #   docker compose up -d   (o: docker compose run --rm migrador)
   migrador:
-    image: altiro-app:local
+    image: ${ALTIRO_IMAGEN:-altiro}-app:local
     user: "10002:10001"
     entrypoint: ["python", "manage.py", "migrate", "--noinput"]
     environment:
@@ -142,7 +145,7 @@ services:
       context: ./backend
       # ADR-030, B7: imagen de ejecución, sin pytest ni dependencias de pruebas.
       target: ejecucion
-    image: altiro-app:local
+    image: ${ALTIRO_IMAGEN:-altiro}-app:local
     environment: &entorno_app
       DJANGO_SECRET_KEY_FILE: /secretos/django_secret_key
       DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
@@ -208,7 +211,7 @@ services:
   # solo en la red interna. No aplica migraciones (las aplica "migrador"):
   # espera a que app esté sana.
   planificador:
-    image: altiro-app:local
+    image: ${ALTIRO_IMAGEN:-altiro}-app:local
     entrypoint: ["python", "manage.py", "planificador"]
     environment:
       DJANGO_SECRET_KEY_FILE: /secretos/django_secret_key
@@ -321,7 +324,7 @@ services:
     build:
       context: ./backend
       target: pruebas
-    image: altiro-app-pruebas:local
+    image: ${ALTIRO_IMAGEN:-altiro}-app-pruebas:local
     environment: *entorno_app
     volumes:
       - secretos:/secretos:ro

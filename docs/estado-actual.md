@@ -3,7 +3,7 @@
 > Leer esto **en lugar de** recorrer todos los ADR, propuestas y cierres. Abrir un ADR o una propuesta solo si el encargo lo cita o si una regla de abajo no alcanza. Si hay contradicción, prevalecen el informe y el ADR (CLAUDE.md §2).
 > Actualizar esta hoja al cerrar cada incremento: una línea por cambio, sin narrativa.
 
-Última actualización: 2026-09-30 (S5 cerrado, etiqueta `sprint-5`; ADR-027 después del S5; suite 1920; siguiente: revisión del S5 y defensa; material en `docs/defensa/guion-defensa.md`).
+Última actualización: 2026-10-04 (ADR-032: copia de desarrollo `altiro-dev` separada de la de demostración; antes: 2026-09-30, S5 cerrado, etiqueta `sprint-5`; ADR-027 después del S5; suite 1920; siguiente: revisión del S5 y defensa; material en `docs/defensa/guion-defensa.md`).
 
 ## Sprints
 | Sprint | Estado | Etiqueta / cierre |
@@ -19,7 +19,8 @@
 - Frontend estático en HTML, CSS y JS, sin framework y con CSP estricta (sin inline).
 - **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" -v "$(pwd -W)/frontend:/frontend:ro" pruebas -q` (servicio `pruebas`, imagen con pytest; la imagen `app` ya no lo tiene, ADR-030 B7; tras cambiar `requirements-pruebas.txt`: `docker compose build pruebas`) (el montaje de `frontend/` lo usa `test_frontend_pie_volver.py`; sin él esa prueba se omite). Tarda unos 10 min y hoy pasan 2037.
 - **Durante el desarrollo**, solo pruebas dirigidas: el mismo comando con `tests/test_x.py -k nombre`.
-- Migrar: `docker compose up -d` (o `docker compose run --rm migrador`): migra el rol dueño `altiro_migrador`; `altiro_app` solo tiene DML y `exec app … migrate` ya no sirve para DDL (ADR-030 B8). Si `app` se recrea, `docker compose restart proxy` (Nginx resuelve la IP al arrancar). Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
+- Migrar: `docker compose up -d` (o `docker compose run --rm migrador`): migra el rol dueño `altiro_migrador`; `altiro_app` solo tiene DML y `exec app … migrate` ya no sirve para DDL (ADR-030 B8). Si `app` se recrea, el proxy no necesita reinicio (resuelve `app` en cada petición, `altiro-api.inc`). Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
+- **Dos copias en el equipo (ADR-032):** esta carpeta es la de desarrollo, con `.env` local → proyecto `altiro-dev`, imágenes `altiro-dev-*:local`, `https://localhost:8443`. Una copia clonada de GitHub para mostrar va sin `.env` → `altiro`, `https://localhost`. Los comandos `docker compose …` de esta hoja, ejecutados aquí, actúan sobre `altiro-dev`.
 
 ## Apps del backend (`backend/`)
 `identidad` (usuario propio, sesión, Argon2id) · `autorizacion` (políticas, `obtener_autorizado`, enlaces firmados) · `bitacora` (solo inserción) · `territorio` · `catalogo` · `expediente` (documentos cifrados, curatoría, planificador) · `perfil` (servicios, cobertura, agenda, foto, publicación, ocurrencias, ocupación) · `busqueda` · `tickets` · `mensajeria` (conversación) · `evaluaciones` (evaluación, calificación, denuncia y moderación) · `gestion` (indicadores y exportación, sin modelos) · `comun` (API, middleware, errores).

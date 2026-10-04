@@ -55,6 +55,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | [ADR-029](ADR-029-limitacion-solicitudes-proxy.md) | Limitación de solicitudes en el proxy y endurecimiento de cabeceras | Borrador (propuesta, 2026-10-01); implementado a pedido del usuario |
 | [ADR-030](ADR-030-endurecimiento-operativo.md) | Endurecimiento operativo: purga de sesiones y buzón, respaldo cifrado, imagen sin pruebas, rol migrador dueño del esquema | Propuesta (2026-10-01); implementado a pedido del usuario |
 | [ADR-031](ADR-031-validacion-rut-correo-en-pantalla.md) | Validación en pantalla de RUT (módulo 11) y correo, igual que el servidor | Propuesta (2026-10-03); implementado a pedido del usuario |
+| [ADR-032](ADR-032-copia-desarrollo-estable.md) | Copia de desarrollo (`altiro-dev`, :8443) y copia de demostración en el mismo equipo: proyecto e imágenes separados | Aceptada (2026-10-04) |
 
 ## Plantilla
 
