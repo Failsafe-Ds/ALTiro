@@ -195,10 +195,10 @@ def _tickets_de(azar, usuario, base, clientes, ahora, hoy):
     pasadas = [o for o in ocurrencias.ocurrencias(patrones, hoy - datetime.timedelta(days=28), 28) if o.fin_en < ahora]
     calidad = azar.choice((2, 3, 4, 4, 5, 5))
     for una in azar.sample(pasadas, min(len(pasadas), azar.choice((0, 0, 1, 2, 3)))):
-        enviado = una.inicio_en - datetime.timedelta(hours=azar.randint(6, 48))
+        enviado = ficticios.en_utc(una.inicio_en) - datetime.timedelta(hours=azar.randint(6, 48))
         t = nuevo(una, EstadoTicket.PENDIENTE, enviado)
         pasos = ficticios.finalizar(t, usuario.pk, ficticios.entre(azar, enviado, t.vence_en),
-                                    min(una.fin_en + datetime.timedelta(hours=1), ahora))
+                                    min(ficticios.en_utc(una.fin_en) + datetime.timedelta(hours=1), ahora))
         notas = None
         if azar.random() < 0.8:
             notas = tuple(max(1, min(5, calidad + azar.choice((-1, 0, 0, 1)))) for _ in range(3))

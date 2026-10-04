@@ -218,9 +218,17 @@ def finalizar(ticket, perfil_id, aceptado_en, finalizado_en):
     ]
 
 
+def en_utc(instante):
+    """El mismo instante en UTC. Sumar o restar horas a una fecha con zona
+    America/Santiago es aritmética de reloj de pared y se desvía una hora al
+    cruzar el cambio de horario (DEF-QA-005; ADR-020, E-1)."""
+    return instante.astimezone(datetime.timezone.utc)
+
+
 def entre(azar, desde, hasta):
-    """Instante al azar en ``[desde, hasta)``, con segundos enteros."""
-    segundos = max(1, int((hasta - desde).total_seconds()))
+    """Instante al azar en ``[desde, hasta)`` de tiempo real, con segundos enteros (en UTC)."""
+    desde = en_utc(desde)
+    segundos = max(1, int((en_utc(hasta) - desde).total_seconds()))
     return desde + datetime.timedelta(seconds=azar.randrange(segundos))
 
 

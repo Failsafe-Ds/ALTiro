@@ -183,3 +183,26 @@ def test_opciones_invalidas():
         call_command("cargar_datos_demo", "--maestros-por-comuna", "--region", "13", "--comuna", "8101")
     with pytest.raises(CommandError, match="región"):
         call_command("cargar_datos_demo", "--maestros-por-comuna", "--region", "99")
+
+
+def test_entre_cuenta_tiempo_real_al_cruzar_el_cambio_de_horario():
+    """Regresión (2026-10-04): con suma de reloj de pared, un aceptado_en podía quedar
+    antes del enviado_en en el domingo del cambio de horario (CHECK ticket_aceptado_en_plazo)."""
+    import datetime
+    import random
+
+    from busqueda import ficticios
+    from perfil import ocurrencias
+    from tickets.servicios import calcular_vence_en
+
+    inicio = datetime.datetime(2026, 9, 6, 6, 30, tzinfo=ocurrencias.ZONA)  # ya en horario de verano
+    # "6 horas antes" en tiempo real: 6 horas exactas, aunque el reloj se adelantó esa noche.
+    assert ficticios.en_utc(inicio) - (ficticios.en_utc(inicio) - datetime.timedelta(hours=6)) == datetime.timedelta(hours=6)
+    # El caso del defecto: un instante de reloj que no existió (00:30 del 6/9, con zona de Santiago).
+    enviado = inicio - datetime.timedelta(hours=6)
+    vence = calcular_vence_en(enviado, inicio)
+    U = datetime.timezone.utc
+    for semilla in range(300):
+        aceptado = ficticios.entre(random.Random(semilla), enviado, vence)
+        # Comparación en UTC: entre fechas con la misma zona, Python compara el reloj de pared.
+        assert enviado.astimezone(U) <= aceptado.astimezone(U) < vence.astimezone(U)

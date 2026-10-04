@@ -5,7 +5,7 @@ La documentación funcional está en `docs/` (`docs/informe-altiro.md`) y las
 decisiones técnicas en `docs/decisions/`. Los desplazamientos de alcance
 (informe §5.3.6) se registran en `docs/alcance/bitacora-de-alcance.md`.
 
-Versión actual: **0.5.7** (se ve en el pie de cada página; `frontend/js/version.js`).
+Versión actual: **0.5.8** (se ve en el pie de cada página; `frontend/js/version.js`).
 Estado: **los cinco sprints del informe están construidos** (etiquetas `sprint-1` a
 `sprint-5`; cierres en `docs/testing/cierre-sprint-*.md`). Después del S5 se agregaron
 cambio y recuperación de contraseña (ADR-027), datos de demostración (ADR-028),
@@ -136,13 +136,15 @@ Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
    maestros ficticios, con **50 a 70 por oficio en el Gran Concepción y el Gran Santiago**
    (unos 7 minutos; ADR-028, Enmiendas E-1 y E-2):
 
+   Un comando por línea; funcionan igual en PowerShell, CMD y Git Bash. Se ejecutan en este
+   orden: todo el país, Biobío, Metropolitana, Gran Concepción y Gran Santiago.
+
    ```sh
-   d() { docker compose exec app python manage.py cargar_datos_demo "$@"; }
-   d --maestros-por-comuna 5                                   # todo el país
-   d --maestros-por-comuna 12 --region 8                       # Biobío
-   d --maestros-por-comuna 12 --region 13                      # Metropolitana
-   d --maestros-por-comuna 99 --comuna 8101 --comuna 8102 --comuna 8103 --comuna 8107 --comuna 8108 --comuna 8110 --comuna 8112
-   d --maestros-por-comuna 99 --comuna 13101 --comuna 13110 --comuna 13114 --comuna 13119 --comuna 13120 --comuna 13123 --comuna 13201
+   docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 5
+   docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 12 --region 8
+   docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 12 --region 13
+   docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 99 --comuna 8101 --comuna 8102 --comuna 8103 --comuna 8107 --comuna 8108 --comuna 8110 --comuna 8112
+   docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 99 --comuna 13101 --comuna 13110 --comuna 13114 --comuna 13119 --comuna 13120 --comuna 13123 --comuna 13201
    ```
 
    Gran Concepción: Concepción 8101, Coronel 8102, Chiguayante 8103, Penco 8107, San Pedro de

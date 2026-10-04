@@ -224,12 +224,12 @@ def _tickets_de(azar, perfil, clientes, ahora, hoy):
         resultado.append((ticket, pasos))
     for una in pasadas:
         cliente = azar.choice(clientes)
-        enviado = una.inicio_en - datetime.timedelta(hours=azar.randint(5, 72))
+        enviado = ficticios.en_utc(una.inicio_en) - datetime.timedelta(hours=azar.randint(5, 72))
         if azar.random() < 0.6:
             ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.PENDIENTE, enviado)
             # Precio final coherente con el CHECK de ADR-026, E-1 (ficticios.finalizar).
             pasos = ficticios.finalizar(ticket, perfil.pk, _entre(azar, enviado, ticket.vence_en),
-                                        una.fin_en + datetime.timedelta(hours=1))
+                                        ficticios.en_utc(una.fin_en) + datetime.timedelta(hours=1))
         else:
             ticket = _ticket(azar, perfil, cliente, servicios, comunas, una, EstadoTicket.PENDIENTE, enviado)
             autor = _cerrar(azar, ticket)
