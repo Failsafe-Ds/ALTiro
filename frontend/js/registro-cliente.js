@@ -38,6 +38,14 @@
   form.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     formulario.limpiarErrores(form);
+    const revision = formulario.revisar(form);
+    if (revision) {
+      const campo = formulario.mostrarErrores(form, revision);
+      if (campo) {
+        pasos.irAlCampo(campo);
+      }
+      return;
+    }
     formulario.ocupado(form, true);
     const { estado, datos } = await api.enviar("/api/clientes", formulario.leer(form));
     if (estado === 201) {

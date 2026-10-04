@@ -11,6 +11,14 @@
   form.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     formulario.limpiarErrores(form);
+    const revision = formulario.revisar(form);
+    if (revision) {
+      const campo = formulario.mostrarErrores(form, revision);
+      if (campo) {
+        campo.focus();
+      }
+      return;
+    }
     formulario.ocupado(form, true);
     const { estado, datos } = await api.enviar("/api/recuperacion", formulario.leer(form));
     formulario.ocupado(form, false);

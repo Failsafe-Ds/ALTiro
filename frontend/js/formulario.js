@@ -288,6 +288,14 @@ const formulario = (() => {
           faltantes[0].focus();
           return;
         }
+        const revision = revisar(form, pasos[actual]);
+        if (revision) {
+          const campo = mostrarErrores(form, revision);
+          if (campo) {
+            campo.focus();
+          }
+          return;
+        }
         limpiarErrores(form);
         // Cada paso deja una entrada en el historial: Atrás retrocede un paso.
         history.pushState({ altiroPaso: "paso", numero: actual + 1 }, "", location.href);
@@ -343,6 +351,101 @@ const formulario = (() => {
     };
   }
 
+  // --- Validación en pantalla de RUT y correo (ADR-031) ---
+  // Solo adelanta el aviso para no esperar al servidor, que sigue siendo quien
+  // valida (identidad/validadores.py y autenticacion.py). Mismas reglas y mismos
+  // textos. El correo se revisa de forma básica: solo rechaza lo que el servidor
+  // también rechaza, salvo formas raras que el ADR-031 enumera. Campo con data-validar="rut",
+  // "correo" o "identificador" (correo o RUT, como al ingresar).
+  const RUT_FORMATO =
+    "Ingresa tu RUT con su dígito verificador (el número o la K después del guion), por ejemplo 12.345.678-5.";
+  const RUT_INVALIDO =
+    "El RUT no es válido: revisa los números y el dígito verificador (el número o la K después del guion).";
+  const CORREO_INVALIDO = "El correo no es válido. Revísalo, por ejemplo nombre@dominio.cl.";
+  const CORREO_LARGO = "El correo es demasiado largo. Revisa que esté bien escrito.";
+  const IDENTIFICADOR_RUT =
+    "Revisa tu RUT y su dígito verificador (el número o la K después del guion), por ejemplo 12.345.678-5. " +
+    "Si usas correo, escríbelo completo.";
+
+  // Dígito verificador módulo 11: factores 2 a 7 desde la derecha; 11 -> "0", 10 -> "K".
+  function digitoVerificador(cuerpo) {
+    let suma = 0;
+    let factor = 2;
+    for (let i = cuerpo.length - 1; i >= 0; i--) {
+      suma += Number(cuerpo[i]) * factor;
+      factor = factor === 7 ? 2 : factor + 1;
+    }
+    const resto = 11 - (suma % 11);
+    return resto === 11 ? "0" : resto === 10 ? "K" : String(resto);
+  }
+
+  // Igual que normalizar_rut: sin puntos ni guion, 1 a 8 dígitos más el DV,
+  // sin cero inicial (HQ-12). Devuelve el texto del error o null.
+  function errorRut(valor) {
+    const rut = valor.replace(/[.-]/g, "").toUpperCase();
+    if (!/^[0-9]{1,8}[0-9K]$/.test(rut) || rut[0] === "0") {
+      return RUT_FORMATO;
+    }
+    return digitoVerificador(rut.slice(0, -1)) === rut.slice(-1) ? null : RUT_INVALIDO;
+  }
+
+  // Revisión básica: el servidor aplica la regla completa (EmailValidator).
+  function errorCorreo(valor) {
+    const correo = valor.trim();
+    if (correo.length > 254) {
+      return CORREO_LARGO;
+    }
+    const arroba = correo.lastIndexOf("@");
+    const local = correo.slice(0, arroba);
+    const etiquetas = correo.slice(arroba + 1).split(".");
+    const valido =
+      arroba > 0 &&
+      !local.includes("@") &&
+      !/\s/.test(correo) &&
+      etiquetas.length >= 2 &&
+      etiquetas.every((etiqueta) => etiqueta !== "") &&
+      etiquetas[etiquetas.length - 1].length >= 2 &&
+      !local.startsWith(".") &&
+      !local.endsWith(".") &&
+      !local.includes("..");
+    return valido ? null : CORREO_INVALIDO;
+  }
+
+  // Igual que interpretar_identificador: con "@" es correo; sin "@" es RUT.
+  function errorIdentificador(valor) {
+    if (valor.includes("@")) {
+      return errorCorreo(valor) && CORREO_INVALIDO;
+    }
+    return errorRut(valor) && IDENTIFICADOR_RUT;
+  }
+
+  const VALIDADORES = { rut: errorRut, correo: errorCorreo, identificador: errorIdentificador };
+
+  // Nombre del error de un campo: el id "error-…" de su aria-describedby (en
+  // "Mi cuenta" no coincide con el name) o, si no tiene, su name.
+  function nombreDeError(campo) {
+    const id = (campo.getAttribute("aria-describedby") || "").split(/\s+/).find((t) => t.startsWith("error-"));
+    return id ? id.slice("error-".length) : campo.name;
+  }
+
+  // Revisa los campos con data-validar dentro de "zona" (el formulario o un paso).
+  // Los vacíos los resuelve "required" o el servidor. Devuelve { mensaje, errores }
+  // para mostrarErrores, o null si no hay errores.
+  function revisar(form, zona = form) {
+    const errores = {};
+    for (const campo of zona.querySelectorAll("[data-validar]")) {
+      if (campo.closest(".oculto") || !campo.value.trim()) {
+        continue;
+      }
+      const validador = VALIDADORES[campo.dataset.validar];
+      const error = validador ? validador(campo.value) : null;
+      if (error) {
+        errores[nombreDeError(campo)] = error;
+      }
+    }
+    return Object.keys(errores).length ? { mensaje: "Revisa los campos marcados.", errores } : null;
+  }
+
   function ocupado(form, sí) {
     const boton = form.querySelector('button[type="submit"]');
     if (boton) {
@@ -368,6 +471,10 @@ const formulario = (() => {
 
   return {
     leer,
+    revisar,
+    errorRut,
+    errorCorreo,
+    errorIdentificador,
     limpiarErrores,
     mostrarErrores,
     avisar,

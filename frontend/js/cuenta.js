@@ -233,6 +233,14 @@
       formulario.limpiarErrores(form);
       avisoSesion.replaceChildren();
       avisoSesion.className = "aviso";
+      const revision = formulario.revisar(form);
+      if (revision) {
+        const campo = formulario.mostrarErrores(form, revision);
+        if (campo) {
+          campo.focus();
+        }
+        return;
+      }
       formulario.ocupado(form, true);
       const { estado, datos } = await api.enviar(ruta, formulario.leer(form));
       if (estado === 201) {
@@ -321,6 +329,14 @@
       formulario.limpiarErrores(form);
       avisoSesion.replaceChildren();
       avisoSesion.className = "aviso";
+      const revision = formulario.revisar(form);
+      if (revision) {
+        const campo = formulario.mostrarErrores(form, revision);
+        if (campo) {
+          campo.focus();
+        }
+        return;
+      }
       formulario.ocupado(form, true);
       const { estado, datos } = await api.enviar(ruta, formulario.leer(form));
       formulario.ocupado(form, false);

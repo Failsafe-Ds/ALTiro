@@ -36,7 +36,7 @@
         <div class="campo">
           <label for="rut">RUT</label>
           <span class="ayuda" id="ayuda-rut">Con puntos y guion o sin ellos. Ejemplo: 12.345.678-5</span>
-          <input id="rut" name="rut" autocomplete="off" required aria-describedby="ayuda-rut error-rut">
+          <input id="rut" name="rut" data-validar="rut" autocomplete="off" required aria-describedby="ayuda-rut error-rut">
           <span class="error-campo" id="error-rut"></span>
         </div>
         <div class="campo">
@@ -70,7 +70,7 @@
         <div class="campo">
           <label for="correo">Correo (si tienes)</label>
           <span class="ayuda" id="ayuda-correo">No es obligatorio: también puedes ingresar con tu RUT.</span>
-          <input id="correo" name="correo" type="email" inputmode="email" autocomplete="email"
+          <input id="correo" name="correo" data-validar="correo" type="email" inputmode="email" autocomplete="email"
                  aria-describedby="ayuda-correo error-correo">
           <span class="error-campo" id="error-correo"></span>
         </div>

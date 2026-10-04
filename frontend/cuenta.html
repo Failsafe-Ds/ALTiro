@@ -106,7 +106,7 @@
         <div class="campo oculto" id="campo-correo-cliente">
           <label for="correo-cliente">Correo</label>
           <span class="ayuda" id="ayuda-correo-cliente">Para pedir trabajos necesitas un correo.</span>
-          <input id="correo-cliente" name="correo" type="email" inputmode="email" autocomplete="email"
+          <input id="correo-cliente" name="correo" data-validar="correo" type="email" inputmode="email" autocomplete="email"
                  aria-describedby="ayuda-correo-cliente error-correo">
           <span class="error-campo" id="error-correo"></span>
         </div>
@@ -129,7 +129,7 @@
         <div class="campo">
           <label for="rut">RUT</label>
           <span class="ayuda" id="ayuda-rut">Ejemplo: 12.345.678-5</span>
-          <input id="rut" name="rut" autocomplete="off" aria-describedby="ayuda-rut error-rut">
+          <input id="rut" name="rut" data-validar="rut" autocomplete="off" aria-describedby="ayuda-rut error-rut">
           <span class="error-campo" id="error-rut"></span>
         </div>
         <div class="campo oculto" id="campo-telefono-maestro">
@@ -172,7 +172,7 @@
         <div class="aviso" role="alert" tabindex="-1"></div>
         <div class="campo">
           <label for="correo-nuevo">Correo nuevo</label>
-          <input id="correo-nuevo" name="correo" type="email" inputmode="email" autocomplete="email" required
+          <input id="correo-nuevo" name="correo" data-validar="correo" type="email" inputmode="email" autocomplete="email" required
                  aria-describedby="error-correo-nuevo">
           <span class="error-campo" id="error-correo-nuevo"></span>
         </div>
