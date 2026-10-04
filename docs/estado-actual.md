@@ -17,7 +17,7 @@
 ## Stack y cómo correr
 - Docker Compose: `init`, `db` (PostgreSQL 16), `roles_db` y `migrador` (únicos, ADR-030), `app` (Django 5.2 + gunicorn), `proxy` (Nginx, TLS autofirmado, gzip), `planificador` (cada 300 s), `respaldo` (postgres:16, diario) y `pruebas` (perfil, no se levanta con `up`).
 - Frontend estático en HTML, CSS y JS, sin framework y con CSP estricta (sin inline).
-- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" -v "$(pwd -W)/frontend:/frontend:ro" pruebas -q` (servicio `pruebas`, imagen con pytest; la imagen `app` ya no lo tiene, ADR-030 B7; tras cambiar `requirements-pruebas.txt`: `docker compose build pruebas`) (el montaje de `frontend/` lo usa `test_frontend_pie_volver.py`; sin él esa prueba se omite). Tarda unos 10 min y hoy pasan 2037.
+- **Suite completa** (Git Bash, desde la raíz): `MSYS_NO_PATHCONV=1 docker compose run --rm -v "$(pwd -W)/backend:/app" -v "$(pwd -W)/frontend:/frontend:ro" pruebas -q` (servicio `pruebas`, imagen con pytest; la imagen `app` ya no lo tiene, ADR-030 B7; tras cambiar `requirements-pruebas.txt`: `docker compose build pruebas`) (el montaje de `frontend/` lo usa `test_frontend_pie_volver.py`; sin él esa prueba se omite). Tarda unos 10 min y hoy pasan 2041.
 - **Durante el desarrollo**, solo pruebas dirigidas: el mismo comando con `tests/test_x.py -k nombre`.
 - Migrar: `docker compose up -d` (o `docker compose run --rm migrador`): migra el rol dueño `altiro_migrador`; `altiro_app` solo tiene DML y `exec app … migrate` ya no sirve para DDL (ADR-030 B8). Si `app` se recrea, el proxy no necesita reinicio (resuelve `app` en cada petición, `altiro-api.inc`). Tras cambiar la plantilla del proxy: `docker compose up -d --force-recreate proxy`.
 - **Dos copias en el equipo (ADR-032):** esta carpeta es la de desarrollo, con `.env` local → proyecto `altiro-dev`, imágenes `altiro-dev-*:local`, `https://localhost:8443`. Una copia clonada de GitHub para mostrar va sin `.env` → `altiro`, `https://localhost`. Los comandos `docker compose …` de esta hoja, ejecutados aquí, actúan sobre `altiro-dev`.
@@ -45,7 +45,8 @@
   - filtros excluyentes;
   - puntaje `6·D + 4·C`, nunca expuesto;
   - desempate con `sha256(ref+fecha)`;
-  - sugerencias en una sección aparte;
+  - sugerencias en una sección aparte, de toda la región con la misma provincia primero (E-1, 2026-10-04);
+  - la tarjeta muestra "Atiende en: …" (hasta 3 comunas y cuántas más), sin marcar la base (E-1);
   - horizonte de 14 días.
 - **Ticket (ADR-023):**
   - un solo registro para ticket y orden;

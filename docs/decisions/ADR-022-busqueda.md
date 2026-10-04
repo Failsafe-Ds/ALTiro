@@ -44,3 +44,21 @@
    - **RNF-21:** por reglas, con un catálogo `tests/reglas_rnf21.py` y la marca `@pytest.mark.regla`. Exige 60 % **por grupo** (filtros, puntaje, cierre y acceso).
    - **RNF-01:** script con 10 hilos y al menos 200 búsquedas sobre el volumen sintético. Al menos el 95 % debe responder en 2 s o menos.
    - **RNF-02:** Playwright con 4 Mbps de bajada, 1 Mbps de subida y 150 ms de latencia.
+
+## Enmiendas
+
+### E-1 — Sugerencias de toda la región y comunas atendidas en la tarjeta
+- **Fecha:** 2026-10-04. Pedido del usuario al revisar la demo; registrado como DA-28.
+- **Cambio en el punto 6 (sugerencias):**
+  - si no hay resultados, la sugerencia por comuna considera toda la **región** de la comuna pedida, no solo su provincia;
+  - los que atienden alguna comuna de la misma provincia van primero; dentro de cada grupo, el orden de siempre (puntaje y desempate);
+  - el texto del criterio incumplido pasa a "No trabaja en la comuna que elegiste, pero sí en otra de la misma región.";
+  - sigue el máximo de 5, la sección aparte y que nunca se relaja el oficio ni la publicación;
+  - rendimiento: la primera carga trae solo a quien atiende la comuna pedida, y la región se carga solo si no hubo resultados. El número de consultas con resultados sigue siendo constante (RNF-01).
+- **Cambio en el punto 5 (tarjeta):**
+  - la tarjeta agrega `atiende_en` (hasta 3 nombres de comuna) y `atiende_en_mas` (cuántas más), y la pantalla muestra "Atiende en: …";
+  - **no se marca la comuna base**. El orden es fijo: primero la comuna buscada, después las de la misma región y al final las demás, cada grupo en orden alfabético. Así el orden no la delata;
+  - es la misma información que ya muestra la ficha pública (ADR-019, D-14: comunas atendidas sin indicar la base). Siguen fuera de la respuesta el puntaje, la cercanía, `es_base`, el RUT y el contacto;
+  - límite conocido: si un maestro atiende una sola comuna, esa es su base. Pasa lo mismo en la ficha.
+- **Pruebas:** `tests/test_busqueda.py` (sugerencias de otra provincia de la región, nunca de otra región, prioridad de la provincia, orden de `atiende_en` igual con cualquier base, máximo de 3 más el conteo).
+- **Aprobación:** usuario / equipo de desarrollo, 2026-10-04. Falta la conformidad del representante del producto.

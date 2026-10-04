@@ -1192,8 +1192,13 @@ button.boton-quitar {
 }
 
 .oficio-tarjeta,
+.comunas-tarjeta,
 .calificacion-tarjeta {
   margin: 0;
+}
+
+.comunas-tarjeta {
+  overflow-wrap: anywhere;
 }
 
 .calificacion-tarjeta,

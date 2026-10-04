@@ -405,6 +405,8 @@ def test_rf13_tarjeta_con_lista_explicita_de_campos(catalogo):
         "oficio": {"codigo": "pintura", "nombre": "Pintura"},
         "calificacion": None,
         "calificacion_texto": "Todavía no tiene evaluaciones",
+        "atiende_en": ["Concepción"],
+        "atiende_en_mas": 0,
     }]
 
 
@@ -419,8 +421,32 @@ def test_el_puntaje_la_comuna_base_y_los_datos_personales_no_van_en_la_respuesta
             respuesta,
             {"puntaje", "score", "disponibilidad", "cercania", "es_base", "base", "comuna_base", "principal",
              "comunas", "rut", "telefono", "correo", "id", "perfil_maestro_id", "expediente", "estado", "monto"},
-            valores=[usuario.perfil_maestro.rut, "910000001", str(expediente.ref), "Coronel"],
+            valores=[usuario.perfil_maestro.rut, "910000001", str(expediente.ref)],
         )
+
+
+def test_e1_la_tarjeta_dice_donde_atiende_sin_delatar_la_base(catalogo):
+    """ADR-022, E-1: las mismas comunas y el mismo orden, sea cual sea la base."""
+    con_base_coronel = ay.maestro(1, catalogo, comunas=[(ay.CORONEL, True), (ay.CONCEPCION, False)])
+    con_base_concepcion = ay.maestro(2, catalogo, comunas=[(ay.CORONEL, False), (ay.CONCEPCION, True)])
+
+    tarjetas = {t["ref"]: t for t in buscar().json()["resultados"]}
+
+    for usuario in (con_base_coronel, con_base_concepcion):
+        tarjeta = tarjetas[ay.ref(usuario)]
+        # Primero la comuna buscada; después, en orden alfabético.
+        assert tarjeta["atiende_en"] == ["Concepción", "Coronel"] and tarjeta["atiende_en_mas"] == 0
+
+
+def test_e1_atiende_en_muestra_tres_comunas_y_cuenta_las_demas(catalogo):
+    usuario = ay.maestro(1, catalogo, comunas=[
+        (ay.SANTIAGO, False), (ay.TALCAHUANO, False), (ay.CONCEPCION, True), (ay.HUALPEN, False), (ay.LEBU, False),
+    ])
+    tarjeta = buscar(comuna=str(ay.TALCAHUANO)).json()["resultados"][0]
+    assert tarjeta["ref"] == ay.ref(usuario)
+    # Buscada, luego la región del Biobío en orden alfabético y al final otras regiones.
+    assert tarjeta["atiende_en"] == ["Talcahuano", "Concepción", "Hualpén"]
+    assert tarjeta["atiende_en_mas"] == 2
 
 
 def test_paginas_de_veinte_y_consultas_constantes(catalogo, django_assert_max_num_queries):
@@ -459,7 +485,8 @@ def test_ca04_1_mensaje_explicito_sin_resultados_ni_sugerencias(catalogo):
 def test_ca04_2_ca04_3_sugerencias_separadas_con_el_criterio_que_incumplen(catalogo):
     otro_horario = ay.maestro(1, catalogo, bloques=[(5, "08:00", "12:00")])
     otra_comuna = ay.maestro(2, catalogo, comunas=[(ay.CORONEL, True)], bloques=[(4, "08:00", "12:00")])
-    ay.maestro(3, catalogo, comunas=[(ay.LEBU, True)], bloques=[(4, "08:00", "12:00")])  # otra provincia
+    otra_provincia = ay.maestro(3, catalogo, comunas=[(ay.LEBU, True)], bloques=[(4, "08:00", "12:00")])
+    ay.maestro(6, catalogo, comunas=[(ay.SANTIAGO, True)], bloques=[(4, "08:00", "12:00")])  # otra región
     ay.maestro(4, catalogo, servicios=["gasfiteria"], bloques=[(4, "08:00", "12:00")])  # otro oficio
     ay.maestro(5, catalogo, estado=EstadoExpediente.SUSPENDIDO, bloques=[(4, "08:00", "12:00")])  # no publicado
 
@@ -468,12 +495,30 @@ def test_ca04_2_ca04_3_sugerencias_separadas_con_el_criterio_que_incumplen(catal
     datos = respuesta.json()
     assert datos["resultados"] == [] and datos["mensaje"] == MENSAJE_SIN_RESULTADOS
     assert [(s["ref"], s["incumple"]) for s in datos["sugerencias"]] == [
-        (ay.ref(otro_horario), "bloque"), (ay.ref(otra_comuna), "comuna"),
+        (ay.ref(otro_horario), "bloque"), (ay.ref(otra_comuna), "comuna"), (ay.ref(otra_provincia), "comuna"),
     ]
     for sugerencia in datos["sugerencias"]:
         assert sugerencia["incumple_texto"] == sugerencias.TEXTOS[sugerencia["incumple"]]
         assert set(sugerencia) == {"ref", "nombre", "foto", "oficio", "calificacion", "calificacion_texto",
-                                   "incumple", "incumple_texto"}
+                                   "atiende_en", "atiende_en_mas", "incumple", "incumple_texto"}
+    assert [s["atiende_en"] for s in datos["sugerencias"]] == [["Concepción"], ["Coronel"], ["Lebu"]]
+
+
+def test_e1_la_misma_provincia_va_antes_que_el_resto_de_la_region(catalogo):
+    """ADR-022, E-1: con cualquier sorteo del día, el de la provincia va primero."""
+    otra_provincia = [ay.maestro(n, catalogo, comunas=[(ay.LEBU, True)]) for n in range(1, 4)]
+    misma_provincia = ay.maestro(4, catalogo, comunas=[(ay.CORONEL, True)])
+    datos = buscar().json()
+    refs = [s["ref"] for s in datos["sugerencias"]]
+    assert refs[0] == ay.ref(misma_provincia)
+    assert set(refs[1:]) == {ay.ref(u) for u in otra_provincia}
+    assert {s["incumple"] for s in datos["sugerencias"]} == {"comuna"}
+
+
+def test_e1_sin_nadie_en_la_region_no_hay_sugerencias(catalogo):
+    ay.maestro(1, catalogo, comunas=[(ay.SANTIAGO, True)])
+    datos = buscar().json()
+    assert datos["mensaje"] == MENSAJE_SIN_RESULTADOS and datos["sugerencias"] == []
 
 
 def test_sugerencias_como_maximo_cinco_y_nunca_con_resultados(catalogo):

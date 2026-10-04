@@ -21,8 +21,10 @@ T = Modalidad.POR_TRABAJO
 URL = "/api/busqueda"
 # Provincia de Concepción (CUT 81): Concepción, Coronel, Chiguayante, Hualpén.
 CONCEPCION, CORONEL, CHIGUAYANTE, HUALPEN, TALCAHUANO = 8101, 8102, 8103, 8112, 8110
-# Otra provincia (Arauco, 82): Lebu.
+# Otra provincia (Arauco, 82) de la misma región del Biobío: Lebu.
 LEBU = 8201
+# Otra región (Metropolitana, 13): Santiago.
+SANTIAGO = 13101
 # Miércoles 7 de octubre de 2026, 08:00 en Santiago (horario de verano, -03).
 AHORA = datetime.datetime(2026, 10, 7, 8, 0, tzinfo=ocurrencias.ZONA)
 HOY = AHORA.date()

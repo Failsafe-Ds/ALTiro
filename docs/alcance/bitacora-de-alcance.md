@@ -308,3 +308,12 @@ Registros previstos en la propuesta del S4 (§10) y detectados en el QA de cierr
 - **Impacto:** nuevas rutas `api/cuenta/contrasena`, `api/cuenta/correo`, `api/recuperacion` y `api/recuperacion/contrasena`; tabla `solicitud_recuperacion`; volumen `buzon`; pantallas `recuperar.html` y `nueva-contrasena.html`, y sección «Seguridad de mi cuenta» en `cuenta.html`. Cierra DA-09 y responde P-11.
 - **Autorización:** equipo de desarrollo (instrucción del 2026-09-30, que también eligió el canal: buzón local más recuperación asistida). Falta la conformidad del representante del producto.
 - **Relacionado:** RNF-09, RNF-10, R-03, NTI-09, NTI-11; ADR-013, ADR-027; DA-09, P-11.
+
+### DA-28 — Sugerencias de la región y comunas atendidas en la tarjeta de búsqueda
+- **Fecha:** 2026-10-04 (después del cierre del S5).
+- **Alcance original:** RF-12 pide sugerencias rotuladas que indiquen el criterio incumplido. ADR-022 las limitaba a la misma provincia, y la tarjeta de RF-13 no decía dónde atiende el maestro.
+- **Cambio:** las sugerencias por comuna abarcan toda la región, con la misma provincia primero. La tarjeta muestra "Atiende en: …" sin marcar la base. Detalle en ADR-022, E-1.
+- **Motivo:** en regiones con pocos maestros, buscar en una comuna sin cobertura dejaba la pantalla vacía aunque hubiera maestros del oficio en la región. Además, el cliente no sabía de dónde era cada maestro sin abrir su ficha.
+- **Impacto:** `busqueda/servicios.py`, `busqueda/sugerencias.py`, `busqueda/vistas.py`, `frontend/js/buscar.js`, `frontend/css/base.css` y pruebas de búsqueda. Sin cambios de modelo ni migraciones. RF-12 sigue dentro de su texto. RF-13 agrega un dato que la ficha ya mostraba.
+- **Autorización:** usuario (2026-10-04). Falta la conformidad del representante del producto.
+- **Relacionado:** RF-12, RF-13, CA-04.2, CA-04.3, RNF-01; ADR-019 (D-14), ADR-022.

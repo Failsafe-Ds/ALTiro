@@ -2,7 +2,8 @@
 // - GET /api/oficios: lista de oficios. Región y comuna con territorio.js.
 // - GET /api/busqueda?oficio=<código>&comuna=<CUT>[&fecha=AAAA-MM-DD&inicio=HH:MM&fin=HH:MM][&pagina=N].
 //   Respuesta: { resultados, total, pagina, paginas, mensaje, sugerencias }.
-//   Cada tarjeta trae ref, nombre, foto (160 px), oficio y calificacion_texto;
+//   Cada tarjeta trae ref, nombre, foto (160 px), oficio, calificacion_texto,
+//   atiende_en (hasta 3 comunas, sin marcar la base) y atiende_en_mas;
 //   cada sugerencia, además, incumple e incumple_texto (el criterio que no cumple).
 // - Los filtros van en la dirección de la página (buscar.html?oficio=…&region=…&comuna=…):
 //   la búsqueda se puede recargar y compartir. "region" solo sirve para llenar
@@ -297,6 +298,22 @@
     return typeof foto === "string" && foto.startsWith("/api/maestros/publicos/") ? foto : "";
   }
 
+  // ADR-022, E-1: "Atiende en: Concepción, Talcahuano y 2 comunas más".
+  function textoAtiendeEn(maestro) {
+    const comunas = Array.isArray(maestro.atiende_en) ? maestro.atiende_en : [];
+    if (!comunas.length) {
+      return "";
+    }
+    const mas = Number(maestro.atiende_en_mas) || 0;
+    let lista = comunas.join(", ");
+    if (mas) {
+      lista += ` y ${mas} ${mas === 1 ? "comuna" : "comunas"} más`;
+    } else if (comunas.length > 1) {
+      lista = `${comunas.slice(0, -1).join(", ")} y ${comunas[comunas.length - 1]}`;
+    }
+    return `Atiende en: ${lista}`;
+  }
+
   function tarjeta(maestro, conIncumple) {
     const item = elemento("li", "tarjeta tarjeta-maestro");
     const foto = document.createElement("img");
@@ -316,6 +333,7 @@
       "tarjeta-texto",
       elemento("h3", "nombre-tarjeta", maestro.nombre),
       elemento("p", "oficio-tarjeta", maestro.oficio ? maestro.oficio.nombre : ""),
+      elemento("p", "comunas-tarjeta", textoAtiendeEn(maestro)),
       // RF-13: promedio y cantidad; sin evaluaciones, el texto (CA-05.2).
       elemento("p", "calificacion-tarjeta",
         maestro.calificacion ? `Calificación: ${maestro.calificacion_texto}` : maestro.calificacion_texto || "")

@@ -6,8 +6,9 @@ Flujo de ``buscar(filtros, ahora)``:
    obligatorios; ``fecha``, ``inicio`` y ``fin`` los tres o ninguno, con la
    fecha dentro del horizonte de 14 días; ``pagina`` opcional).
 2. ``cargar_candidatos``: prefiltro en SQL (servicio activo del oficio,
-   expediente ``aprobado`` y cobertura en alguna comuna de la **provincia**
-   pedida, para poder armar también las sugerencias de RF-12) y carga en lote
+   expediente ``aprobado`` y cobertura en la comuna pedida; si no hay
+   resultados, una segunda carga con toda la **región** para las sugerencias
+   de RF-12, ADR-022 E-1) y carga en lote
    del contexto de la regla única, la cobertura, la agenda, los rangos ocupados
    y los perfiles públicos. Número de consultas constante (RNF-01). El
    prefiltro solo descarta a quien la regla única también descartaría.
@@ -20,7 +21,8 @@ Flujo de ``buscar(filtros, ahora)``:
 
 Nada de lo calculado para ordenar (puntaje, disponibilidad, cercanía, comuna
 base) sale de este módulo hacia la respuesta: la vista arma la tarjeta con una
-lista explícita de campos (RF-13).
+lista explícita de campos (RF-13). Las comunas atendidas sí van, sin marcar la
+base (ADR-022, E-1; igual que la ficha, ADR-019 D-14).
 """
 import datetime
 import re
@@ -313,12 +315,18 @@ def buscar(filtros, ahora):
     from busqueda import sugerencias
 
     hoy = vigencia.hoy_negocio(ahora)
-    provincia = list(Comuna.objects.filter(provincia_id=filtros.comuna.provincia_id).values_list("codigo", flat=True))
-    candidatos = cargar_candidatos(filtros.oficio, provincia, ahora, hoy)
     codigo = filtros.comuna.codigo
+    # Los principales solo pueden salir de quien atiende la comuna pedida. La
+    # región se carga solo si no hay resultados, para las sugerencias (E-1).
+    candidatos = cargar_candidatos(filtros.oficio, [codigo], ahora, hoy)
     principales = ordenar([c for c in candidatos if cumple(c, codigo, filtros.bloque)], codigo, filtros.bloque, hoy)
     total = len(principales)
     paginas = max(1, -(-total // TAMANO_PAGINA))
     inicio = (filtros.pagina - 1) * TAMANO_PAGINA
-    propuestas = [] if total else sugerencias.sugerir(candidatos, codigo, filtros.bloque, hoy)
+    propuestas = []
+    if not total:
+        region = Comuna.objects.filter(provincia__region_id=filtros.comuna.provincia.region_id)
+        provincia = frozenset(c for c, p in region.values_list("codigo", "provincia_id") if p == filtros.comuna.provincia_id)
+        candidatos = cargar_candidatos(filtros.oficio, region.values("codigo"), ahora, hoy)
+        propuestas = sugerencias.sugerir(candidatos, codigo, filtros.bloque, hoy, provincia)
     return Resultado(principales[inicio:inicio + TAMANO_PAGINA], total, filtros.pagina, paginas, propuestas)

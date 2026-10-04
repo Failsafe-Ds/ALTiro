@@ -5,7 +5,7 @@ La documentación funcional está en `docs/` (`docs/informe-altiro.md`) y las
 decisiones técnicas en `docs/decisions/`. Los desplazamientos de alcance
 (informe §5.3.6) se registran en `docs/alcance/bitacora-de-alcance.md`.
 
-Versión actual: **0.5.5** (se ve en el pie de cada página; `frontend/js/version.js`).
+Versión actual: **0.5.6** (se ve en el pie de cada página; `frontend/js/version.js`).
 Estado: **los cinco sprints del informe están construidos** (etiquetas `sprint-1` a
 `sprint-5`; cierres en `docs/testing/cierre-sprint-*.md`). Después del S5 se agregaron
 cambio y recuperación de contraseña (ADR-027), datos de demostración (ADR-028),
@@ -131,9 +131,10 @@ Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
    misma contraseña). Para una cuenta administrativa con tu propia contraseña usa
    `crear_usuario_administrativo` (ver "Crear una cuenta administrativa").
 
-6. Para probar los filtros de la búsqueda con volumen (oficio, comuna y bloque horario;
-   RF-09 a RF-12), carga al menos 3 maestros ficticios con comuna base en **cada** comuna
-   (unos 1.040 en todo el país; ADR-028, Enmienda E-1):
+6. **Recomendado para probar el buscador.** Los 10 maestros del paso 2 son pocos: la mayoría
+   de las combinaciones de oficio y comuna quedan vacías. Para probar los filtros con volumen
+   (oficio, comuna y bloque horario; RF-09 a RF-12), carga al menos 3 maestros ficticios con
+   comuna base en **cada** comuna (unos 1.040 en todo el país, unos 2,5 min; ADR-028, Enmienda E-1):
 
    ```sh
    docker compose exec app python manage.py cargar_datos_demo --maestros-por-comuna 3

@@ -45,7 +45,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | [ADR-019](ADR-019-servicios-cobertura-publicacion.md) | Servicios del maestro, cobertura y regla de publicación | Aceptada — provisional (2026-09-29); E-1 (2026-09-29) |
 | [ADR-020](ADR-020-agenda-disponibilidad.md) | Agenda: disponibilidad semanal por bloques de 24 h | Aceptada — provisional (2026-09-29); E-1 (2026-09-29) |
 | [ADR-021](ADR-021-foto-perfil.md) | Foto de perfil del maestro | Aceptada — provisional (2026-09-29) |
-| [ADR-022](ADR-022-busqueda.md) | Búsqueda, filtros excluyentes y ordenamiento | Aceptada — provisional (2026-09-29) |
+| [ADR-022](ADR-022-busqueda.md) | Búsqueda, filtros excluyentes y ordenamiento | Aceptada — provisional (2026-09-29); E-1 (2026-10-04): sugerencias de la región y comunas en la tarjeta |
 | [ADR-023](ADR-023-ticket.md) | Ticket y orden: modelo, transiciones, privacidad y doble reserva | Aceptada — provisional (2026-09-29) |
 | [ADR-024](ADR-024-avisos-tickets-sesion.md) | Avisos de tickets, vocabulario y sesión | Aceptada — provisional (2026-09-29) |
 | [ADR-025](ADR-025-graphify-herramienta-equipo.md) | graphify como herramienta del equipo | Aceptada (2026-09-29) |

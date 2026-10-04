@@ -1,4 +1,4 @@
-"""Sugerencias cuando no hay resultados (RF-12, CA-04.2, CA-04.3; ADR-022, punto 6).
+"""Sugerencias cuando no hay resultados (RF-12, CA-04.2, CA-04.3; ADR-022, punto 6 y E-1).
 
 Solo se calculan si no hay resultados principales. Se relaja **un** filtro a
 la vez y cada sugerencia indica el único criterio que incumple:
@@ -6,8 +6,9 @@ la vez y cada sugerencia indica el único criterio que incumple:
 1. ``bloque``: cumple oficio, publicación y comuna, pero no tiene libre el
    horario pedido (solo si se pidió un horario);
 2. ``comuna``: cumple oficio, publicación y horario (si se pidió), pero no
-   atiende la comuna pedida; sí atiende otra comuna de la **misma provincia**
-   (ADR-012).
+   atiende la comuna pedida; sí atiende otra comuna de la **misma región**
+   (ADR-022, E-1). Primero los que atienden alguna comuna de la misma
+   provincia y después el resto de la región.
 
 Nunca se relaja el oficio ni la regla de publicación: los candidatos ya
 pasaron la regla única (``busqueda.servicios.cargar_candidatos``). Como
@@ -21,12 +22,16 @@ INCUMPLE_BLOQUE = "bloque"
 INCUMPLE_COMUNA = "comuna"
 TEXTOS = {
     INCUMPLE_BLOQUE: "No tiene libre el horario que elegiste.",
-    INCUMPLE_COMUNA: "No trabaja en la comuna que elegiste, pero sí en otra de la misma provincia.",
+    INCUMPLE_COMUNA: "No trabaja en la comuna que elegiste, pero sí en otra de la misma región.",
 }
 
 
-def sugerir(candidatos, comuna_codigo, bloque, hoy):
-    """``[(Candidato, incumple)]``, primero los que solo incumplen el horario y después la comuna."""
+def sugerir(candidatos, comuna_codigo, bloque, hoy, misma_provincia=frozenset()):
+    """``[(Candidato, incumple)]``: primero los que solo incumplen el horario y después la comuna.
+
+    ``misma_provincia``: códigos de las comunas de la provincia pedida; quien
+    atiende alguna va antes que el resto de la región (orden estable).
+    """
     visibles = [c for c in candidatos if c.servicio_visible]
     sin_bloque = []
     if bloque is not None:
@@ -41,5 +46,6 @@ def sugerir(candidatos, comuna_codigo, bloque, hoy):
         if not servicios.cumple_comuna(c, comuna_codigo) and servicios.cumple_bloque(c, bloque)
     ]
     otra_comuna = servicios.ordenar(otra_comuna, comuna_codigo, bloque, hoy, en_cobertura=False)
+    otra_comuna.sort(key=lambda c: not any(codigo in misma_provincia for codigo in c.comunas))
     propuestas = [(c, INCUMPLE_BLOQUE) for c in sin_bloque] + [(c, INCUMPLE_COMUNA) for c in otra_comuna]
     return propuestas[:MAXIMO]
