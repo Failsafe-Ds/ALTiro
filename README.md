@@ -88,13 +88,9 @@ down -v` en una carpeta solo afecta a su propio proyecto.
 Una instalación limpia tiene oficios y comunas, pero **no tiene servicios, maestros ni cuentas**.
 Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
 
-1. Levanta la pila con el código al día (el comando vive en la imagen de `app`):
+Con la pila ya levantada (sección «Levantar el sistema»):
 
-   ```sh
-   docker compose up -d --build
-   ```
-
-2. Carga el catálogo de demostración **y** las cuentas para probar el flujo completo:
+1. Carga el catálogo de demostración **y** las cuentas para probar el flujo completo:
 
    ```sh
    docker compose exec app python manage.py cargar_datos_demo --con-cuentas
@@ -105,7 +101,7 @@ Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
    ejemplo (pendiente, aceptado con conversación, finalizado sin evaluar y cerrado). Es
    idempotente: volver a ejecutarlo no duplica nada. Sin `--con-cuentas` solo carga los servicios del catálogo.
 
-3. **Anota la contraseña que imprime la consola**: aparece una sola vez, no se guarda en
+2. **Anota la contraseña que imprime la consola**: aparece una sola vez, no se guarda en
    ningún archivo ni registro y es la misma para todas las cuentas con ingreso:
 
    | Quién | Ingresa con |
@@ -124,14 +120,14 @@ Todo lo que sigue es ficticio y va rotulado "(demo)" (ADR-028).
    `cargar_datos_demo --con-cuentas --restablecer-contrasenas`.
    Esa opción cierra las sesiones abiertas de esas cuentas.
 
-4. Prueba la búsqueda, por ejemplo "Gasfitería" en Concepción o "Pintura" en Santiago. El
+3. Prueba la búsqueda, por ejemplo "Gasfitería" en Concepción o "Pintura" en Santiago. El
    maestro con ingreso atiende Concepción, Talcahuano, San Pedro de la Paz y Chiguayante.
 
-5. `--con-cuentas` también crea una cuenta demo por rol administrativo (tabla de arriba, con la
+4. `--con-cuentas` también crea una cuenta demo por rol administrativo (tabla de arriba, con la
    misma contraseña). Para una cuenta administrativa con tu propia contraseña usa
    `crear_usuario_administrativo` (ver "Crear una cuenta administrativa").
 
-6. **Recomendado para probar el buscador.** Los 10 maestros del paso 2 son pocos: la mayoría
+5. **Recomendado para probar el buscador.** Los 10 maestros del paso 1 son pocos: la mayoría
    de las combinaciones de oficio y comuna quedan vacías. La carga de la demo deja unos 3.500
    maestros ficticios, con **50 a 70 por oficio en el Gran Concepción y el Gran Santiago**
    (unos 7 minutos; ADR-028, Enmiendas E-1 y E-2):
