@@ -171,7 +171,7 @@ Cuando entre en alcance, verificar:
 - cookies seguras;
 - respuestas genéricas que no permitan enumeración indebida.
 
-No fijar la semántica exacta de una decisión que siga en Borrador; consulta su estado vigente en `docs/decisions/README.md`. Los ADR Aceptados se verifican tal como están escritos, incluidas sus Enmiendas y su sección «Decisión». El plan de pruebas vigente es `docs/testing/plan-identidad-sprint-1.md`.
+No fijar la semántica exacta de una decisión que siga en Borrador; consulta su estado vigente en `docs/decisions/README.md`. Los ADR Aceptados se verifican tal como están escritos, incluidas sus Enmiendas y su sección «Decisión». El plan de pruebas de identidad es `docs/testing/plan-identidad-sprint-1.md`, y la evidencia de cambio de credenciales y recuperación (ADR-027) está en `docs/testing/credenciales-adr027.md`.
 
 ## Base de datos
 
@@ -265,6 +265,20 @@ Cuando entre en alcance, verifica:
 - estados que no dependan únicamente del color;
 - comportamiento con conexión limitada;
 - conservación de progreso cuando aplique.
+
+### Validaciones mínimas (CLAUDE.md §8 y §9)
+
+En cada formulario u operación del encargo, verifica con evidencia (PASS/FAIL por punto):
+
+1. sin credenciales en el código: `grep` de contraseñas, usuarios fijos o atajos de ingreso en `backend/`, `frontend/` e `infra/`; el ingreso solo funciona con cuentas de la base;
+2. cerrar la pestaña o el navegador en la pantalla de ingreso y volver: se puede ingresar de nuevo (con sesión vigente o nueva), sin quedar bloqueado;
+3. largo: texto más largo que el máximo → la pantalla lo impide (`maxlength`) y la API responde 400 en el campo, sin 500 ni recorte silencioso;
+4. espacios: `"  valor  "` se guarda como `"valor"`; solo espacios en un obligatorio → error de campo vacío; la contraseña **no** se recorta;
+5. indicador de carga visible y botón desactivado durante la espera (probar con red limitada);
+6. mensajes de error: dicen qué falló, por qué y qué hacer, junto al campo y visibles sin desplazarse;
+7. un dato faltante no borra el resto del formulario;
+8. tras un envío exitoso los campos quedan limpios y el borrador eliminado;
+9. toda operación muestra un mensaje de resultado (éxito o error) anunciado con `aria-live`.
 
 ## Clasificación de resultados
 

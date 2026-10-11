@@ -65,6 +65,8 @@ No incorporar:
 
 salvo decisión arquitectónica explícita.
 
+Diseño visual: sigue ADR-002 E-3 (referencia Fiverr, tonos rojos, inicio por rol, sin «Volver»). Del plugin UI/UX Pro Max se usan **solo** `ui-ux-pro-max:ui-ux-pro-max` (siempre con la pila `html-css`, nunca `html-tailwind`) y `ui-ux-pro-max:design-system` (tokens como variables CSS en `frontend/css/`). **No** se usan `ui-styling` (shadcn y Tailwind) ni la generación de imágenes, logos o íconos de `design`, `brand` y `banner-design`, porque envían datos a servicios externos (Gemini y otros) no aprobados (CLAUDE.md §13).
+
 ## Responsabilidades
 
 Implementa:
@@ -105,6 +107,15 @@ Cuando corresponda:
 - no borrar todo el formulario por un error;
 - marcar claramente campos obligatorios;
 - no depender solo de placeholders.
+
+Validaciones mínimas (CLAUDE.md §9; aplican a todo formulario nuevo o modificado):
+
+- `maxlength` igual al largo máximo del servidor; nunca inventar otro;
+- recortar espacios al inicio y al final antes de validar y enviar, **salvo en contraseñas**;
+- usar `frontend/js/formulario.js` (`revisar`, `data-validar`, ADR-031) en vez de validar con código propio por página;
+- mientras se espera al servidor: indicador visible con texto y botón desactivado;
+- tras el éxito: mensaje de resultado, campos limpios y borrador (`altiro.*`) eliminado;
+- tras un error: conservar todo lo escrito, marcar solo el campo afectado y mover el foco al primer error.
 
 ## Mobile-first
 

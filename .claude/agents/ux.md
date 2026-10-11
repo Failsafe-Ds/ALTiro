@@ -76,6 +76,8 @@ Revisa:
 - prevención de envíos dobles;
 - estado mientras se procesa.
 
+Y las validaciones mínimas de CLAUDE.md §9: largo máximo visible y coherente, espacios sobrantes, indicador de carga con texto, error que diga qué falló, por qué y qué hacer, formulario que no se borra por un dato faltante, campos limpios tras el éxito y mensaje de resultado en cada operación. Cerrar la pantalla de ingreso y volver no debe dejar a nadie sin poder entrar.
+
 ## Mensajes
 
 Comprueba:

@@ -25,7 +25,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | — | [Propuesta de arquitectura del Sprint 3](sprint-3-propuesta-arquitectura.md) | Borrador; decisiones provisionales (2026-09-29) |
 | — | [Propuesta de arquitectura del Sprint 4](sprint-4-propuesta-arquitectura.md) | Borrador; decisiones provisionales (2026-09-29) |
 | [ADR-001](ADR-001-framework-web.md) | Framework web | Aceptada (2026-09-27) |
-| [ADR-002](ADR-002-estilo-interfaz.md) | Estilo de interfaz (API JSON + frontend estático) | Aceptada (2026-09-27); Enmiendas E-1 (2026-09-28), E-2 (2026-10-04) |
+| [ADR-002](ADR-002-estilo-interfaz.md) | Estilo de interfaz (API JSON + frontend estático) | Aceptada (2026-09-27); Enmiendas E-1 (2026-09-28), E-2 (2026-10-04), E-3 (2026-10-11, rediseño visual, pendiente) |
 | [ADR-003](ADR-003-motor-base-datos.md) | Motor de base de datos relacional (PostgreSQL 16) | Aceptada (2026-09-27); Enmiendas E-1 a E-3 (2026-09-28) |
 | [ADR-004](ADR-004-hash-contrasenas.md) | Hash de contraseñas (Argon2id, 64 MiB, t=3) | Aceptada (2026-09-28) |
 | [ADR-005](ADR-005-sesiones.md) | Manejo de sesiones | Aceptada (2026-09-28) |
@@ -51,7 +51,7 @@ Registro de decisiones técnicas que el informe (`docs/informe-altiro.md`) no de
 | [ADR-025](ADR-025-graphify-herramienta-equipo.md) | graphify como herramienta del equipo | Aceptada (2026-09-29) |
 | [ADR-026](ADR-026-mensajeria-evaluacion-operacion.md) | Precio final, mensajería, evaluación, moderación, indicadores y operación | Aceptada — provisional (2026-09-30) |
 | [ADR-027](ADR-027-cambio-credenciales-recuperacion.md) | Cambio de contraseña, cambio de correo y recuperación de contraseña | Aceptada (2026-09-30) |
-| [ADR-028](ADR-028-datos-demostracion.md) | Datos ficticios de demostración con cuentas para el flujo completo | Borrador (2026-10-01); implementado a pedido del usuario; E-2 (2026-10-04): hasta 60 por comuna y `--comuna` |
+| [ADR-028](ADR-028-datos-demostracion.md) | Datos ficticios de demostración con cuentas para el flujo completo | Borrador (2026-10-01); implementado a pedido del usuario; E-2 (2026-10-04): hasta 99 por comuna, `--comuna` y zona densa |
 | [ADR-029](ADR-029-limitacion-solicitudes-proxy.md) | Limitación de solicitudes en el proxy y endurecimiento de cabeceras | Borrador (propuesta, 2026-10-01); implementado a pedido del usuario |
 | [ADR-030](ADR-030-endurecimiento-operativo.md) | Endurecimiento operativo: purga de sesiones y buzón, respaldo cifrado, imagen sin pruebas, rol migrador dueño del esquema | Propuesta (2026-10-01); implementado a pedido del usuario |
 | [ADR-031](ADR-031-validacion-rut-correo-en-pantalla.md) | Validación en pantalla de RUT (módulo 11) y correo, igual que el servidor | Propuesta (2026-10-03); implementado a pedido del usuario |

@@ -312,6 +312,8 @@ Activos especialmente sensibles:
 - Aplicar minimización de datos.
 - La exportación agregada nunca debe incluir identificadores personales.
 - Prevenir reidentificación en conjuntos supuestamente anonimizados.
+- La autenticación se valida siempre contra las cuentas guardadas en la base de datos (hash, ADR-004/ADR-013). Nunca usuarios, contraseñas ni "cuentas maestras" escritos en el código fuente, en el frontend ni en archivos versionados; las cuentas de demostración se crean por comando con contraseña aleatoria (ADR-028).
+- Cerrar la pestaña o la ventana de ingreso (o el navegador) no debe dejar a nadie bloqueado: al volver, la persona puede ingresar de nuevo con normalidad, ya sea retomando una sesión vigente o iniciando una nueva.
 
 No bajar requisitos de seguridad para simplificar una demostración sin dejar la desviación documentada.
 
@@ -333,6 +335,18 @@ Consideraciones obligatorias:
 - ningún estado debe depender exclusivamente del color;
 - compatibilidad con los navegadores especificados en los RNF;
 - conservar progreso de formularios cuando corresponda.
+
+### Validaciones mínimas de formularios y operaciones
+
+Pedidas por el equipo (2026-10-11); concretan RNF-14 y RNF-15. Se aplican a **todo** formulario y a toda operación que llame al servidor:
+
+1. **Largo de los campos:** cada campo de texto tiene un largo máximo definido en el servidor (y en la base cuando corresponda) y el mismo `maxlength` en pantalla. Superarlo da un mensaje en el campo, nunca un recorte silencioso ni un 500.
+2. **Espacios sobrantes:** los espacios al inicio y al final se eliminan antes de validar y guardar (el servidor siempre; la pantalla puede hacerlo también). Un campo obligatorio con solo espacios cuenta como vacío. **Excepción: la contraseña nunca se recorta** (ADR-013, punto 3).
+3. **Indicador de carga:** toda espera (envío, búsqueda, carga de página o de archivo) muestra un indicador visible con texto ("Enviando…", "Buscando…"), y el botón queda desactivado mientras dura, para evitar envíos dobles.
+4. **Mensajes claros y visibles:** cada error dice qué falló, por qué y qué debe hacer la persona, junto al campo afectado y en un lugar visible sin desplazarse (resumen arriba con foco cuando hay varios). Sin códigos internos (RNF-15).
+5. **No borrar el formulario por un error:** si falta o falla un dato, se conserva todo lo demás que se escribió y solo se marca lo que hay que corregir.
+6. **Limpiar al terminar bien:** cuando la operación se completó con éxito, los campos se limpian (y se borra el borrador guardado, si existía) para que no se envíe dos veces lo mismo. Si la pantalla cambia tras el éxito, basta con no volver a mostrar los datos ya enviados.
+7. **Mensaje de resultado:** toda operación termina con un mensaje visible de éxito o de error en lenguaje simple ("Tu pedido fue enviado", "No pudimos guardar: …"), anunciado también a lectores de pantalla (`aria-live`) y sin depender solo del color.
 
 No diseñar primero para escritorio y adaptar después si eso perjudica el flujo móvil.
 

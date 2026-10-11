@@ -52,7 +52,17 @@ El costo de un agente crece con **lo que lee × los pasos que da**. Todo lo de a
     - el historial de una conversación larga se vuelve a enviar en cada turno del coordinador.
 12. **Agrupar incrementos** que tocan los mismos archivos y ADR en un solo encargo (por ejemplo, los incrementos 5 y 6 del S4).
 
-## Siguiente trabajo
+## Siguiente trabajo — pulido post-S5 (2026-10-11, fuera de sprint)
+Pedido del usuario: "dejar todo lindo y funcional, sobre todo con las validaciones mínimas". No pertenece a ningún sprint; el equipo lo ubicará después en el backlog (CLAUDE.md §11). Se trabaja en modo continuo (reglas de arriba), con versiones 0.6.x. Orden:
+1. **Commit** de la documentación del 2026-10-11 (validaciones mínimas, ADR-002 E-3, skills). ✔ al cerrar el paso.
+2. **Auditoría del backend** con la skill `ponytail-audit` (informe en `docs/testing/auditoria-backend-ponytail.md`), y corrección de lo que haya que corregir (agente `backend`).
+3. **Validaciones mínimas** (CLAUDE.md §8-§9) en todas las pantallas y en la API: inventario, corrección y QA con la lista de `qa.md`.
+4. **Rediseño visual** (ADR-002 E-3), por partes: base visual (tokens rojos, encabezado en dos versiones, pie, sin «Volver», inicio por rol) → categorías y búsqueda (estilo Fiverr) → páginas de opciones con menú lateral → resto. Skill `ui-ux-pro-max` con pila `html-css`.
+5. QA final del pulido y `docs/estado-actual.md` al día.
+
+Avance y decisiones provisionales: en `docs/estado-actual.md` (línea por paso cerrado) y en "Consumo".
+
+## Trabajo anterior (S5)
 S5 cerrado (etiqueta `sprint-5`). Los cinco sprints del informe están construidos. Lo que queda es trabajo del equipo y de la revisión, en una **sesión nueva** (regla 11):
 - RNF-13 con personas (DA-26) y RNF-18 manual en navegadores de marca y Android;
 - revisar el primer respaldo automático del 2026-10-01 y definir dónde se guarda la copia de la clave;

@@ -71,6 +71,9 @@ No sustituir tecnologías sin una nueva decisión arquitectónica.
 - Usa transacciones cuando una operación deba ser atómica.
 - Usa restricciones de base de datos cuando corresponda.
 - Todo dato recibido del cliente debe validarse.
+- Todo campo de texto tiene largo máximo en el servidor (y en el modelo cuando se guarda); superarlo da 400 en el campo, nunca recorte silencioso ni 500. Avisa a `frontend` el largo para su `maxlength`.
+- Elimina los espacios al inicio y al final antes de validar y guardar; un obligatorio con solo espacios es vacío. **La contraseña nunca se recorta** (ADR-013).
+- Cada error 400 dice qué falló y qué hacer, en el campo que corresponde (formato `{mensaje, errores}`, ADR-013).
 - No expongas información interna innecesaria en respuestas de error.
 
 ## Seguridad
@@ -103,6 +106,8 @@ en logs.
 
 Los secretos y configuración deben estar fuera del código.
 
+La autenticación se valida solo contra las cuentas de la base de datos. Nunca usuarios, contraseñas ni atajos de ingreso escritos en el código, en migraciones, en fixtures ni en el frontend; las cuentas de demostración se crean con `cargar_datos_demo` y contraseña aleatoria (ADR-028).
+
 ## Roles múltiples
 
 Una persona utiliza una sola cuenta.
@@ -130,7 +135,7 @@ Consulta el estado vigente de cada ADR en `docs/decisions/README.md`; no asumas 
 
 Un ADR Aceptado se aplica tal como está escrito, incluidas sus Enmiendas y su sección «Decisión».
 
-No asumir como resuelto ningún punto de un ADR en Borrador ni de una pregunta abierta de la propuesta del sprint (por ejemplo: bitácora y accesos denegados, respuesta 403/404 ante acceso denegado, reautenticación, funciones de cambio de contraseña o correo). No decidas esos puntos por tu cuenta.
+No asumir como resuelto ningún punto de un ADR en Borrador o Propuesta ni de una pregunta abierta (P-xx) de la propuesta del sprint. Hoy siguen abiertos, entre otros, ADR-028 a ADR-031 y los plazos de retención (P-30, V-04); la lista vigente está en `docs/estado-actual.md`. No decidas esos puntos por tu cuenta.
 
 Si una tarea depende de alguno de estos puntos, informa el bloqueo antes de escribir código.
 

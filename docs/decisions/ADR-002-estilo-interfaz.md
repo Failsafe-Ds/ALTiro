@@ -50,3 +50,25 @@ Con frontend estático, el HTML de una página privada puede descargarse sin ses
   - `cuenta.html`: las tarjetas de accesos pasan a listas de enlaces agrupadas por sección (mismos ids `accesos-*` y misma lógica de `cuenta.js`); «Seguridad de mi cuenta» queda plegada en `<details>`; los formularios de agregar perfil pierden el recuadro.
 - **Seguridad:** el menú no autoriza; cada ruta de la API sigue exigiendo identidad, rol y propiedad. «Salir» usa `DELETE /api/sesion` y `formulario.olvidarTodo()`, igual que «Cerrar sesión».
 - **Costo:** una consulta `GET /api/cuenta` por página para armar el menú (RNF-02: JS nuevo ~4 KB).
+
+### E-3 — Rediseño visual: referencia Fiverr, tonos rojos, navegación por la marca e inicio por rol
+- **Fecha:** 2026-10-11. **Estado:** decisión del usuario; **pendiente de implementar**. Los puntos marcados como PROVISIONAL los propuso Claude y se revisan con el equipo.
+- **Motivo:** al equipo no le convence el frontend actual. Dio una referencia concreta en lugar de pedir "hacerlo mejor".
+- **Cambio:**
+  1. **Referencia visual: Fiverr.** Se toma de Fiverr la forma de los enlaces y la forma de mostrar a los trabajadores en la búsqueda: **foto arriba y la información debajo** (nombre, oficio, estrellas, precio), **sin recuadro de tarjeta**.
+  2. **Paleta:** predominan los tonos **rojos**. Se siguen cumpliendo el contraste (RNF-16) y la regla de no comunicar un estado solo con el color.
+  3. **Páginas de opciones** («Mi cuenta» y similares): menú de secciones a la izquierda y el contenido de la sección elegida a la derecha, como la configuración de Steam. En el celular (mobile-first, RNF-14), el menú pasa arriba del contenido, porque a la izquierda no cabe.
+  4. **Pie:** copyright en todas las páginas (ya existe, enmienda 2026-10-01).
+  5. **Encabezado en dos versiones:**
+     - **sin sesión:** solo el nombre **AlTiro**, que lleva a `index.html`. Sirve para salir de un formulario abierto por error. Ingresar, Crear cuenta y Postular quedan en el cuerpo de `index.html`, no en el encabezado. Esto reemplaza el menú sin sesión de E-2;
+     - **con sesión:** el nombre **AlTiro** lleva a la página de inicio del rol (punto 7), no a un formulario. El menú por rol de E-2 se mantiene.
+  6. **Se eliminan todos los botones «Volver»:** el `← Volver` del encabezado (`a[data-volver]`, `js/volver.js`), «Volver a la cola», el «Volver» de `conversacion` y `evaluar`, y el «Volver» entre los pasos de `buscar`. El nombre AlTiro cumple esa función. **Se mantiene** el botón Atrás del navegador y del teléfono (los pasos con `history.pushState` de la enmienda 2026-10-01), que no es un botón de la página, y no pierde lo escrito (RNF-20).
+  7. **Inicio por rol** (destino por defecto tras ingresar y destino del nombre AlTiro con sesión):
+     - **cliente:** la página de **categorías (oficios)** para ver maestros, al estilo Fiverr. Es la entrada a la búsqueda (RF de búsqueda y catálogo), no una funcionalidad nueva;
+     - **maestro:** `mis-trabajos.html` (sus pedidos);
+     - **curatoría:** `curatoria.html` (expedientes por revisar);
+     - PROVISIONAL: **comercial** → `comercial.html`; **moderación** → `moderacion.html`; **control de gestión** → `indicadores.html`;
+     - PROVISIONAL: **cuenta con varios roles** → el primero de este orden: curatoría, moderación, comercial, control de gestión, maestro, cliente. Los demás quedan en el menú;
+     - el parámetro `siguiente` de `ingresar.js` sigue teniendo prioridad sobre el inicio por rol.
+- **Restricciones que siguen vigentes:** HTML, CSS y JS propios, sin Tailwind ni Bootstrap; CSP estricta sin estilos ni scripts inline (los estilos van en `frontend/css/`); objetivos táctiles de 44 px; validaciones mínimas de CLAUDE.md §9. La skill de diseño UI/UX Pro Max, si se usa, se pide con la pila `html-css`, nunca `html-tailwind`.
+- **Seguridad:** el inicio por rol es solo navegación; el servidor sigue decidiendo qué ve cada cuenta.
