@@ -31,6 +31,7 @@
       <fieldset aria-describedby="ayuda-oficios error-oficios">
         <legend tabindex="-1">¿Qué oficios haces?</legend>
         <span class="ayuda" id="ayuda-oficios">Marca todos los que hagas. Para los que dicen «necesita licencia» te pediremos una foto de tu licencia de la Superintendencia de Electricidad y Combustibles (SEC).</span>
+        <p id="cantidad-oficios" class="cantidad-oficios"></p>
         <div id="lista-oficios" class="lista-oficios"></div>
         <span class="error-campo" id="error-oficios"></span>
       </fieldset>
@@ -50,14 +51,14 @@
         <div id="documento-entregado" class="tarjeta oculto"></div>
         <div id="fotos"></div>
         <div class="campo">
-          <label for="fecha_emision">Fecha de emisión</label>
+          <label for="fecha_emision">Fecha de emisión (obligatorio)</label>
           <span class="ayuda" id="ayuda-fecha_emision">El día en que te entregaron el documento. Sale impresa en él.</span>
           <input id="fecha_emision" name="fecha_emision" type="date" required
                  aria-describedby="ayuda-fecha_emision error-fecha_emision">
           <span class="error-campo" id="error-fecha_emision"></span>
         </div>
         <div class="campo">
-          <label for="fecha_vencimiento">Fecha de vencimiento (si tiene)</label>
+          <label for="fecha_vencimiento" id="etiqueta-fecha_vencimiento">Fecha de vencimiento (si tiene)</label>
           <span class="ayuda" id="ayuda-fecha_vencimiento">Si tu documento no tiene fecha de término, déjala en blanco.</span>
           <input id="fecha_vencimiento" name="fecha_vencimiento" type="date"
                  aria-describedby="ayuda-fecha_vencimiento error-fecha_vencimiento">

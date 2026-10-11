@@ -4,8 +4,10 @@
 //   viene así; Ingresar, Crear cuenta y Postular están en el cuerpo del inicio).
 // - Con sesión (GET /api/cuenta, la única consulta): la marca lleva al inicio
 //   del rol y se agrega el botón «Menú» con los enlaces de los roles.
-// window.altiroInicio(roles): ÚNICO lugar del inicio por rol (E-3, punto 7);
-// también lo usa ingresar.js como destino por defecto.
+// window.altiroInicio(roles): ÚNICO lugar del inicio por rol (E-3, punto 7, y
+// E-3.2: dos flujos); también lo usan ingresar.js e inicio.js.
+// window.altiroFlujo(flujo): conversacion y evaluar lo llaman cuando saben si
+// la persona es el cliente o el maestro del pedido (E-3.2).
 "use strict";
 
 (() => {
@@ -20,10 +22,69 @@
     ["cliente", "categorias.html"],
   ];
 
+  // Dos flujos (ADR-002 E-3.2): la marca lleva al inicio del flujo en que está
+  // la persona. Las páginas que no están aquí son neutras: usan el último flujo
+  // visitado (sessionStorage «altiro.flujo», solo «cliente» o «maestro», sin
+  // datos personales) o, si no hay, el orden de E-3.
+  const INICIO_FLUJO = { cliente: "categorias.html", maestro: "mis-trabajos.html" };
+  const FLUJO_POR_PAGINA = {
+    "categorias.html": "cliente",
+    "buscar.html": "cliente",
+    "perfil-maestro.html": "cliente",
+    "pedir-trabajo.html": "cliente",
+    "mis-pedidos.html": "cliente",
+    "mis-trabajos.html": "maestro",
+    "mi-perfil.html": "maestro",
+    "mis-servicios.html": "maestro",
+    "mi-cobertura.html": "maestro",
+    "mi-agenda.html": "maestro",
+    "mis-documentos.html": "maestro",
+    "mi-postulacion.html": "maestro",
+  };
+  const CLAVE_FLUJO = "altiro.flujo";
+
+  function leerFlujo() {
+    try {
+      const valor = sessionStorage.getItem(CLAVE_FLUJO);
+      return INICIO_FLUJO[valor] ? valor : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function guardarFlujo(flujo) {
+    try {
+      sessionStorage.setItem(CLAVE_FLUJO, flujo);
+    } catch (_) {
+      // Sin almacenamiento (modo privado): la marca usa el flujo de la página.
+    }
+  }
+
+  const paginaActual = location.pathname.split("/").pop() || "index.html";
+  let flujoActual = FLUJO_POR_PAGINA[paginaActual] || null;
+  if (flujoActual) {
+    guardarFlujo(flujoActual);
+  }
+
   window.altiroInicio = (roles) => {
     const lista = Array.isArray(roles) ? roles : [];
+    // El flujo solo cuenta si la cuenta tiene ese rol (otra cuenta en la misma pestaña).
+    const flujo = flujoActual || leerFlujo();
+    if (flujo && lista.includes(flujo)) {
+      return INICIO_FLUJO[flujo];
+    }
     const encontrado = INICIO_POR_ROL.find(([rol]) => lista.includes(rol));
     return encontrado ? encontrado[1] : "cuenta.html";
+  };
+
+  let alCambiarFlujo = () => {};
+  window.altiroFlujo = (flujo) => {
+    if (!INICIO_FLUJO[flujo]) {
+      return;
+    }
+    flujoActual = flujo;
+    guardarFlujo(flujo);
+    alCambiarFlujo();
   };
 
   // Una sola consulta GET /api/cuenta por página, compartida con opciones.js
@@ -43,13 +104,14 @@
   }
 
   const enlaces = (cuenta) => {
-    const lista = [["Buscar un maestro", "buscar.html"]];
+    // E-3.2: «Buscar maestros» y «Mi trabajo como maestro» cambian de flujo.
+    const lista = [["Buscar maestros", "categorias.html"]];
     const roles = cuenta.roles || [];
     if (cuenta.perfil_cliente) {
-      lista.push(["Categorías de oficios", "categorias.html"], ["Mis pedidos", "mis-pedidos.html"]);
+      lista.push(["Mis pedidos", "mis-pedidos.html"]);
     }
     if (cuenta.perfil_maestro) {
-      lista.push(["Mis trabajos", "mis-trabajos.html"], ["Mi perfil", "mi-perfil.html"],
+      lista.push(["Mi trabajo como maestro", "mis-trabajos.html"], ["Mi perfil", "mi-perfil.html"],
         ["Mi agenda", "mi-agenda.html"], ["Mis servicios", "mis-servicios.html"]);
     }
     if (roles.includes("curatoria")) lista.push(["Curatoría", "curatoria.html"]);
@@ -69,15 +131,16 @@
 
   async function salir(boton) {
     boton.disabled = true;
-    boton.textContent = "Saliendo…";
+    boton.textContent = "Cerrando sesión…";
     const { estado } = await api.borrar("/api/sesion");
     if (estado === 204 || estado === 401) {
       if (window.formulario) window.formulario.olvidarTodo();
+      // olvidarTodo también borra «altiro.flujo» (prefijo «altiro.»).
       location.replace("index.html?aviso=sesion-cerrada");
       return;
     }
     boton.disabled = false;
-    boton.textContent = "No se pudo salir: reintentar";
+    boton.textContent = "No se pudo cerrar la sesión: reintentar";
   }
 
   (async () => {
@@ -87,10 +150,11 @@
       return;
     }
     const marca = encabezado.querySelector("a.marca");
-    if (marca) {
-      marca.href = window.altiroInicio(cuenta.roles);
-    }
-    const actual = location.pathname.split("/").pop() || "index.html";
+    alCambiarFlujo = () => {
+      if (marca) marca.href = window.altiroInicio(cuenta.roles);
+    };
+    alCambiarFlujo();
+    const actual = paginaActual;
 
     const nav = crear("nav", { className: "menu" });
     nav.setAttribute("aria-label", "Menú principal");
@@ -105,7 +169,7 @@
       li.append(a);
       ul.append(li);
     }
-    const salirBoton = crear("button", { type: "button", className: "menu-salir" }, "Salir");
+    const salirBoton = crear("button", { type: "button", className: "menu-salir" }, "Cerrar sesión en este dispositivo");
     salirBoton.addEventListener("click", () => salir(salirBoton));
     const li = crear("li", {});
     li.append(salirBoton);

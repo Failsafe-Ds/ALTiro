@@ -13,6 +13,11 @@
   const cargando = document.getElementById("cargando-categorias");
   const aviso = document.getElementById("aviso-categorias");
   const lista = document.getElementById("lista-categorias");
+  const carrusel = document.getElementById("carrusel-categorias");
+  const controles = document.getElementById("carrusel-controles");
+  const anterior = document.getElementById("carrusel-anterior");
+  const siguiente = document.getElementById("carrusel-siguiente");
+  const estadoCarrusel = document.getElementById("carrusel-estado");
   const elemento = dom.elemento;
 
   function avisarError(estado) {
@@ -48,20 +53,83 @@
     cargando.textContent = "";
     cargando.hidden = true;
     if (estado !== 200) {
-      lista.hidden = true;
+      carrusel.hidden = true;
       avisarError(estado);
       return;
     }
     const oficios = Array.isArray(datos.oficios) ? datos.oficios : [];
     if (!oficios.length) {
-      lista.hidden = true;
+      carrusel.hidden = true;
       aviso.className = "aviso sin-resultados angosto";
       aviso.textContent = "Por ahora no hay oficios disponibles. Vuelve a intentarlo más tarde.";
       return;
     }
     lista.replaceChildren(...oficios.map(categoria));
-    lista.hidden = false;
+    carrusel.hidden = false;
+    actualizar();
   }
+
+  // --- Carrusel (ADR-002 E-3.3) ---
+  // En los extremos el botón queda con aria-disabled (sigue enfocable, para no
+  // perder el foco) y el aviso lo dice. Con prefers-reduced-motion, sin animación.
+  const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let anunciar = false;
+
+  function visibles() {
+    const caja = lista.getBoundingClientRect();
+    const items = Array.from(lista.children);
+    const dentro = items
+      .map((item, i) => [i, item.getBoundingClientRect()])
+      .filter(([, r]) => r.left >= caja.left - 2 && r.right <= caja.right + 2)
+      .map(([i]) => i);
+    return { primero: dentro.length ? dentro[0] + 1 : 1, ultimo: dentro.length ? dentro[dentro.length - 1] + 1 : 1, total: items.length };
+  }
+
+  function actualizar() {
+    const sobra = lista.scrollWidth - lista.clientWidth;
+    controles.hidden = sobra <= 1;
+    const alInicio = lista.scrollLeft <= 1;
+    const alFinal = lista.scrollLeft >= sobra - 1;
+    anterior.setAttribute("aria-disabled", String(alInicio));
+    siguiente.setAttribute("aria-disabled", String(alFinal));
+    if (anunciar) {
+      anunciar = false;
+      const { primero, ultimo, total } = visibles();
+      const extremo = alInicio ? " Estás al inicio de la lista." : alFinal ? " Llegaste al final de la lista." : "";
+      estadoCarrusel.textContent = `Oficios ${primero} a ${ultimo} de ${total}.${extremo}`;
+    }
+  }
+
+  function mover(direccion) {
+    const sobra = lista.scrollWidth - lista.clientWidth;
+    const limite = direccion < 0 ? lista.scrollLeft <= 1 : lista.scrollLeft >= sobra - 1;
+    anunciar = true;
+    if (limite) {
+      actualizar();
+      return;
+    }
+    lista.scrollBy({ left: direccion * lista.clientWidth * 0.8, behavior: sinMovimiento.matches ? "auto" : "smooth" });
+  }
+
+  let espera = null;
+  lista.addEventListener("scroll", () => {
+    clearTimeout(espera);
+    espera = setTimeout(actualizar, 120);
+  });
+  // Con Tab, la tarjeta enfocada se alinea a un punto de ajuste (inicio) para
+  // que el scroll-snap no la deje cortada.
+  lista.addEventListener("focusin", (evento) => {
+    const item = evento.target.closest("li");
+    if (item && lista.scrollWidth > lista.clientWidth + 1) {
+      item.scrollIntoView({ block: "nearest", inline: "start", behavior: sinMovimiento.matches ? "auto" : "smooth" });
+    }
+  });
+  anterior.addEventListener("click", () => mover(-1));
+  siguiente.addEventListener("click", () => mover(1));
+  window.addEventListener("resize", () => {
+    clearTimeout(espera);
+    espera = setTimeout(actualizar, 120);
+  });
 
   cargar();
 })();

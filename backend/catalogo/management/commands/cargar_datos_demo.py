@@ -25,10 +25,15 @@ comuna, o solo en las de ``--region R``, o solo en las ``--comuna C`` (se puede
 repetir; ADR-028, E-2) (``busqueda.maestros_por_comuna``), para probar los
 filtros de la búsqueda. N va de 1 a 99. Esos maestros no tienen ingreso.
 
+Con ``--completar-descripciones`` (DA-30) solo llena el «Sobre mí» vacío de los
+maestros de demostración que ya existen y no hace nada más (no carga servicios
+ni cuentas). Idempotente.
+
 Uso dentro del contenedor:
     python manage.py cargar_datos_demo
     python manage.py cargar_datos_demo --con-cuentas [--restablecer-contrasenas]
     python manage.py cargar_datos_demo --maestros-por-comuna [N] [--region R] [--comuna C ...]
+    python manage.py cargar_datos_demo --completar-descripciones
 """
 import logging
 import time
@@ -61,6 +66,9 @@ SERVICIOS_DEMO = (
     ("cerrajeria", "Cambio de chapa", {T: 25000}),
     ("jardineria", "Corte de pasto", {H: 10000}),
     ("jardineria", "Poda de arbustos", {T: 30000}),
+    # DA-31 (PROVISIONAL, coordinador): servicio general del oficio «Otros servicios»;
+    # el maestro explica qué hace en su «Sobre mí» y el cliente, en el pedido.
+    ("otros", "Trabajo general", {T: 25000, H: 12000}),
 )
 
 
@@ -107,9 +115,18 @@ class Command(BaseCommand):
             "--comuna", type=int, action="append", default=None, dest="comunas", metavar="CODIGO",
             help="Con --maestros-por-comuna: solo esa comuna (código CUT, por ejemplo 8101). Se puede repetir.",
         )
+        parser.add_argument(
+            "--completar-descripciones", action="store_true", dest="completar_descripciones",
+            help="Solo llena el «Sobre mí» vacío de los maestros de demostración existentes (DA-30).",
+        )
 
     def handle(self, *args, con_cuentas=False, restablecer=False, por_comuna=None, region=None, comunas=None,
-               **opciones):
+               completar_descripciones=False, **opciones):
+        if completar_descripciones:
+            if con_cuentas or restablecer or por_comuna is not None or region is not None or comunas:
+                raise CommandError("--completar-descripciones se usa sola, sin otras opciones.")
+            self._completar_descripciones()
+            return
         if restablecer and not con_cuentas:
             raise CommandError("--restablecer-contrasenas solo se usa junto con --con-cuentas.")
         if (region is not None or comunas) and por_comuna is None:
@@ -123,6 +140,14 @@ class Command(BaseCommand):
             self.stdout.write("Para crear también maestros, clientes y tickets con los que ingresar: agrega --con-cuentas.")
         if por_comuna is not None:
             self._por_comuna(por_comuna, region, comunas)
+
+    def _completar_descripciones(self):
+        from busqueda.maestros_por_comuna import completar_descripciones
+
+        with transaction.atomic():
+            llenados = completar_descripciones()
+        logger.info("Descripciones de demostración completadas por comando de consola: %s perfiles.", llenados)
+        self.stdout.write(f"Descripciones «Sobre mí» completadas (datos ficticios): {llenados} maestros de demostración.")
 
     def _por_comuna(self, n, region, comunas=None):
         from busqueda.maestros_por_comuna import cargar_maestros_por_comuna

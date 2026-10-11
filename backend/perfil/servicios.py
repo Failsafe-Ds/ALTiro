@@ -17,10 +17,11 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from catalogo.models import MONTO_MAXIMO, Modalidad, Servicio, ServicioModalidad
-from comun.texto import recortar
+from comun.api import MENSAJE_TEXTO_INVALIDO
+from comun.texto import FALTA, INVALIDO, LARGO, limpiar_texto, recortar
 from expediente.errores import ErrorEstado, ErroresValidacion
 from expediente.models import EstadoExpediente, Expediente, OficioMaestro
-from perfil.models import PerfilPublico, ServicioMaestro
+from perfil.models import DESCRIPCION_LARGO_MAXIMO, PerfilPublico, ServicioMaestro
 
 MENSAJE_SERVICIO_FALTA = "Elige un servicio de la lista."
 MENSAJE_SERVICIO_OFICIO_NO_DECLARADO = (
@@ -34,6 +35,11 @@ MENSAJE_MONTO_INVALIDO = "Escribe el monto en pesos, solo con números, mayor qu
 MENSAJE_SIN_CAMBIOS = "Cambia la forma de cobro o el monto antes de guardar."
 MENSAJE_RECHAZADO = "Tu postulación no fue aprobada, así que ya no puedes ofrecer servicios."
 MENSAJE_RETIRADO = "Ya quitaste este servicio. Si quieres ofrecerlo otra vez, agrégalo de nuevo."
+
+MENSAJE_DESCRIPCION_LARGA = (
+    f"Tu descripción puede tener hasta {DESCRIPCION_LARGO_MAXIMO} caracteres. Acórtala un poco."
+)
+MENSAJE_DESCRIPCION_FORMATO = "Escribe tu descripción como texto."
 
 _TEXTO_MODALIDAD = {Modalidad.POR_TRABAJO: "por trabajo", Modalidad.POR_HORA: "por hora"}
 _MONTO_TEXTO = re.compile(r"[0-9]{1,9}")
@@ -195,3 +201,18 @@ def retirar_servicio(servicio_maestro):
         servicio_maestro.retirado_en = timezone.now()
         servicio_maestro.save(update_fields=["retirado_en"])
     return servicio_maestro
+
+
+def cambiar_descripcion(maestro_id, valor):
+    """Guarda el «Sobre mí» del maestro de la sesión (DA-30). Vacío o ``null`` lo borra.
+
+    Recorta los extremos; caracteres de control (incluido el nulo) o más de
+    ``DESCRIPCION_LARGO_MAXIMO`` caracteres: 400 en ``descripcion``.
+    """
+    if valor is not None and not isinstance(valor, str):
+        raise ErroresValidacion({"descripcion": MENSAJE_DESCRIPCION_FORMATO})
+    texto, problema = limpiar_texto(valor, DESCRIPCION_LARGO_MAXIMO, obligatorio=False)
+    if problema:
+        mensaje = {FALTA: MENSAJE_DESCRIPCION_FORMATO, INVALIDO: MENSAJE_TEXTO_INVALIDO, LARGO: MENSAJE_DESCRIPCION_LARGA}
+        raise ErroresValidacion({"descripcion": mensaje[problema]})
+    PerfilPublico.objects.filter(perfil_maestro_id=maestro_id).update(descripcion=texto)

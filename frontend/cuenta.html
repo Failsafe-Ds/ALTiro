@@ -49,7 +49,7 @@
         <h3 id="titulo-accesos-cliente">Mis pedidos de trabajo</h3>
         <ul class="lista-opciones">
           <li><a href="mis-pedidos.html">Mis pedidos</a></li>
-          <li><a href="buscar.html">Buscar un maestro</a></li>
+          <li><a href="categorias.html">Buscar maestros</a></li>
         </ul>
       </nav>
       <nav id="accesos-curatoria" class="grupo-opciones oculto" aria-labelledby="titulo-accesos-curatoria">
@@ -117,7 +117,12 @@
 
     <section id="seccion-maestro" class="seccion oculto" aria-labelledby="titulo-maestro">
       <h2 id="titulo-maestro">Quiero trabajar como maestro</h2>
-      <p>Postula con esta misma cuenta usando tu RUT.</p>
+      <p>Postulas con esta misma cuenta; no necesitas crear otra. Primero escribe tu RUT. Después te llevamos a «Mi postulación», donde:</p>
+      <ul class="pasos-postulacion">
+        <li>marcas los oficios que haces;</li>
+        <li>envías fotos de tu cédula de identidad, de tu certificado de antecedentes y, si tu oficio la necesita, de tu licencia SEC.</li>
+      </ul>
+      <p>Luego revisamos tus documentos y te contamos el resultado en «Mi postulación».</p>
       <form id="agregar-maestro" novalidate>
         <div class="aviso" role="alert" tabindex="-1"></div>
         <div class="campo">
@@ -133,7 +138,7 @@
           <span class="error-campo" id="error-telefono-maestro"></span>
         </div>
         <span class="error-campo" id="error-perfil-maestro"></span>
-        <button type="submit">Postular</button>
+        <button type="submit">Continuar con mi postulación</button>
       </form>
     </section>
     <p id="perfiles-completos" class="nota-ayuda oculto">Ya usas AlTiro como cliente y como maestro: no te falta ningún perfil.</p>
@@ -181,10 +186,11 @@
         <button type="submit">Guardar correo</button>
       </form>
 
-      <h3>Cerrar sesión en este teléfono</h3>
+      <h3>Cerrar sesión</h3>
+      <p>Sales de AlTiro solo en este dispositivo (celular o computador). Si usas AlTiro en otro, allí tu sesión sigue abierta.</p>
       <div id="aviso-cerrar" class="aviso" role="alert" tabindex="-1"></div>
       <div class="acciones">
-        <button type="button" id="cerrar-sesion" class="boton-secundario">Cerrar sesión</button>
+        <button type="button" id="cerrar-sesion" class="boton-secundario">Cerrar sesión en este dispositivo</button>
       </div>
     </section>
   </main>

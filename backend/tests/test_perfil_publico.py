@@ -16,6 +16,7 @@ Datos ficticios (@example.com, RUT sintéticos); imágenes sintéticas.
 """
 import datetime
 import io
+import json
 import itertools
 import os
 import stat
@@ -39,7 +40,8 @@ from expediente.vigencia import hoy_negocio
 from identidad import servicios as servicios_identidad
 from identidad.models import Rol
 from perfil import agenda, cobertura, fotos, publicacion
-from perfil.models import Cobertura, PerfilPublico, ServicioMaestro
+from perfil import servicios as servicios_perfil
+from perfil.models import DESCRIPCION_LARGO_MAXIMO, Cobertura, PerfilPublico, ServicioMaestro
 from perfil.vistas_maestro import MAXIMO_CUERPO_FOTO, MENSAJE_FOTO_GRANDE, MENSAJES_PENDIENTE
 from perfil.vistas_publicas import CABECERAS_FOTO
 from tests.ayudas import CONTRASENA, TEL_A, TEL_B, crear_cliente, crear_maestro, iniciar_sesion
@@ -344,6 +346,101 @@ def test_el_expediente_suspendido_se_explica(maestro):
     assert pendientes[0] == {"codigo": "postulacion_no_aprobada", "mensaje": "Tu cuenta de maestro está suspendida."}
 
 
+# --- «Sobre mí» del maestro (DA-30) ---
+
+
+def _put_perfil(client, datos):
+    return client.put(URL_PERFIL, data=json.dumps(datos), content_type="application/json")
+
+
+def _descripcion(usuario):
+    return PerfilPublico.objects.get(perfil_maestro_id=usuario.pk).descripcion
+
+
+def test_descripcion_vacia_por_defecto_y_el_maestro_la_edita_recortada(maestro):
+    client = _sesion()
+    assert client.get(URL_PERFIL).json()["perfil"]["descripcion"] == ""
+
+    texto = "Gasfíter con 15 años.\nTrabajo limpio."
+    respuesta = _put_perfil(client, {"descripcion": f"  {texto}  "})
+
+    assert respuesta.status_code == 200
+    assert respuesta["Cache-Control"] == "no-store"
+    assert respuesta.json()["perfil"]["descripcion"] == texto
+    assert _descripcion(maestro) == texto
+    assert client.get(URL_PERFIL).json()["perfil"]["descripcion"] == texto
+
+
+@pytest.mark.parametrize("valor", ["", "   ", None])
+def test_descripcion_vacia_o_nula_la_borra(maestro, valor):
+    PerfilPublico.objects.filter(perfil_maestro_id=maestro.pk).update(descripcion="Antes")
+
+    respuesta = _put_perfil(_sesion(), {"descripcion": valor})
+
+    assert respuesta.status_code == 200
+    assert _descripcion(maestro) == ""
+
+
+def test_descripcion_de_500_caracteres_se_acepta_y_501_responde_400_en_el_campo(maestro):
+    client = _sesion()
+    assert _put_perfil(client, {"descripcion": "a" * DESCRIPCION_LARGO_MAXIMO}).status_code == 200
+    assert DESCRIPCION_LARGO_MAXIMO == 500
+
+    respuesta = _put_perfil(client, {"descripcion": "b" * (DESCRIPCION_LARGO_MAXIMO + 1)})
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["errores"] == {"descripcion": servicios_perfil.MENSAJE_DESCRIPCION_LARGA}
+    assert _descripcion(maestro) == "a" * DESCRIPCION_LARGO_MAXIMO
+
+
+@pytest.mark.parametrize("valor", ["Hola\x00mundo", "Hola\x07", 123, ["texto"], {"a": 1}])
+def test_descripcion_con_caracter_nulo_o_que_no_es_texto_responde_400_en_el_campo(maestro, valor):
+    respuesta = _put_perfil(_sesion(), {"descripcion": valor})
+
+    assert respuesta.status_code == 400
+    assert set(respuesta.json()["errores"]) == {"descripcion"}
+    assert _descripcion(maestro) == ""
+
+
+@pytest.mark.parametrize("datos", [{"descripcion": "x", "ref": "otra"}, {"descripcion": "x", "rut": "1"}])
+def test_perfil_solo_admite_la_descripcion(maestro, datos):
+    respuesta = _put_perfil(_sesion(), datos)
+
+    assert respuesta.status_code == 400
+    assert _descripcion(maestro) == ""
+
+
+def test_un_tercero_no_puede_editar_la_descripcion_ajena(maestro):
+    """Patrón "me" (ADR-011): la ruta no recibe identificador; cada maestro edita solo la suya."""
+    otro = crear_maestro(rut=RUT_OTRO, correo="maestro.dos@example.com", telefono=TEL_B)
+    PerfilPublico.objects.filter(perfil_maestro_id=maestro.pk).update(descripcion="Mía")
+
+    respuesta = _put_perfil(_sesion(RUT_OTRO), {"descripcion": "Escrita por otro"})
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["perfil"]["ref"] == str(_ref(otro))
+    assert _descripcion(maestro) == "Mía"
+    assert _descripcion(otro) == "Escrita por otro"
+
+
+def test_cliente_y_visitante_no_editan_ninguna_descripcion(maestro):
+    crear_cliente(correo="cliente.uno@example.com", telefono=TEL_B)
+    cliente = Client()
+    assert iniciar_sesion(cliente, "cliente.uno@example.com").status_code == 200
+
+    assert _put_perfil(cliente, {"descripcion": "x"}).status_code == 403
+    assert _put_perfil(Client(), {"descripcion": "x"}).status_code == 401
+    assert _descripcion(maestro) == ""
+
+
+def test_la_ficha_publica_muestra_la_descripcion(publicado):
+    _put_perfil(_sesion(), {"descripcion": "Pinto casas y departamentos."})
+
+    datos = Client().get(_url(publicado)).json()["maestro"]
+
+    assert datos["descripcion"] == "Pinto casas y departamentos."
+
+
 # --- Perfil público ---
 
 
@@ -353,7 +450,7 @@ def test_el_perfil_publico_muestra_solo_la_lista_explicita(publicado):
     assert respuesta.status_code == 200
     assert respuesta["Cache-Control"] == "no-store"
     datos = respuesta.json()["maestro"]
-    assert set(datos) == {"ref", "nombre", "foto", "servicios", "comunas", "agenda", "bloques",
+    assert set(datos) == {"ref", "nombre", "descripcion", "foto", "servicios", "comunas", "agenda", "bloques",
                           "calificacion", "calificacion_texto", "comentarios"}
     assert datos["nombre"] == "Maestro Uno"
     ref = _ref(publicado)

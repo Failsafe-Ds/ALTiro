@@ -113,6 +113,10 @@
   function pintar(maestro) {
     document.title = `${maestro.nombre} — AlTiro`;
     document.getElementById("nombre-maestro").textContent = maestro.nombre;
+    // DA-30: nunca innerHTML; el texto del maestro se muestra tal cual.
+    const descripcion = typeof maestro.descripcion === "string" ? maestro.descripcion.trim() : "";
+    document.getElementById("descripcion-maestro").textContent = descripcion;
+    document.getElementById("seccion-sobre-mi").hidden = descripcion === "";
     const imagen = document.getElementById("foto-maestro");
     const fotos = maestro.foto || {};
     // 160 px en pantallas chicas y 480 px donde hace falta más detalle

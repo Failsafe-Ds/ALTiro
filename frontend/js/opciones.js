@@ -22,7 +22,8 @@
     ["Mis perfiles", "cuenta.html#perfiles"],
   ];
   const MAESTRO = [
-    ["Mi perfil", "mi-perfil.html"],
+    ["Mi perfil", "mi-perfil.html#perfil"],
+    ["Sobre mí", "mi-perfil.html#sobre-mi"],
     ["Mis servicios", "mis-servicios.html"],
     ["Mi cobertura", "mi-cobertura.html"],
     ["Mi agenda", "mi-agenda.html"],
@@ -30,7 +31,7 @@
     ["Mi postulación", "mi-postulacion.html"],
   ];
   const pagina = location.pathname.split("/").pop() || "index.html";
-  const esPaginaMaestro = MAESTRO.some(([, destino]) => destino === pagina);
+  const esPaginaMaestro = MAESTRO.some(([, destino]) => destino.split("#")[0] === pagina);
   const ANCHO = window.matchMedia("(min-width: 48rem)");
 
   // Estructura: menú + contenido (el contenido original de <main> se mueve tal cual).

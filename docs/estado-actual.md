@@ -109,6 +109,7 @@
 - **Avisos de tickets (ADR-024):** tabla `aviso_ticket`, sin datos personales. En pantalla se dice "pedido" y "horario".
 - **Pruebas:** reglas críticas con `@pytest.mark.regla`, catalogadas en `tests/reglas_rnf21.py`, al menos 60 % por grupo (activos: filtros, puntaje, acceso, cierre, operación, indicadores y anonimización; precio final: C-09 a C-15, A-06 a A-08; operación: O-01 a O-04; conversación: A-09 a A-15). Fechas con time-machine; al saltar más de 30 min hay que volver a iniciar sesión (ver `tests/test_precio_final.py`, `_a`).
 - **Datos:** solo ficticios. Nunca datos personales, contraseñas ni tokens en registros.
+- **Sobre mí, cédula y oficio «Otros servicios» (2026-10-11, pulido post-S5):** `perfil_publico.descripcion` (DA-30), opcional, hasta 500, `PUT /api/maestros/perfil` y ficha pública, fuera de búsqueda y puntaje; la **cédula exige `fecha_vencimiento`** en cargas nuevas (ADR-017 E-4); noveno oficio `otros` «Otros servicios», no regulado (DA-31, CSV + `catalogo/0008`).
 
 ## Decisiones provisionales abiertas
 ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y se revisan en la revisión del sprint. Las preguntas al representante P-01 a P-33 (`docs/alcance/preguntas-representante-s2.md`) siguen sin respuesta.
@@ -150,3 +151,8 @@ ADR-016 E-1, ADR-018 a ADR-024 y ADR-026 están en "Aceptada — PROVISIONAL" y 
 | 2026-10-11 | Pulido post-S5: precio en resultados de búsqueda (DA-29, ADR-022 E-2) | backend (principal) | ~94 mil (30 pasos) |
 | 2026-10-11 | Pulido post-S5: QA final con sesión en todos los roles (DEF-QA-016 a 020) | qa (Sonnet) | ~227 mil (83 pasos) |
 | 2026-10-11 | Pulido post-S5: corrección DEF-QA-016 a 020 y precio verificado en pantalla (v0.6.2) | frontend (Sonnet) | ~89 mil (21 pasos) |
+| 2026-10-11 | Pulido post-S5 ronda 2: flujos, ingresar, cuenta, postulación y documentos (v0.6.3) | frontend (principal) | ~201 mil (83 pasos) |
+| 2026-10-11 | Pulido post-S5 ronda 2: carrusel, centrado y encabezado (E-3.3) | frontend (principal) | ~27 mil adicionales (23 pasos; continuación del mismo agente) |
+| 2026-10-11 | Pulido post-S5 ronda 2: descripción del maestro (DA-30), cédula con vencimiento (ADR-017 E-4), oficio «Otros servicios» (DA-31) | backend (principal) | ~164 mil (98 pasos) |
+| 2026-10-11 | Pulido post-S5 ronda 2: «Sobre mí» en mi-perfil y ficha pública (DA-30) | frontend (principal) | ~28 mil adicionales (20 pasos; continuación) |
+| 2026-10-11 | Pulido post-S5 ronda 2: servicio demo de «Otros servicios», rotación de oficios y maestros demo nuevos | backend (principal) | ~19 mil adicionales (continuación) |

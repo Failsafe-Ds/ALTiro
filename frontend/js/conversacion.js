@@ -305,6 +305,8 @@
     bandeja = esMaestro
       ? { href: "mis-trabajos.html", texto: "Ir a mis trabajos" }
       : { href: "mis-pedidos.html", texto: "Ir a mis pedidos" };
+    // Dos flujos (ADR-002 E-3.2): la marca vuelve al inicio de la parte.
+    if (typeof window.altiroFlujo === "function") window.altiroFlujo(esMaestro ? "maestro" : "cliente");
     const con = esMaestro ? "" : (ticket.maestro ? ` con ${ticket.maestro.nombre}` : "");
     document.getElementById("subtitulo").textContent =
       `${ticket.servicio.nombre}${con}, ${formato.fechaConReferencia(bloque.fecha)}, de ${bloque.inicio} a ${bloque.fin}`;

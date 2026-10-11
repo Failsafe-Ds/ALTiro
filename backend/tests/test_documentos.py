@@ -24,7 +24,7 @@ from PIL import ExifTags, Image, ImageCms
 
 from autorizacion.models import RegistroAccesoDenegado
 from catalogo.models import Oficio
-from expediente import almacenamiento, imagenes
+from expediente import almacenamiento, imagenes, servicios
 from expediente.models import Documento, EstadoDocumento, EstadoExpediente, Expediente, TipoDocumento
 from expediente.servicios import declarar_oficios
 from expediente.vigencia import (
@@ -106,6 +106,8 @@ def _datos(tipo=ANTECEDENTES, **cambios):
     datos = {"tipo": tipo, "fecha_emision": (_hoy() - datetime.timedelta(days=30)).isoformat()}
     if tipo == CEDULA:
         datos["archivo_reverso"] = _foto(nombre="reverso.jpg")
+        # La cédula exige vencimiento (ADR-017, E-4).
+        datos["fecha_vencimiento"] = (_hoy() + datetime.timedelta(days=5 * 365)).isoformat()
     datos["archivo"] = _foto()
     datos.update(cambios)
     return {clave: valor for clave, valor in datos.items() if valor is not None}
@@ -487,7 +489,56 @@ def test_varios_errores_se_informan_juntos(navegador, maestro):
     respuesta = _subir(navegador, tipo=CEDULA, fecha_emision=_dias(3))
 
     assert respuesta.status_code == 400
-    assert set(respuesta.json()["errores"]) == {"fecha_emision", "archivo", "archivo_reverso"}
+    assert set(respuesta.json()["errores"]) == {"fecha_emision", "fecha_vencimiento", "archivo", "archivo_reverso"}
+
+
+# --- ADR-017, E-4: la cédula exige fecha de vencimiento ---
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("vencimiento", [None, "", "   "])
+def test_cedula_sin_vencimiento_responde_400_en_el_campo(navegador, maestro, directorio_documentos, vencimiento):
+    datos = _datos(tipo=CEDULA)
+    datos.pop("fecha_vencimiento")
+    if vencimiento is not None:
+        datos["fecha_vencimiento"] = vencimiento
+
+    respuesta = _subir(navegador, **datos)
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["errores"] == {"fecha_vencimiento": servicios.MENSAJE_VENCIMIENTO_CEDULA_FALTA}
+    assert "Fecha de vencimiento" in servicios.MENSAJE_VENCIMIENTO_CEDULA_FALTA
+    assert not Documento.objects.exists()
+    assert _archivos_en(directorio_documentos) == []
+
+
+@pytest.mark.django_db
+def test_cedula_con_vencimiento_se_guarda(navegador, maestro):
+    respuesta = _subir(navegador, **_datos(tipo=CEDULA))
+
+    assert respuesta.status_code == 201
+    assert Documento.objects.get(tipo=CEDULA).fecha_vencimiento is not None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("tipo", [ANTECEDENTES, LICENCIA_SEC])
+def test_los_otros_documentos_siguen_sin_exigir_vencimiento(navegador, maestro, tipo):
+    extra = {"oficio": "gas"} if tipo == LICENCIA_SEC else {}
+    if tipo == LICENCIA_SEC:
+        declarar_oficios(_expediente(maestro), ["gas"])
+
+    respuesta = _subir(navegador, **_datos(tipo=tipo, **extra))
+
+    assert respuesta.status_code == 201
+    assert Documento.objects.get(tipo=tipo).fecha_vencimiento is None
+
+
+@pytest.mark.django_db
+def test_una_cedula_ya_cargada_sin_vencimiento_sigue_valida(maestro):
+    """E-4 aplica a las cargas nuevas: la base sigue admitiendo cédulas sin vencimiento."""
+    documento = _documento(_expediente(maestro), tipo=CEDULA, archivo_reverso=uuid.uuid4(), fecha_vencimiento=None)
+
+    assert Documento.objects.get(pk=documento.pk).fecha_vencimiento is None
 
 
 # --- Estado del expediente ---

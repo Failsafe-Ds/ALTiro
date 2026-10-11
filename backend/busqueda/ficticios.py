@@ -12,6 +12,7 @@ están las reglas que ambos deben respetar una sola vez:
   AES-256-GCM, ADR-015) a partir de una imagen sintética y queda validada y
   vigente (ADR-017, punto 4; ADR-028, Enmienda E-1);
 - maestro publicado = expediente aprobado + comuna base + foto (ADR-019);
+- «Sobre mí» ficticio según el oficio principal (DA-30), sin teléfonos ni correos;
 - tickets con ``vence_en`` de ADR-023 y su historial en ``ticket_evento``.
 
 Ninguna función escribe la bitácora (ADR-010): son cargas de consola, no
@@ -35,6 +36,67 @@ from perfil import fotos
 from perfil.models import Cobertura, Disponibilidad, PerfilPublico, ServicioMaestro
 from tickets.models import AutorTipo, EstadoTicket, Ticket, TicketEvento
 from tickets.servicios import calcular_vence_en
+
+
+# «Sobre mí» ficticio por oficio (DA-30): textos inventados, en lenguaje del oficio.
+DESCRIPCIONES = {
+    "gas": (
+        "Instalo y reviso cocinas, calefont y estufas a gas. Pruebo cada unión con agua jabonosa antes de irme.",
+        "Hago conexiones de gas para cocinas y calefont, con cañería de cobre y llave de paso a la vista.",
+    ),
+    "electricidad": (
+        "Instalo enchufes, interruptores y lámparas. Reviso el tablero y cambio automáticos que saltan.",
+        "Arreglo cortes de luz en la casa, cambio cables gastados y dejo los circuitos marcados en el tablero.",
+    ),
+    "gasfiteria": (
+        "Cambio llaves, flexibles y sifones. Destapo lavaplatos, WC y desagües sin romper si no hace falta.",
+        "Reparo filtraciones bajo el lavaplatos y en el baño. Llevo repuestos comunes para dejarlo listo en la visita.",
+    ),
+    "carpinteria": (
+        "Arreglo puertas que no cierran, cambio bisagras y armo muebles. Trabajo con madera y melamina.",
+        "Hago repisas a medida, ajusto cajones y cepillo puertas hinchadas por la humedad.",
+    ),
+    "pintura": (
+        "Pinto piezas, livings y fachadas. Protejo pisos y muebles, reparo grietas y lijo antes de pintar.",
+        "Pinto interiores con látex y esmalte al agua. Dejo los bordes limpios y retiro los restos al terminar.",
+    ),
+    "albanileria": (
+        "Reparo muros, radieres y estucos. Pego cerámica en pisos y baños y repaso fragües.",
+        "Levanto tabiques, arreglo grietas en muros y hago pequeñas ampliaciones con terminación lista para pintar.",
+    ),
+    "cerrajeria": (
+        "Abro puertas sin romper la chapa cuando se puede, cambio cilindros y copio llaves en el lugar.",
+        "Instalo chapas de seguridad y cerrojos, y ajusto puertas que no calzan con el marco.",
+    ),
+    "jardineria": (
+        "Corto pasto, podo arbustos y saco maleza. Me llevo el despunte en bolsas.",
+        "Mantengo jardines: poda, riego, abono y cambio de plantas según la temporada.",
+    ),
+    "otros": (
+        "Hago trabajos varios en la casa: cuelgo cuadros y cortinas, armo muebles y cambio ampolletas.",
+        "Ayudo con arreglos chicos que no son de un solo oficio: instalo repisas, sello ventanas y ajusto bisagras.",
+        "Limpio canaletas, cambio burletes de puertas y ventanas, y armo o desarmo muebles.",
+    ),
+}
+DESCRIPCION_GENERICA = "Trabajo con cuidado, llego a la hora acordada y dejo todo limpio al terminar."
+
+
+def descripcion_ficticia(codigo_oficio, semilla):
+    """«Sobre mí» ficticio para un maestro cuyo oficio principal es ``codigo_oficio`` (DA-30).
+
+    ``semilla`` (un entero, por ejemplo el cuerpo del RUT) elige la variante: el
+    mismo maestro recibe siempre el mismo texto.
+    """
+    opciones = DESCRIPCIONES.get(codigo_oficio)
+    if not opciones:
+        return DESCRIPCION_GENERICA
+    return f"{opciones[semilla % len(opciones)]} {DESCRIPCION_GENERICA}"
+
+
+def descripcion_de_servicios(servicios, rut):
+    """«Sobre mí» según el oficio del primer servicio (el principal); ``rut`` como ``cuerpo-DV``."""
+    codigo = servicios[0].oficio.codigo if servicios else None
+    return descripcion_ficticia(codigo, int(str(rut).replace("-", "")[:-1] or 0))
 
 
 def rut_con_dv(cuerpo):
@@ -173,7 +235,8 @@ def crear_maestro_publicado(*, nombre, telefono, rut, servicios, montos, base, e
             for oficio in sorted(regulados, key=lambda o: o.pk):
                 _cargar_licencia_validada(usuario, oficio, archivos_escritos)
             PerfilPublico.objects.filter(perfil_maestro_id=usuario.pk).update(
-                foto=nombre_foto, foto_actualizada_en=timezone.now()
+                foto=nombre_foto, foto_actualizada_en=timezone.now(),
+                descripcion=descripcion_de_servicios(servicios, rut),
             )
             Expediente.objects.filter(perfil_maestro_id=usuario.pk).update(
                 estado=EstadoExpediente.APROBADO, estado_motivo=motivo, estado_cambiado_en=timezone.now()

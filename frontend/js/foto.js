@@ -195,6 +195,16 @@ const foto = (() => {
         return Boolean(blob);
       },
       blob: () => blob,
+      // Foto ya preparada, para conservarla en memoria al cambiar de paso
+      // (ADR-017 E-4). Nunca se guarda en el almacenamiento del navegador.
+      foto: () => (blob ? { blob, vista: vista.src } : null),
+      poner(guardada) {
+        blob = guardada.blob;
+        vista.src = guardada.vista;
+        vista.alt = `Vista previa: ${titulo.toLowerCase()}`;
+        estado.textContent = textoFotoLista;
+        pintar();
+      },
       enfocar: () => camara.focus(),
       mostrarError(texto) {
         error.textContent = texto;

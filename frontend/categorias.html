@@ -28,7 +28,21 @@
     <p id="cargando-categorias" class="buscando" role="status" aria-live="polite">Cargando oficios…</p>
     <div id="aviso-categorias" class="aviso angosto" role="alert" tabindex="-1"></div>
 
-    <ul id="lista-categorias" class="lista-categorias" aria-labelledby="titulo-pagina" hidden></ul>
+    <!-- Carrusel de oficios (ADR-002 E-3.3): scroll-snap nativo, con el dedo,
+         con Tab (el foco deja la tarjeta a la vista) o con los botones. Sin avance
+         automático. Los botones se ocultan si caben todos los oficios. -->
+    <section id="carrusel-categorias" class="carrusel" aria-roledescription="carrusel" aria-labelledby="titulo-pagina" hidden>
+      <ul id="lista-categorias" class="lista-categorias"></ul>
+      <div class="carrusel-controles" id="carrusel-controles">
+        <button type="button" class="boton-secundario carrusel-boton" id="carrusel-anterior" aria-controls="lista-categorias">
+          <span aria-hidden="true">←</span> Anterior<span class="solo-lector"> oficios</span>
+        </button>
+        <button type="button" class="boton-secundario carrusel-boton" id="carrusel-siguiente" aria-controls="lista-categorias">
+          Siguiente<span class="solo-lector"> oficios</span> <span aria-hidden="true">→</span>
+        </button>
+      </div>
+      <p id="carrusel-estado" class="solo-lector" aria-live="polite"></p>
+    </section>
 
     <p class="otra-busqueda"><a class="enlace-ayuda" href="buscar.html">Buscar con más filtros (comuna, día y horario)</a></p>
   </main>

@@ -31,6 +31,13 @@
       <!-- CA-05.2: sin evaluaciones no se muestra un promedio en cero. -->
       <p id="calificacion-maestro" class="calificacion-ficha"></p>
 
+      <!-- DA-30: «Sobre mí» escrito por el maestro. Texto plano (textContent) con
+           los saltos de línea respetados por CSS; si está vacía no se muestra. -->
+      <section id="seccion-sobre-mi" aria-labelledby="titulo-sobre-mi" hidden>
+        <h2 id="titulo-sobre-mi">Sobre mí</h2>
+        <p id="descripcion-maestro" class="descripcion-maestro"></p>
+      </section>
+
       <!-- CA-05.1: calificación por dimensión y comentarios (sin autor; ADR-026, E-3.5). -->
       <section id="seccion-evaluaciones" aria-labelledby="titulo-evaluaciones" hidden>
         <h2 id="titulo-evaluaciones">Lo que dicen sus clientes</h2>

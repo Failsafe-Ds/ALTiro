@@ -184,6 +184,8 @@
 
   function pintar(datos) {
     armarNotas(datos.evalua_a);
+    // Dos flujos (ADR-002 E-3.2): quien evalúa al maestro es el cliente del pedido.
+    if (typeof window.altiroFlujo === "function") window.altiroFlujo(datos.evalua_a === "maestro" ? "cliente" : "maestro");
     document.getElementById("titulo-mia").textContent =
       datos.evalua_a === "maestro" ? "Tu evaluación del maestro" : "Tu evaluación del cliente";
     // Tu evaluación: ya hecha (solo lectura), por hacer, o todavía no disponible.

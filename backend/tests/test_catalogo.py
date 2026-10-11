@@ -15,15 +15,16 @@ def test_el_csv_versionado_solo_confirma_gas_y_electricidad_como_regulados():
     with open(ARCHIVO_OFICIOS, encoding="utf-8", newline="") as archivo:
         filas = list(csv.DictReader(archivo))
 
-    assert len(filas) == 8
-    assert len({f["codigo"] for f in filas}) == 8
+    assert len(filas) == 9
+    assert len({f["codigo"] for f in filas}) == 9
     assert {f["codigo"] for f in filas if f["regulado"] == "si"} == {"gas", "electricidad"}
     assert {f["regulado"] for f in filas} == {"si", "no"}
     # Lista provisional (P-01, P-02): nombres reales, sin rótulos de ejemplo.
     assert [f["codigo"] for f in filas] == [
         "gas", "electricidad", "gasfiteria", "carpinteria", "pintura", "albanileria", "cerrajeria", "jardineria",
+        "otros",  # DA-31 (PROVISIONAL)
     ]
-    assert [int(f["orden"]) for f in filas] == list(range(1, 9))
+    assert [int(f["orden"]) for f in filas] == list(range(1, 10))
     for fila in filas:
         assert "ejemplo" not in fila["nombre"].lower()
         assert "por confirmar" not in fila["nombre"]
@@ -31,7 +32,7 @@ def test_el_csv_versionado_solo_confirma_gas_y_electricidad_como_regulados():
 
 @pytest.mark.django_db
 def test_la_migracion_carga_el_catalogo():
-    assert Oficio.objects.count() == 8
+    assert Oficio.objects.count() == 9
     assert Oficio.objects.get(codigo="gas").regulado is True
     assert Oficio.objects.get(codigo="electricidad").regulado is True
     assert Oficio.objects.filter(regulado=True).count() == 2
@@ -44,7 +45,7 @@ def test_la_carga_es_idempotente_y_no_duplica():
     cargar(Oficio, leer_filas())
     cargar(Oficio, leer_filas())
 
-    assert Oficio.objects.count() == 8
+    assert Oficio.objects.count() == 9
     assert dict(Oficio.objects.values_list("codigo", "pk")) == antes
 
 
@@ -72,7 +73,7 @@ def test_oficios_es_publica_ordenada_y_con_lista_explicita_de_campos(client):
     assert respuesta.status_code == 200
     oficios = respuesta.json()["oficios"]
     assert [o["codigo"] for o in oficios][:2] == ["gas", "electricidad"]
-    assert len(oficios) == 8
+    assert len(oficios) == 9
     assert oficios[0] == {"codigo": "gas", "nombre": "Gas", "regulado": True}
     assert all(set(o) == {"codigo", "nombre", "regulado"} for o in oficios)
 
@@ -83,7 +84,7 @@ def test_oficios_es_de_solo_lectura(client, metodo):
     respuesta = getattr(client, metodo)(URL_OFICIOS)
 
     assert respuesta.status_code == 405
-    assert Oficio.objects.count() == 8
+    assert Oficio.objects.count() == 9
 
 
 # --- Migración 0003: renombra los oficios de ejemplo (P-01) ---
@@ -120,7 +121,7 @@ def test_la_migracion_0003_renombra_en_la_misma_fila_y_conserva_las_declaracione
     assert (gasfiteria.nombre, gasfiteria.regulado) == ("Oficio de ejemplo 1 (por confirmar)", False)
     declaracion = OficioMaestro.objects.get(maestro=maestro.perfil_maestro)
     assert declaracion.oficio.codigo == "gasfiteria"
-    assert Oficio.objects.count() == 8
+    assert Oficio.objects.count() == 9
 
 
 @pytest.mark.django_db
@@ -144,3 +145,58 @@ def test_la_migracion_0003_no_toca_un_ejemplo_si_su_codigo_nuevo_ya_existe():
 
     assert Oficio.objects.get(codigo="gasfiteria").pk == gasfiteria_pk
     assert Oficio.objects.filter(codigo="ejemplo_1").exists()
+
+
+# --- DA-31 (PROVISIONAL): oficio «Otros servicios» ---
+
+_migracion_0008 = importlib.import_module("catalogo.migrations.0008_oficio_otros_servicios")
+
+
+@pytest.mark.django_db
+def test_otros_servicios_esta_en_la_lista_publica_de_oficios(client):
+    oficios = client.get(URL_OFICIOS).json()["oficios"]
+
+    assert oficios[-1] == {"codigo": "otros", "nombre": "Otros servicios", "regulado": False}
+
+
+@pytest.mark.django_db
+def test_la_migracion_0008_es_idempotente_reversible_y_no_pisa_a_comercial():
+    Oficio.objects.filter(codigo="otros").update(nombre="Cambiado por comercial")
+    _migracion_0008.agregar_oficio(registro_apps, None)
+    assert Oficio.objects.get(codigo="otros").nombre == "Cambiado por comercial"
+    assert Oficio.objects.count() == 9
+
+    _migracion_0008.quitar_oficio(registro_apps, None)
+    assert not Oficio.objects.filter(codigo="otros").exists()
+
+    _migracion_0008.agregar_oficio(registro_apps, None)
+    otros = Oficio.objects.get(codigo="otros")
+    assert (otros.nombre, otros.regulado, otros.orden, otros.activo) == ("Otros servicios", False, 9, True)
+    assert otros.ref is not None
+
+
+@pytest.mark.django_db
+def test_el_maestro_declara_otros_servicios_en_su_expediente(client):
+    from tests.ayudas import crear_maestro, iniciar_sesion, post_json
+
+    crear_maestro()
+    assert iniciar_sesion(client, "11.111.111-1").status_code == 200
+
+    respuesta = post_json(client, "/api/maestros/expediente/oficios", {"oficios": ["otros"]})
+
+    assert respuesta.status_code in (200, 201)
+    assert "otros" in str(respuesta.json())
+
+
+@pytest.mark.django_db
+def test_la_busqueda_filtra_por_otros_servicios(client):
+    from tests import busqueda_ayudas as ay
+
+    catalogo = {"otros": ay.servicio_catalogo("otros", "Armado de repisas"), **ay.catalogo_basico()}
+    con_otros = ay.maestro(1, catalogo, servicios=("otros",))
+    ay.maestro(2, catalogo, servicios=("pintura",))
+
+    respuesta = client.get(ay.URL, {"oficio": "otros", "comuna": str(ay.CONCEPCION)})
+
+    assert respuesta.status_code == 200
+    assert ay.refs(respuesta) == [ay.ref(con_otros)]

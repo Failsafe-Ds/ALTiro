@@ -146,3 +146,58 @@ def test_crea_una_cuenta_administrativa_por_rol_con_la_misma_contrasena(capsys):
         cuentas_demo.ADMINISTRATIVAS
     )
     assert all(Usuario.objects.get(correo=c[1]).check_password(clave) for c in cuentas_demo.ADMINISTRATIVAS)
+
+
+# --- «Sobre mí» ficticio (DA-30) ---
+
+
+def test_los_maestros_demo_traen_descripcion_segun_su_oficio(capsys):
+    from busqueda import ficticios
+    from perfil.models import PerfilPublico
+
+    _cargar(capsys)
+
+    perfiles = list(PerfilPublico.objects.select_related("perfil_maestro"))
+    assert perfiles and all(p.descripcion for p in perfiles)
+    assert all(len(p.descripcion) <= 500 for p in perfiles)
+    for perfil in perfiles:
+        principal = (
+            ServicioMaestro.objects.filter(maestro_id=perfil.perfil_maestro_id).order_by("pk")
+            .values_list("servicio__oficio__codigo", flat=True).first()
+        )
+        assert any(perfil.descripcion.startswith(t) for t in ficticios.DESCRIPCIONES[principal])
+    # Distintas según el oficio.
+    assert len({p.descripcion for p in perfiles}) > 1
+    assert not any("@" in p.descripcion or "+56" in p.descripcion for p in perfiles)
+
+
+def test_completar_descripciones_solo_llena_las_vacias_de_los_demo(capsys):
+    from perfil.models import PerfilPublico
+    from tests.ayudas import crear_maestro
+
+    _cargar(capsys)
+    ajeno = crear_maestro(rut="11.111.111-1")
+    demo = list(PerfilPublico.objects.exclude(perfil_maestro_id=ajeno.pk).order_by("pk"))
+    PerfilPublico.objects.filter(pk__in=[p.pk for p in demo[1:]]).update(descripcion="")
+    PerfilPublico.objects.filter(pk=demo[0].pk).update(descripcion="Escrita por el maestro")
+    antes = list(PerfilPublico.objects.order_by("pk").values_list("pk", "ref", "foto", "foto_actualizada_en"))
+
+    call_command("cargar_datos_demo", "--completar-descripciones")
+    salida = capsys.readouterr().out
+
+    assert f"{len(demo) - 1} maestros de demostración" in salida
+    assert PerfilPublico.objects.get(pk=demo[0].pk).descripcion == "Escrita por el maestro"
+    assert all(p.descripcion for p in PerfilPublico.objects.filter(pk__in=[p.pk for p in demo[1:]]))
+    assert PerfilPublico.objects.get(perfil_maestro_id=ajeno.pk).descripcion == ""
+    assert list(PerfilPublico.objects.order_by("pk").values_list("pk", "ref", "foto", "foto_actualizada_en")) == antes
+    servicios_antes = Servicio.objects.count()
+
+    # Idempotente y sin cargar nada más.
+    call_command("cargar_datos_demo", "--completar-descripciones")
+    assert "0 maestros de demostración" in capsys.readouterr().out
+    assert Servicio.objects.count() == servicios_antes
+
+
+def test_completar_descripciones_se_usa_sola():
+    with pytest.raises(CommandError):
+        call_command("cargar_datos_demo", "--completar-descripciones", "--con-cuentas")

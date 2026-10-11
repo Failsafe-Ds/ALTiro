@@ -104,7 +104,7 @@ def _url_servicio(ref):
 
 def test_cada_oficio_tiene_un_ref_distinto_y_no_nulo():
     refs = list(Oficio.objects.values_list("ref", flat=True))
-    assert len(refs) == 8
+    assert len(refs) == 9
     assert None not in refs
     assert len(set(refs)) == len(refs)
 
@@ -231,7 +231,7 @@ def test_oficios_no_lista_un_oficio_dado_de_baja(client):
     codigos = [o["codigo"] for o in client.get(URL_OFICIOS).json()["oficios"]]
 
     assert "jardineria" not in codigos
-    assert len(codigos) == 7
+    assert len(codigos) == 8
 
 
 @pytest.mark.parametrize("url", [URL_CATALOGO, URL_OFICIOS])
@@ -249,14 +249,14 @@ def test_comercial_crea_un_oficio_con_bitacora(comercial, comercial_usuario):
     assert respuesta.status_code == 201
     datos = respuesta.json()["oficio"]
     assert set(datos) == {"ref", "codigo", "nombre", "regulado", "orden", "activo", "version"}
-    assert (datos["codigo"], datos["nombre"], datos["regulado"], datos["orden"]) == ("techumbre", "Techumbre", False, 9)
+    assert (datos["codigo"], datos["nombre"], datos["regulado"], datos["orden"]) == ("techumbre", "Techumbre", False, 10)
     assert (datos["activo"], datos["version"]) == (True, 1)
     entrada = Bitacora.objects.get()
     assert (entrada.autor_tipo, entrada.autor_id) == (AutorTipo.USUARIO, comercial_usuario.pk)
     assert (entrada.accion, entrada.entidad, entrada.entidad_ref) == ("catalogo.oficio.crear", "oficio", datos["ref"])
     assert entrada.valor_anterior is None
     assert entrada.valor_nuevo == {
-        "codigo": "techumbre", "nombre": "Techumbre", "regulado": False, "orden": 9, "activo": True,
+        "codigo": "techumbre", "nombre": "Techumbre", "regulado": False, "orden": 10, "activo": True,
     }
     assert entrada.motivo == servicios.MOTIVO_ALTA_OFICIO
 
@@ -278,7 +278,7 @@ def test_regulado_es_obligatorio_y_booleano_al_crear(comercial, regulado):
 
     assert respuesta.status_code == 400
     assert respuesta.json()["errores"] == {"regulado": servicios.MENSAJE_REGULADO_FALTA}
-    assert Oficio.objects.count() == 8
+    assert Oficio.objects.count() == 9
     assert not Bitacora.objects.exists()
 
 
@@ -564,7 +564,7 @@ def test_el_catalogo_comercial_incluye_inactivos_y_version(comercial):
     assert respuesta.status_code == 200
     assert respuesta["Cache-Control"] == "no-store"
     oficios = {o["codigo"]: o for o in respuesta.json()["oficios"]}
-    assert len(oficios) == 8
+    assert len(oficios) == 9
     assert oficios["gas"]["activo"] is False
     assert oficios["pintura"]["servicios"][0]["nombre"] == "Dado de baja"
     assert oficios["pintura"]["servicios"][0]["version"] == 1
@@ -576,7 +576,7 @@ def test_campos_no_permitidos_al_crear_oficio(comercial, cuerpo):
     respuesta = post_json(comercial, URL_OFICIOS_COMERCIAL, cuerpo)
 
     assert respuesta.status_code == 400
-    assert Oficio.objects.count() == 8
+    assert Oficio.objects.count() == 9
 
 
 def test_los_mensajes_de_comercial_no_tienen_texto_de_programador(comercial):

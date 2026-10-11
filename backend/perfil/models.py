@@ -6,6 +6,7 @@
   ``ref`` es la referencia pública propia, distinta de la del expediente
   (ADR-019, punto 5). ``foto`` es el nombre UUID de la foto (ADR-021): sus
   variantes están en ``settings.ALTIRO_FOTOS_DIR`` (``perfil.fotos``).
+  ``descripcion`` es el «Sobre mí» opcional (DA-30).
 - ``ServicioMaestro``: servicio del catálogo que el maestro ofrece, con su
   modalidad y monto (ADR-019, punto 1). Uno activo por (maestro, servicio);
   baja lógica con ``retirado_en``. Sin FK hacia ``oficio_maestro``: si el
@@ -30,6 +31,8 @@ from catalogo.models import MONTO_MAXIMO, Modalidad, Servicio
 from identidad.models import PerfilMaestro
 from territorio.models import Comuna
 
+DESCRIPCION_LARGO_MAXIMO = 500
+
 
 class PerfilPublico(models.Model):
     perfil_maestro = models.OneToOneField(
@@ -38,6 +41,9 @@ class PerfilPublico(models.Model):
     ref = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     foto = models.UUIDField(null=True, blank=True, unique=True)
     foto_actualizada_en = models.DateTimeField(null=True, blank=True)
+    # «Sobre mí» (DA-30): texto opcional del maestro, recortado y validado con
+    # ``comun.texto``; vacío si no lo escribió. No entra a la búsqueda ni al puntaje.
+    descripcion = models.CharField(max_length=DESCRIPCION_LARGO_MAXIMO, blank=True, default="")
 
     class Meta:
         db_table = "perfil_publico"

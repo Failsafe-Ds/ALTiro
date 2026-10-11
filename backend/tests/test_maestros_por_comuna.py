@@ -8,7 +8,7 @@ import pytest
 from django.core.management import CommandError, call_command
 from django.test import Client
 
-from busqueda import cuentas_demo, maestros_por_comuna
+from busqueda import cuentas_demo, ficticios, maestros_por_comuna
 from busqueda.management.commands.generar_volumen_prueba import RUT_BASE as RUT_BASE_VOLUMEN
 from catalogo.models import Oficio
 from evaluaciones.models import Evaluacion, ParteEvaluacion
@@ -16,7 +16,7 @@ from expediente import almacenamiento
 from expediente.models import Documento, EstadoDocumento, TipoDocumento
 from identidad.models import PerfilMaestro
 from perfil import publicacion
-from perfil.models import Cobertura, ServicioMaestro
+from perfil.models import Cobertura, PerfilPublico, ServicioMaestro
 from territorio.models import Comuna
 from tickets.models import EstadoTicket, Ticket
 
@@ -206,3 +206,31 @@ def test_entre_cuenta_tiempo_real_al_cruzar_el_cambio_de_horario():
         aceptado = ficticios.entre(random.Random(semilla), enviado, vence)
         # Comparación en UTC: entre fechas con la misma zona, Python compara el reloj de pared.
         assert enviado.astimezone(U) <= aceptado.astimezone(U) < vence.astimezone(U)
+
+
+@pytest.mark.parametrize("cantidad", [8, 9, 10, 12])
+def test_la_rotacion_recorre_todos_los_oficios_en_cada_comuna(cantidad):
+    """DA-31: con 9 oficios, el salto 3 dejaba «Otros servicios» sin ser nunca el principal."""
+    import random
+
+    oficios = list(range(cantidad))
+    por_oficio = {o: [o] for o in oficios}
+    for comuna in (8101, 13101, 8110):
+        principales = {
+            maestros_por_comuna._servicios(random.Random(0), comuna, puesto, oficios, por_oficio)[0]
+            for puesto in range(cantidad)
+        }
+        assert principales == set(oficios)
+
+
+def test_los_maestros_nuevos_pueden_ofrecer_otros_servicios():
+    maestros_por_comuna.cargar_maestros_por_comuna(9, comunas=[8101])
+
+    principales = {}
+    for maestro_id, codigo in ServicioMaestro.objects.order_by("pk").values_list("maestro_id", "servicio__oficio__codigo"):
+        principales.setdefault(maestro_id, codigo)
+    con_otros = [m for m, codigo in principales.items() if codigo == "otros"]
+    assert con_otros
+    for maestro_id in con_otros:
+        descripcion = PerfilPublico.objects.get(perfil_maestro_id=maestro_id).descripcion
+        assert descripcion.startswith(tuple(ficticios.DESCRIPCIONES["otros"]))

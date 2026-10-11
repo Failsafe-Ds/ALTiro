@@ -59,6 +59,7 @@
   --radio-foto: 0.75rem;
   --transicion: 150ms ease;
   /* Ancho del contenido: angosto en formularios, amplio en grillas. */
+  --encabezado-arriba: #FBE4E7;
   --ancho: 34rem;
   --ancho-amplio: 80rem;
   --margen-lateral: max(var(--esp-4), calc((100% - var(--ancho-amplio)) / 2));
@@ -138,7 +139,9 @@ a:hover {
   min-height: 3.5rem;
   padding: var(--esp-2) var(--margen-lateral);
   border-bottom: 1px solid var(--linea);
-  background: var(--fondo);
+  /* E-3.3: degradado vertical suave; contraste medido sobre --encabezado-arriba
+     (marca 4,86:1, texto 13,6:1, borde 3,75:1). */
+  background: linear-gradient(to bottom, var(--encabezado-arriba), var(--fondo));
 }
 
 .marca {
@@ -1777,39 +1780,76 @@ details.tarjeta > summary {
   color: var(--texto-suave);
 }
 
-/* Categorías (MASTER): grilla de oficios con ícono y nombre; cada uno es un
-   enlace con objetivo táctil completo. 2 columnas en 360 px, hasta 4. */
+/* Categorías (MASTER, ADR-002 E-3.3): carrusel horizontal de oficios con
+   scroll-snap nativo. En el celular se ve la tarjeta siguiente asomada; en
+   pantalla ancha, si caben todos, ocupan el ancho y categorias.js oculta los
+   botones. El relleno deja ver el anillo de foco dentro del desplazamiento. */
 .lista-categorias {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: 42%;
   gap: var(--esp-3);
-  margin: 0;
-  padding: 0;
+  margin: 0 calc(-1 * var(--esp-1));
+  padding: var(--esp-1) var(--esp-1) var(--esp-3);
   list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--esp-1);
+}
+
+.lista-categorias > li {
+  scroll-snap-align: start;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lista-categorias {
+    scroll-behavior: smooth;
+  }
 }
 
 @media (min-width: 40rem) {
   .lista-categorias {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--esp-4);
+    grid-auto-columns: minmax(8rem, 1fr);
   }
 }
 
-@media (min-width: 64rem) {
-  .lista-categorias {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+.carrusel-controles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-2);
+  margin-top: var(--esp-2);
+}
+
+.carrusel-controles[hidden] {
+  display: none;
+}
+
+button.carrusel-boton {
+  gap: var(--esp-1);
+  width: auto;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* En el extremo: sigue enfocable (no se pierde el foco) y se ve atenuado. */
+button.carrusel-boton[aria-disabled="true"] {
+  opacity: 0.6;
+  border-style: dashed;
+  cursor: not-allowed;
 }
 
 .enlace-categoria {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
   gap: var(--esp-4);
   height: 100%;
   min-height: 7.5rem;
-  padding: var(--esp-4);
+  padding: var(--esp-4) var(--esp-2);
   color: var(--texto);
   font-weight: 600;
   text-decoration: none;
@@ -1846,7 +1886,8 @@ details.tarjeta > summary {
 }
 
 .nombre-categoria {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  hyphens: auto;
   line-height: 1.3;
 }
 
@@ -2066,4 +2107,138 @@ main.opciones {
   .aviso button {
     width: auto;
   }
+}
+
+/* --- ADR-002 E-3.2: ajustes de pantalla (v0.6.3) --- */
+
+/* Ingresar: columna centrada con ancho de lectura; el botón principal ocupa
+   todo el ancho y los enlaces secundarios se ven como enlaces, no como botones. */
+main.ingresar {
+  max-width: calc(26rem + 2 * var(--esp-4));
+}
+
+main.ingresar .ingresar-bajada {
+  margin-top: 0;
+  color: var(--texto-suave);
+}
+
+main.ingresar .acciones {
+  grid-template-columns: 1fr;
+}
+
+.ingresar-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2) var(--esp-4);
+}
+
+.ingresar-fila .casilla {
+  margin: 0;
+}
+
+.enlace-tactil {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.ingresar-sin-cuenta {
+  margin-top: var(--esp-6);
+  padding-top: var(--esp-5);
+  border-top: 1px solid var(--linea);
+}
+
+.ingresar-sin-cuenta h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.enlaces-secundarios {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Mi cuenta: las acciones de una misma sección van en fila y se envuelven en
+   el celular, en vez de apilarse a todo el ancho. */
+#datos .lista-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+#datos .lista-opciones li {
+  border-top: 0;
+}
+
+#datos .lista-opciones a {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  color: var(--texto);
+  background: var(--fondo);
+  border: 2px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+#datos .lista-opciones a:hover {
+  background: var(--fondo-suave);
+  border-color: var(--texto);
+}
+
+#datos .lista-opciones a::after {
+  content: none;
+}
+
+#perfiles form button[type="submit"],
+#seguridad form button[type="submit"],
+#seguridad .acciones button {
+  width: auto;
+}
+
+#perfiles .acciones,
+#seguridad .acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
+
+/* Postulación: todos los oficios a la vista; dos columnas cuando hay espacio. */
+@media (min-width: 35rem) {
+  #lista-oficios {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cantidad-oficios {
+  margin: var(--esp-2) 0 0;
+  color: var(--texto-suave);
+}
+
+/* Pasos de la postulación desde una cuenta existente. */
+.pasos-postulacion {
+  margin: var(--esp-3) 0;
+  padding-left: 1.5rem;
+}
+
+.pasos-postulacion li {
+  margin-bottom: var(--esp-1);
+}
+
+/* «Sobre mí» (DA-30): texto plano del maestro con sus saltos de línea. */
+.descripcion-maestro {
+  white-space: pre-line;
+  overflow-wrap: break-word;
+}
+
+#descripcion {
+  min-height: 9rem;
+  resize: vertical;
+}
+
+.contador {
+  display: block;
+  margin-top: var(--esp-1);
 }

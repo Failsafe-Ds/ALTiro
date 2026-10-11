@@ -44,10 +44,11 @@ Preparado por Claude con la skill UI/UX Pro Max (pila `html-css`). La skill sugi
 
 ## Componentes
 - **Encabezado sin sesión:** solo la marca «AlTiro» (700, `--marca`), enlace a `index.html`. Nada más.
-- **Encabezado con sesión:** marca a la izquierda (lleva al inicio del rol) y botón «Menú» a la derecha (E-2). Fondo blanco con línea inferior `--linea`.
+- **Encabezado con sesión:** marca a la izquierda (lleva al inicio del flujo, E-3.2) y botón «Menú» a la derecha (E-2).
+- **Fondo del encabezado (ambas versiones, E-3.3):** degradado vertical de `--encabezado-arriba` (`#FBE4E7`, rojo muy claro) a `--fondo` (blanco), con línea inferior `--linea`. Contraste a verificar sobre el tono más oscuro: `--marca` y `--texto` deben quedar en 4,5:1 o más.
 - **Pie:** fondo `--fondo-suave`, texto `--texto-suave`, «© 2026 AlTiro» + aviso de prueba de concepto + versión.
 - **Maestro en resultados (estilo Fiverr, sin tarjeta):** foto 4:3 con radio 0,75 rem arriba; debajo, nombre (600) con la insignia «Verificado» (ícono + texto); oficio; fila de estrellas (`--estrella`) con nota y cantidad entre paréntesis (`4,8 (23)`), o «Sin evaluaciones aún»; «Atiende en: …» en `--texto-suave`; precio «Desde $X» en 600. Todo el bloque es un solo enlace al perfil (un solo destino de tabulación). Grilla: 1 columna en 360 px, 2 en ≥ 560 px, 3 en ≥ 900 px y 4 en ≥ 1200 px.
-- **Categorías (inicio del cliente):** grilla de oficios con ícono SVG y nombre, cada uno un enlace a la búsqueda con ese oficio elegido. Objetivo táctil completo.
+- **Categorías (inicio del cliente), E-3.3:** carrusel horizontal de tarjetas de oficio (ícono SVG y nombre **centrados**), cada una un enlace a la búsqueda con ese oficio elegido; `scroll-snap`, botones Anterior/Siguiente de 44 px, sin avance automático. Objetivo táctil completo.
 - **Página de opciones (estilo Steam):** en ≥ 768 px, menú lateral de 14 a 16 rem a la izquierda (fondo `--fondo-suave`, ítem activo con `--marca-suave`, barra izquierda de 3 px `--marca` y `aria-current="page"`) y contenido a la derecha. En celular, el menú va arriba como lista de enlaces o `<details>` plegable.
 - **Botones:** principal (fondo `--marca`, texto blanco, 600); secundario (borde `--borde`, texto `--texto`); peligro (texto `--error` con borde). Desactivado: opacidad 0,6 y `cursor: not-allowed`, con el texto de la carga («Enviando…»).
 - **Indicador de carga:** botón desactivado con texto de espera, y en las listas un aviso «Cargando…» con `aria-live="polite"`. Sin rueditas que giren solas sin texto.

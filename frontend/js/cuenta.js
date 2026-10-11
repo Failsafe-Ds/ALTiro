@@ -229,7 +229,9 @@
 
   // En esta página hay dos formularios: algunos errores se muestran en
   // elementos con otro id (por ejemplo, error-telefono-maestro).
-  function conectarFormulario(form, ruta, textoExito, idsDeError = {}) {
+  // destino: página a la que se sigue tras el éxito (agregar el perfil de
+  // maestro lleva directo a «Mi postulación», ADR-002 E-3.2).
+  function conectarFormulario(form, ruta, textoExito, idsDeError = {}, destino = null) {
     formulario.prepararBoton(form);
     const seccion = form.closest("section");
     const textoBoton = form.querySelector('button[type="submit"]').textContent;
@@ -249,6 +251,10 @@
       formulario.ocupado(form, true);
       const { estado, datos } = await api.enviar(ruta, formulario.leer(form));
       if (estado === 201) {
+        if (destino) {
+          location.assign(destino);
+          return;
+        }
         formulario.ocupado(form, false);
         pintar(datos.cuenta);
         avisarCuenta(textoExito, "exito");
@@ -397,11 +403,11 @@
       avisoCerrar.className = "aviso aviso-error";
       if (estado === 0) {
         avisoCerrar.textContent =
-          "No pudimos cerrar tu sesión porque no hay conexión: tu sesión sigue abierta en este teléfono. Revisa tu señal o tu wifi y pulsa «Cerrar sesión» de nuevo.";
+          "No pudimos cerrar tu sesión porque no hay conexión: tu sesión sigue abierta en este dispositivo. Revisa tu señal o tu wifi y pulsa «Cerrar sesión en este dispositivo» de nuevo.";
       } else {
         // T-11: en vez de "recarga la página", el botón que lo hace.
         avisoCerrar.replaceChildren(
-          "No pudimos cerrar tu sesión: sigue abierta en este teléfono. Pulsa «Cerrar sesión» de nuevo; si no funciona, toca «Volver a cargar» e inténtalo otra vez.",
+          "No pudimos cerrar tu sesión: sigue abierta en este dispositivo. Pulsa «Cerrar sesión en este dispositivo» de nuevo; si no funciona, toca «Volver a cargar» e inténtalo otra vez.",
           " ",
           formulario.botonVolverACargar()
         );
@@ -462,7 +468,8 @@
     document.getElementById("agregar-maestro"),
     "/api/maestros/postulaciones",
     "Primer paso listo. Ahora envía las fotos de tus documentos desde «Mi postulación».",
-    { telefono: "telefono-maestro", perfil: "perfil-maestro" }
+    { telefono: "telefono-maestro", perfil: "perfil-maestro" },
+    "mi-postulacion.html"
   );
   conectarSeguridad(
     document.getElementById("cambiar-contrasena"),

@@ -2,8 +2,12 @@
 // RNF-13 a RNF-17, RNF-20; NTI-11).
 // - Cada paso se guarda en el servidor al completarlo (RNF-20, CA-11.1): al
 //   volver a entrar, el asistente continúa en el primer documento que falta
-//   según GET /api/maestros/expediente. En el navegador no se guarda nada:
-//   ni fotos ni fechas de documentos (minimización, ADR-002).
+//   según GET /api/maestros/expediente. En el almacenamiento del navegador no
+//   se guarda nada: ni fotos ni fechas de documentos (minimización, ADR-002).
+// - ADR-017 E-4: mientras la página siga abierta, cada paso conserva en memoria
+//   sus fotos y fechas al ir a otro paso y volver. Al recargar se pierden (el
+//   navegador no conserva fotos) y el paso lo avisa; para saberlo solo se marca
+//   «altiro.postulacion.fotos» en sessionStorage, sin datos del documento.
 // - Pasos: (a) oficios; (b) un paso por documento (cédula, antecedentes y una
 //   licencia por cada oficio que la necesite, según lo que informa el
 //   servidor); (c) resumen con el estado en lenguaje del oficio.
@@ -21,9 +25,14 @@
 
   // Textos por documento (RNF-17: sin siglas sueltas ni jerga).
   const CONSEJO_FOTO = "Pon el documento sobre una mesa, con buena luz, y que se lean todas las letras.";
+  // Cada paso dice qué documento pide y dónde se lee cada fecha (ADR-017 E-4).
+  // vencimientoObligatorio: solo la cédula (el servidor también lo exige).
   const TEXTOS = {
     cedula_identidad: {
       ayuda: "Necesitamos una foto de cada lado de tu cédula.",
+      emision: "Aparece como «Fecha de emisión» en el frente de tu cédula.",
+      vencimiento: "Aparece como «Fecha de vencimiento» en el frente de tu cédula. Todas las cédulas la tienen.",
+      vencimientoObligatorio: true,
       fotos: [
         { campo: "archivo", titulo: "Foto del frente de tu cédula", falta: "Toma o elige la foto del frente de tu cédula." },
         {
@@ -35,10 +44,14 @@
     },
     certificado_antecedentes: {
       ayuda: "Necesitamos una foto de tu certificado de antecedentes.",
+      emision: "Búscala en el certificado como «Fecha de emisión».",
+      vencimiento: "Si el certificado dice hasta qué fecha es válido, escríbela. Si no lo dice, déjala en blanco.",
       fotos: [{ campo: "archivo", titulo: "Foto del certificado", falta: "Toma o elige la foto del certificado." }],
     },
     licencia_sec: {
       ayuda: `Este oficio necesita la ${expediente.TEXTO_SEC}. Necesitamos una foto de tu licencia.`,
+      emision: "Búscala en tu licencia como fecha de emisión u otorgamiento.",
+      vencimiento: "Búscala en tu licencia como fecha de vencimiento o validez. Si no tiene, déjala en blanco.",
       fotos: [{ campo: "archivo", titulo: "Foto de la licencia", falta: "Toma o elige la foto de tu licencia." }],
     },
   };
@@ -59,6 +72,66 @@
   let catalogo = null; // oficios del catálogo
   let pasoDocumento = null; // { tipo, oficio, documento, reemplazo }
   let selectores = [];
+
+  // Fotos y fechas de cada paso mientras la página siga abierta (ADR-017 E-4):
+  // clave del requisito -> { fotos: { campo: { blob, vista } }, fecha_emision,
+  // fecha_vencimiento, enviado }. Solo en memoria.
+  const memoria = new Map();
+  const CLAVE_FOTOS = "altiro.postulacion.fotos";
+
+  function marcarFotosPendientes() {
+    const hay = Array.from(memoria.values()).some((m) => !m.enviado && Object.keys(m.fotos).length > 0);
+    try {
+      if (hay) {
+        sessionStorage.setItem(CLAVE_FOTOS, "1");
+      } else {
+        sessionStorage.removeItem(CLAVE_FOTOS);
+      }
+    } catch (_) {
+      // Sin almacenamiento: solo se pierde el aviso al recargar.
+    }
+  }
+
+  // ¿Se recargó la página con fotos elegidas y sin enviar?
+  function fotosPerdidasAlRecargar() {
+    let marca = null;
+    try {
+      marca = sessionStorage.getItem(CLAVE_FOTOS);
+      sessionStorage.removeItem(CLAVE_FOTOS);
+    } catch (_) {
+      return false;
+    }
+    const navegacion = performance.getEntriesByType ? performance.getEntriesByType("navigation")[0] : null;
+    return marca === "1" && Boolean(navegacion) && navegacion.type === "reload";
+  }
+
+  function guardarPasoEnMemoria() {
+    // Sin selectores, el paso ya se guardó y se soltó: no se pisa lo guardado.
+    if (!pasoDocumento || formDocumento.classList.contains("oculto") || selectores.length === 0) {
+      return;
+    }
+    const clave = expediente.clave(pasoDocumento.tipo, pasoDocumento.oficio);
+    const fotos = {};
+    for (const selector of selectores) {
+      const guardada = selector.foto();
+      if (guardada) {
+        fotos[selector.campo] = guardada;
+      }
+    }
+    const previo = memoria.get(clave);
+    const entrada = {
+      fotos,
+      fecha_emision: formDocumento.fecha_emision.value,
+      fecha_vencimiento: formDocumento.fecha_vencimiento.value,
+      enviado: Boolean(previo && previo.enviado),
+    };
+    if (Object.keys(fotos).length || entrada.fecha_emision || entrada.fecha_vencimiento) {
+      memoria.set(clave, entrada);
+    } else {
+      memoria.delete(clave);
+    }
+    marcarFotosPendientes();
+  }
 
   // --- Utilidades ---
 
@@ -86,6 +159,8 @@
   function sesionTerminada() {
     const habiaFotos = !formDocumento.classList.contains("oculto") && selectores.some((s) => Boolean(s.blob()));
     liberarFotos();
+    memoria.clear();
+    marcarFotosPendientes();
     mostrarSolo(null);
     expediente.avisarSesionTerminada(
       avisoPagina,
@@ -148,7 +223,15 @@
     catalogo = respuestaOficios.datos.oficios;
     // CA-11.1: si ya había pasos guardados, se dice que se conservaron.
     const retomar = datos.oficios.length > 0 ? "Tus pasos anteriores están guardados. Sigue desde aquí." : null;
+    const recargada = fotosPerdidasAlRecargar();
     decidir(pedidoDeLaDireccion(), null, retomar);
+    if (recargada && !formDocumento.classList.contains("oculto")) {
+      formulario.avisar(
+        formDocumento,
+        "Volviste a cargar la página y el navegador no guarda las fotos: elige de nuevo las fotos y escribe las fechas de este paso. Los documentos que ya enviaste están guardados.",
+        "error"
+      );
+    }
   }
 
   // ?subir=<tipo>[&oficio=<código>]: solo se acepta un requisito que el servidor informó.
@@ -215,10 +298,19 @@
       etiqueta.append(casilla, texto);
       lista.append(etiqueta);
     }
+    // Todos los oficios de GET /api/oficios, sin filtrar: se dice cuántos son.
+    document.getElementById("cantidad-oficios").textContent = `${catalogo.length} oficios. Marca uno o más.`;
     formulario.limpiarErrores(formOficios);
     formOficios.querySelector(".progreso").textContent = `Paso 1 de ${1 + expediente.requisitos(datos).length}`;
     document.getElementById("oficios-volver").classList.toggle("oculto", !desdeResumen);
     mostrarSolo(formOficios);
+    if (datos.oficios.length === 0 && !desdeResumen) {
+      formulario.avisar(
+        formOficios,
+        "Tu RUT quedó guardado. Ahora marca los oficios que haces; después te pediremos las fotos de tus documentos.",
+        "exito"
+      );
+    }
     enfocarTitulo(formOficios);
   }
 
@@ -273,7 +365,9 @@
 
   // --- Paso: documento ---
 
+  // Antes de soltar las fotos del paso, se guardan en memoria (ADR-017 E-4).
   function liberarFotos() {
+    guardarPasoEnMemoria();
     for (const selector of selectores) {
       selector.quitar();
     }
@@ -290,8 +384,14 @@
     formulario.limpiarErrores(formDocumento);
     formDocumento.reset();
     formDocumento.querySelector(".progreso").textContent = reemplazo ? "Subir de nuevo" : textoProgreso(indice);
-    document.getElementById("titulo-documento").textContent = expediente.nombreDocumento(requisito.tipo, requisito.oficio);
+    document.getElementById("titulo-documento").textContent = tituloPaso(requisito);
     document.getElementById("ayuda-documento").textContent = `${textos.ayuda} ${CONSEJO_FOTO}`;
+    document.getElementById("ayuda-fecha_emision").textContent = textos.emision;
+    document.getElementById("ayuda-fecha_vencimiento").textContent = textos.vencimiento;
+    document.getElementById("etiqueta-fecha_vencimiento").textContent = textos.vencimientoObligatorio
+      ? "Fecha de vencimiento (obligatorio)"
+      : "Fecha de vencimiento (si tiene)";
+    formDocumento.fecha_vencimiento.required = Boolean(textos.vencimientoObligatorio);
     document.getElementById("progreso-envio").textContent = "";
 
     // Documento ya entregado: se muestra su estado y se puede seguir sin cambiarlo.
@@ -316,11 +416,30 @@
         falta: opciones.falta,
       })
     );
+    // Lo que ya se había elegido o escrito en este paso (memoria de la página).
+    const guardado = memoria.get(expediente.clave(requisito.tipo, requisito.oficio));
+    if (guardado) {
+      formDocumento.fecha_emision.value = guardado.fecha_emision;
+      formDocumento.fecha_vencimiento.value = guardado.fecha_vencimiento;
+      for (const selector of selectores) {
+        if (guardado.fotos[selector.campo]) {
+          selector.poner(guardado.fotos[selector.campo]);
+        }
+      }
+    }
     mostrarSolo(formDocumento);
     if (avisoExito) {
       formulario.avisar(formDocumento, avisoExito, "exito");
     }
     enfocarTitulo(formDocumento);
+  }
+
+  // «Cédula de identidad», «Certificado de antecedentes», «Licencia SEC de <oficio>».
+  function tituloPaso(requisito) {
+    if (requisito.tipo === "licencia_sec" && requisito.oficio) {
+      return `Licencia SEC de ${requisito.oficio.nombre}`;
+    }
+    return expediente.nombreDocumento(requisito.tipo, requisito.oficio);
   }
 
   function siguienteDespuesDe(requisito) {
@@ -410,6 +529,9 @@
     if (!emision) {
       errores.fecha_emision = "Escribe la fecha de emisión del documento.";
     }
+    if (TEXTOS[pasoDocumento.tipo].vencimientoObligatorio && !formDocumento.fecha_vencimiento.value) {
+      errores.fecha_vencimiento = "Escribe la fecha de vencimiento de tu cédula. Aparece en el frente.";
+    }
     if (Object.keys(errores).length) {
       const campo = formulario.mostrarErrores(formDocumento, {
         mensaje: "Faltan datos para enviar este documento.",
@@ -453,6 +575,11 @@
       const nombre = expediente.nombreDocumento(pasoDocumento.tipo, pasoDocumento.oficio);
       const reemplazo = pasoDocumento.reemplazo;
       liberarFotos();
+      const enviado = memoria.get(expediente.clave(pasoDocumento.tipo, pasoDocumento.oficio));
+      if (enviado) {
+        enviado.enviado = true;
+        marcarFotosPendientes();
+      }
       datos = respuesta.expediente;
       const exito = `Recibimos tu ${nombre.charAt(0).toLowerCase()}${nombre.slice(1)}.`;
       if (reemplazo) {

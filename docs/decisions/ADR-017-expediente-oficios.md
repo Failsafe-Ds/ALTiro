@@ -74,3 +74,11 @@
   - Los demás usuarios reciben el 404 neutro con registro (CA-25.2).
 - **Motivo del acceso:** comparar una licencia renovada con la anterior (E-1).
 - **Aprobación:** equipo de desarrollo, 2026-09-28.
+
+### E-4 — La cédula exige fecha de vencimiento; cada paso explica qué documento pide (PROVISIONAL)
+- **Fecha:** 2026-10-11 (pulido post-S5). Pedido del usuario: «en el paso 2 no se explica qué documento pide fecha de caducidad y emisión; ¿la cédula? Esas siempre vencen».
+- **Cambio:**
+  - la **cédula de identidad** exige `fecha_vencimiento`; el servidor responde 400 en el campo si falta. Para el certificado de antecedentes y la licencia SEC sigue siendo opcional (RF-04 y CA-11.2 se mantienen: «un documento puede tener o no vencimiento»);
+  - cada paso de documento dice qué documento es, y dónde se lee cada fecha en él. Por ejemplo, «Fecha de emisión: aparece como "Fecha de emisión" en tu cédula» y «Fecha de vencimiento: aparece como "Fecha de vencimiento"»; la fecha opcional se marca como «(si tiene)»;
+  - al ir al paso siguiente y volver, el paso conserva las fotos ya elegidas y las fechas escritas mientras la página siga abierta. Al recargar, las fotos no se pueden conservar (el navegador no lo permite) y el paso lo dice.
+- **Datos existentes:** las cédulas ya cargadas sin vencimiento siguen siendo válidas; la regla aplica a las cargas nuevas. No hay migración que altere datos.

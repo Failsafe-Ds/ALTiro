@@ -326,3 +326,22 @@ Registros previstos en la propuesta del S4 (§10) y detectados en el QA de cierr
 - **Impacto:** respuesta de la API de búsqueda (un campo nuevo, calculado en lote), `frontend/js/buscar.js` y pruebas de búsqueda. Sin migraciones. Hay que volver a revisar RNF-01.
 - **Autorización:** usuario (2026-10-11), que lo incluirá en el próximo informe. Falta la conformidad del representante del producto.
 - **Relacionado:** RF-10, RF-11, RF-13, HU-03, RNF-01; ADR-002 E-3, ADR-022.
+
+### DA-30 — Descripción escrita por el maestro en su perfil
+- **Fecha:** 2026-10-11 (pulido post-S5, fuera de sprint).
+- **Alcance original:** la ficha del maestro (HU-05, RF-13/RF-14) muestra foto, nombre, oficios, calificación, cobertura y servicios; no tiene un texto propio del maestro.
+- **Cambio:** campo opcional «Sobre mí» (texto libre, hasta 500 caracteres, con las validaciones mínimas de CLAUDE.md §9 y el ayudante `comun/texto.py`), que el maestro edita en «Mi perfil» y que se muestra en su ficha pública. No entra al puntaje ni a la búsqueda. Los datos de demostración (ADR-028) traen descripciones ficticias por oficio.
+- **Motivo:** pedido del usuario; el cliente conoce mejor al maestro antes de pedir (referencia Fiverr, ADR-002 E-3).
+- **Impacto:** una columna nueva en el perfil del maestro (migración), API de «Mi perfil» y de la ficha pública, `mi-perfil` y `perfil-maestro`, carga de demostración y pruebas. Riesgo: el maestro podría escribir su teléfono o correo en el texto para saltarse la plataforma; se avisa en la ayuda del campo y queda como pregunta al representante si hace falta moderarlo.
+- **Autorización:** usuario (2026-10-11). Falta la conformidad del representante del producto.
+- **Relacionado:** HU-05, RF-13, RF-14, RNF-15, RNF-17; ADR-019, ADR-028.
+
+### DA-31 — Oficio extra «Otros servicios»
+- **Fecha:** 2026-10-11 (pulido post-S5, fuera de sprint).
+- **Alcance original:** el informe describe una red de ocho oficios (§2, HU-04), y el catálogo tiene exactamente esos ocho. El catálogo es administrable (RF-36) por el administrador comercial.
+- **Cambio:** se mantienen los ocho oficios del informe y se agrega uno extra, «Otros servicios» (código `otros`), no regulado, por el mismo mecanismo con que se cargaron los ocho. El maestro que lo marque explica qué hace en su descripción (DA-30). Comercial puede renombrarlo o desactivarlo desde su pantalla.
+- **Motivo:** hay maestros que hacen trabajos que no calzan en los ocho oficios y hoy no pueden postular.
+- **Impacto:** catálogo (dato, sin cambios de reglas), categorías, búsqueda y postulación lo muestran sin cambios de código.
+- **Servicio general — PROVISIONAL (coordinador):** el oficio `otros` tiene un servicio de demostración, «Trabajo general (demo)» (por trabajo 25.000 o por hora 12.000, ficticios), cargado por `cargar_datos_demo` igual que los demás servicios demo; el maestro explica qué hace en su «Sobre mí» y el cliente, en el pedido. La rotación demo usa un salto primo con la cantidad de oficios para que `otros` también sea oficio principal.
+- **Autorización:** usuario (2026-10-11: «dejaremos uno como extra, el cual será otros servicios»). Falta la conformidad del representante del producto.
+- **Relacionado:** RF-36, HU-11; ADR-018.

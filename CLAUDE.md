@@ -345,7 +345,7 @@ Pedidas por el equipo (2026-10-11); concretan RNF-14 y RNF-15. Se aplican a **to
 3. **Indicador de carga:** toda espera (envío, búsqueda, carga de página o de archivo) muestra un indicador visible con texto ("Enviando…", "Buscando…"), y el botón queda desactivado mientras dura, para evitar envíos dobles.
 4. **Mensajes claros y visibles:** cada error dice qué falló, por qué y qué debe hacer la persona, junto al campo afectado y en un lugar visible sin desplazarse (resumen arriba con foco cuando hay varios). Sin códigos internos (RNF-15).
 5. **No borrar el formulario por un error:** si falta o falla un dato, se conserva todo lo demás que se escribió y solo se marca lo que hay que corregir.
-6. **Limpiar al terminar bien:** cuando la operación se completó con éxito, los campos se limpian (y se borra el borrador guardado, si existía) para que no se envíe dos veces lo mismo. Si la pantalla cambia tras el éxito, basta con no volver a mostrar los datos ya enviados.
+6. **Limpiar al terminar bien:** cuando la operación se completó con éxito, los campos se limpian (y se borra el borrador guardado, si existía) para que no se envíe dos veces lo mismo. Si la pantalla cambia tras el éxito, basta con no volver a mostrar los datos ya enviados. **Excepción:** en los formularios que editan un dato vigente (por ejemplo «Sobre mí» o los datos de la cuenta), tras guardar se muestra el valor guardado, no un campo vacío.
 7. **Mensaje de resultado:** toda operación termina con un mensaje visible de éxito o de error en lenguaje simple ("Tu pedido fue enviado", "No pudimos guardar: …"), anunciado también a lectores de pantalla (`aria-live`) y sin depender solo del color.
 
 No diseñar primero para escritorio y adaptar después si eso perjudica el flujo móvil.

@@ -80,3 +80,21 @@ Con frontend estático, el HTML de una página privada puede descargarse sin ses
 - **Bandejas administrativas** (`curatoria`, `moderacion`, `comercial`, `indicadores`): sin menú lateral, porque cada una es un solo flujo (lista y detalle, o formulario y resultado), no secciones independientes.
 - **Sin precio en los resultados de búsqueda:** RF-13 no lo exige y agregarlo amplía el alcance; queda como pregunta al usuario (el MASTER lo menciona como «Desde $X», pendiente).
 - **Validaciones mínimas (CLAUDE.md §9) en `formulario.js`:** recorte de espacios al salir del campo y al leer (nunca en contraseñas), `errorRut`/`errorIdentificador` aceptan espacios en los bordes (paridad con el servidor), resumen con la cantidad de datos por corregir y foco en el primer campo con error, `ocupado(form, sí, texto)`, `terminado(form, texto, clave)` y `resultado(caja, texto, tipo)`. `maxlength` igual al servidor; teléfono, RUT y montos usan el largo de su forma escrita más larga que el servidor acepta (detalle en `docs/testing/validaciones-minimas-pantalla.md`).
+
+### E-3.2 — Dos flujos para cuentas con dos roles, y ajustes de pantalla (2026-10-11)
+- **Pedido del usuario** tras revisar la v0.6.2.
+- **Marca «AlTiro» según el flujo en que está la persona** (reemplaza el orden fijo de E-3 punto 7 para cuentas con cliente y maestro):
+  - **flujo cliente:** `categorias`, `buscar`, `perfil-maestro`, `pedir-trabajo`, `mis-pedidos`, `evaluar` y `conversacion` cuando la persona es el cliente del pedido. La marca lleva a `categorias.html`;
+  - **flujo maestro:** `mis-trabajos`, `mi-perfil`, `mis-servicios`, `mi-cobertura`, `mi-agenda`, `mis-documentos`, `mi-postulacion`, y `conversacion`/`evaluar` cuando es el maestro del pedido. La marca lleva a `mis-trabajos.html`;
+  - **páginas neutras** (`cuenta`, `index`, administrativas): se usa el último flujo visitado, guardado en `sessionStorage` (`altiro.flujo`, sin datos personales), o el orden de E-3 si no hay uno;
+  - el **menú** permite cambiar de flujo: «Buscar maestros» y «Mi trabajo como maestro».
+- **«Cerrar sesión en este dispositivo»**: no se intenta adivinar si es teléfono o computador, porque el navegador no lo informa de forma confiable.
+- **«Mi cuenta»:** los botones de acción de una misma sección van en una fila (se envuelven en el celular), no apilados.
+- **Ingresar:** formulario centrado, con ancho de lectura y alineación consistente.
+- **RUT:** al salir del campo se muestra con formato (`11.111.111-1`), para que se vea qué se escribió.
+
+### E-3.3 — Carrusel de oficios, contenido centrado en las tarjetas y encabezado con degradado (2026-10-11)
+- **Pedido del usuario** tras la v0.6.3.
+- **Categorías en carrusel:** la página de categorías muestra los oficios en un carrusel horizontal, para que el catálogo pueda crecer (RF-36, DA-31) sin una grilla desbalanceada. Es accesible: botones «Anterior» y «Siguiente» con texto accesible, desplazamiento con el dedo y con el teclado, `scroll-snap` nativo de CSS, sin avance automático y sin animación con `prefers-reduced-motion`. Sin bibliotecas. La lista de oficios de la postulación sigue como casillas, porque ahí se marcan varios y un carrusel lo haría más difícil.
+- **Contenido centrado en las tarjetas:** el ícono, el nombre y los textos de cada tarjeta (oficios y bloques del mismo tipo) van centrados, no pegados a la izquierda. Los formularios y los textos largos siguen alineados a la izquierda, porque así se leen mejor.
+- **Encabezado:** fondo con un degradado suave de rojo claro al color del fondo, para separarlo del cuerpo. Los valores están en `design-system/altiro/MASTER.md` y deben mantener el contraste de la marca y del botón «Menú» (RNF-16).

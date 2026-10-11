@@ -126,6 +126,9 @@ MENSAJE_VENCIMIENTO_ANTERIOR = "La fecha de vencimiento debe ser posterior a la 
 MENSAJE_YA_VENCIDO = (
     "Este documento ya venció. Consigue uno vigente y súbelo. Si tu documento no vence, deja vacía esta fecha."
 )
+MENSAJE_VENCIMIENTO_CEDULA_FALTA = (
+    "Escribe la fecha de vencimiento de tu cédula. Aparece como «Fecha de vencimiento» en el frente de la cédula."
+)
 MENSAJE_FOTO_FALTA = "Adjunta la foto del documento."
 MENSAJE_ANVERSO_FALTA = "Adjunta la foto del frente de tu cédula."
 MENSAJE_REVERSO_FALTA = "Adjunta la foto de la parte de atrás de tu cédula."
@@ -175,8 +178,12 @@ def _validar_datos(datos, archivos, hoy):
             errores["fecha_emision"] = MENSAJE_EMISION_FUTURA
 
     # Vencimiento opcional (RF-04, CA-11.2): vacío o ausente = sin vencimiento.
+    # Salvo la cédula, que siempre vence (ADR-017, E-4): solo para cargas nuevas.
     vencimiento = None
-    if recortar(datos.get("fecha_vencimiento")):
+    if not recortar(datos.get("fecha_vencimiento")):
+        if tipo == TipoDocumento.CEDULA_IDENTIDAD:
+            errores["fecha_vencimiento"] = MENSAJE_VENCIMIENTO_CEDULA_FALTA
+    else:
         vencimiento = _fecha(datos["fecha_vencimiento"], errores, "fecha_vencimiento")
         if vencimiento is not None:
             if emision is not None and vencimiento <= emision:
@@ -247,7 +254,7 @@ def cargar_documento(usuario, datos, archivos):
     """Carga un documento en el expediente propio de ``usuario`` (RF-04; ADR-015; ADR-017, punto 5).
 
     - ``datos``: textos ``tipo``, ``oficio`` (solo licencia), ``fecha_emision``
-      y ``fecha_vencimiento`` (opcional). ``archivos``: ``archivo`` y
+      y ``fecha_vencimiento`` (opcional; obligatoria en la cédula, ADR-017 E-4). ``archivos``: ``archivo`` y
       ``archivo_reverso`` (solo cédula), con ``read()`` y ``size``.
     - Datos inválidos: ``ErroresValidacion`` (400, por campo). Expediente
       ``rechazado``: ``ErrorEstado`` (409). En ambos casos no se guarda nada.

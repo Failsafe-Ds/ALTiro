@@ -19,6 +19,7 @@ const iconos = (() => {
     ladrillos: "M2 4h9v4.5H2zm11 0h9v4.5h-9zM2 10.5h4.5V15H2zm6.5 0h7V15h-7zm9 0H22V15h-4.5zM2 17h9v4.5H2zm11 0h9v4.5h-9z",
     llave: "M7.5 6a6 6 0 1 0 5.6 8H15v2.5h2.5V14H19v3h2.5v-5h-8.4A6 6 0 0 0 7.5 6zm0 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z",
     hoja: "M20.5 3C11 3 4.5 7.5 4.5 15c0 1.6.4 3 1 4.1L3 21.6 4.4 23l2.5-2.5c1.1.6 2.5 1 4.1 1C18 21.5 21 13 20.5 3zM8.2 18.6C10 14.5 13 11 17 8.5c-3 3.2-5.5 6.6-7.3 10.6z",
+    casa: "M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z",
     herramienta: "M21 7.5a5.5 5.5 0 0 1-7.4 5.2L6 20.3a2.1 2.1 0 0 1-3-3l7.6-7.6A5.5 5.5 0 0 1 17.5 2l-3.3 3.3.9 3.6 3.6.9z",
   };
   // Códigos del catálogo público (GET /api/oficios). Solo presentación.
@@ -31,6 +32,7 @@ const iconos = (() => {
     albanileria: "ladrillos",
     cerrajeria: "llave",
     jardineria: "hoja",
+    otros: "casa",
   };
 
   function crear(nombre, clase) {

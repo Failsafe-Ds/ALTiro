@@ -7,7 +7,7 @@
   deniega a nadie, solo no encuentra (ADR-019, punto 5).
 - ``GET /api/maestros/publicos/<uuid:ref>/foto?tam=160|480``: misma condición.
 
-Lista explícita de campos (D-14): nombre registrado, foto, servicios visibles (con la ref del catálogo, ADR-022),
+Lista explícita de campos (D-14): nombre registrado, «Sobre mí» (DA-30), foto, servicios visibles (con la ref del catálogo, ADR-022),
 (oficio, servicio, modalidad y monto), comunas atendidas **sin indicar cuál es
 la base** (por nombre, así el orden tampoco la revela) y agenda semanal en
 "HH:MM", ``bloques`` de los próximos 14 días, libres u ocupados (RF-14; ADR-022, punto 4), y la
@@ -96,6 +96,8 @@ def datos_publicos(perfil, ahora):
     return {
         "ref": str(perfil.ref),
         "nombre": perfil.perfil_maestro.usuario.nombre,
+        # «Sobre mí» (DA-30); "" si no lo escribió.
+        "descripcion": perfil.descripcion,
         "foto": {str(tamano): url_foto(perfil, tamano) for tamano in fotos.TAMANOS},
         "servicios": [
             {

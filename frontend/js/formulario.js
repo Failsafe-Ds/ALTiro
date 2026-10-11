@@ -515,6 +515,32 @@ const formulario = (() => {
 
   const VALIDADORES = { rut: errorRut, correo: errorCorreo, identificador: errorIdentificador };
 
+  // ADR-002 E-3.2: al salir de un campo de RUT válido se muestra con formato
+  // (11.111.111-1), para que se vea qué se escribió. No cambia lo que se valida:
+  // el servidor quita puntos y guion igual que errorRut. Un RUT inválido queda
+  // tal como se escribió, para poder corregirlo.
+  function formatearRut(valor) {
+    const rut = valor.trim().replace(/[.-]/g, "").toUpperCase();
+    const cuerpo = rut.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return `${cuerpo}-${rut.slice(-1)}`;
+  }
+
+  document.addEventListener("change", (evento) => {
+    const campo = evento.target;
+    const tipo = campo && campo.dataset ? campo.dataset.validar : undefined;
+    if (tipo !== "rut" && tipo !== "identificador") {
+      return;
+    }
+    const texto = campo.value.trim();
+    if (texto === "" || texto.includes("@") || errorRut(texto)) {
+      return;
+    }
+    const conFormato = formatearRut(texto);
+    if (conFormato.length <= (campo.maxLength > 0 ? campo.maxLength : conFormato.length)) {
+      campo.value = conFormato;
+    }
+  });
+
   // Nombre del error de un campo: el id "error-…" de su aria-describedby (en
   // "Mi cuenta" no coincide con el name) o, si no tiene, su name.
   function nombreDeError(campo) {

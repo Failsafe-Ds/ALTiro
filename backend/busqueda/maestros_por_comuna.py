@@ -34,6 +34,7 @@ Los tickets usan un grupo fijo de clientes ficticios, también sin ingreso.
 No escribe la bitácora (ADR-010) ni avisos.
 """
 import datetime
+import math
 import random
 import secrets
 from dataclasses import dataclass, field
@@ -112,6 +113,31 @@ def demo_publicados_por_comuna(codigos):
     return conteo
 
 
+def completar_descripciones():
+    """Llena el «Sobre mí» vacío de los maestros de demostración que ya existen (DA-30).
+
+    Solo los de RUT en ``RANGO_DEMO`` (este módulo y ``cuentas_demo``) con la
+    descripción vacía; no toca ninguna otra columna ni a otros maestros, y una
+    descripción ya escrita (por ejemplo, editada en «Mi perfil») se conserva.
+    Idempotente. Usa la misma regla que ``ficticios.crear_maestro_publicado``:
+    el oficio del primer servicio ofrecido. Devuelve cuántos perfiles llenó.
+    """
+    vacios = PerfilPublico.objects.filter(descripcion="", perfil_maestro__rut__regex=r"^4[89][0-9]{6}[0-9K]$")
+    llenados = 0
+    for perfil_id, maestro_id, rut in vacios.values_list("pk", "perfil_maestro_id", "perfil_maestro__rut"):
+        cuerpo = _cuerpo(rut)
+        if cuerpo not in RANGO_DEMO:
+            continue
+        primero = (
+            ServicioMaestro.objects.filter(maestro_id=maestro_id).order_by("pk")
+            .values_list("servicio__oficio__codigo", flat=True).first()
+        )
+        llenados += PerfilPublico.objects.filter(pk=perfil_id, descripcion="").update(
+            descripcion=ficticios.descripcion_ficticia(primero, cuerpo)
+        )
+    return llenados
+
+
 def _ruts_usados():
     return {
         c for c in (_cuerpo(r) for r in PerfilMaestro.objects.filter(rut__startswith="4").values_list("rut", flat=True))
@@ -128,9 +154,18 @@ def _agenda(azar):
     return [(d, inicio, fin) for d in dias]
 
 
+def _paso(cantidad):
+    """Salto de la rotación, primo con la cantidad de oficios para recorrerlos todos.
+
+    Con 8 oficios es 3 (lo de siempre); con 9 (DA-31), 3 solo tocaría un tercio
+    de los oficios en cada comuna, así que se usa el siguiente primo con ella.
+    """
+    return next(p for p in (3, 5, 7, 11, 13, 17, 19, 23) if math.gcd(p, cantidad) == 1)
+
+
 def _servicios(azar, comuna, puesto, oficios, por_oficio):
     """Oficio principal rotando por comuna y puesto; a veces un segundo oficio. Hasta 3 servicios."""
-    principal = oficios[(comuna + puesto * 3) % len(oficios)]
+    principal = oficios[(comuna + puesto * _paso(len(oficios))) % len(oficios)]
     elegidos = [principal]
     if azar.random() < 0.35:
         elegidos.append(azar.choice([o for o in oficios if o != principal]))

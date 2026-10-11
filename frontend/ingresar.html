@@ -14,14 +14,15 @@
 </head>
 <body>
   <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
-  <main>
+  <main class="ingresar">
     <h1>Ingresar</h1>
+    <p class="ingresar-bajada">Entra con tu correo o, si eres maestro, con tu RUT.</p>
     <form id="ingresar" novalidate>
       <div class="aviso" role="alert" tabindex="-1"></div>
 
       <div class="campo">
         <label for="identificador">Correo o RUT</label>
-        <span class="ayuda" id="ayuda-identificador">Si eres maestro, puedes usar tu RUT. Ejemplo: 12.345.678-5</span>
+        <span class="ayuda" id="ayuda-identificador">Ejemplo de RUT: 12.345.678-5</span>
         <input id="identificador" maxlength="254" name="identificador" data-validar="identificador" autocomplete="username" required
                aria-describedby="ayuda-identificador error-identificador">
         <span class="error-campo" id="error-identificador"></span>
@@ -31,23 +32,25 @@
         <label for="contrasena">Contraseña</label>
         <input id="contrasena" maxlength="128" name="contrasena" type="password" autocomplete="current-password" required
                aria-describedby="error-contrasena">
-        <label class="casilla"><input type="checkbox" data-mostrar="contrasena"> Mostrar contraseña</label>
         <span class="error-campo" id="error-contrasena"></span>
+        <div class="ingresar-fila">
+          <label class="casilla"><input type="checkbox" data-mostrar="contrasena"> Mostrar contraseña</label>
+          <a class="enlace-tactil" href="recuperar.html">Olvidé mi contraseña</a>
+        </div>
       </div>
 
       <div class="acciones">
         <button type="submit">Ingresar</button>
       </div>
     </form>
-    <div class="acciones">
-      <a class="boton boton-secundario" href="recuperar.html">Olvidé mi contraseña</a>
-    </div>
 
-    <h2>¿No tienes cuenta?</h2>
-    <div class="acciones">
-      <a class="boton boton-secundario" href="registro-cliente.html">Crear mi cuenta para pedir trabajos</a>
-      <a class="boton boton-secundario" href="postulacion-maestro.html">Soy maestro: quiero postular</a>
-    </div>
+    <section class="ingresar-sin-cuenta" aria-labelledby="titulo-sin-cuenta">
+      <h2 id="titulo-sin-cuenta">¿No tienes cuenta?</h2>
+      <ul class="enlaces-secundarios">
+        <li><a class="enlace-tactil" href="registro-cliente.html">Crear mi cuenta para pedir trabajos</a></li>
+        <li><a class="enlace-tactil" href="postulacion-maestro.html">Soy maestro: quiero postular</a></li>
+      </ul>
+    </section>
   </main>
   <footer class="pie" role="contentinfo">
     <p>AlTiro <span id="pie-version"></span> · © 2026 Equipo AlTiro.</p>

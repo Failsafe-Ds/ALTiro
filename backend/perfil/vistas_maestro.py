@@ -9,7 +9,9 @@ falta; 401 sin sesión). Lista explícita de campos; ``Cache-Control: no-store``
 - ``GET`` y ``PUT /api/maestros/cobertura``: ``{"comunas": [{"comuna": "8101", "es_base": true}, ...]}``.
 - ``GET`` y ``POST /api/maestros/disponibilidad``: ``{"dia_semana": 1, "inicio": "08:00", "fin": "12:00"}``.
 - ``POST /api/maestros/perfil/foto``: multipart con el archivo en ``archivo``.
-- ``GET /api/maestros/perfil``: ref pública, si está publicado y lo que le falta.
+- ``GET /api/maestros/perfil``: ref pública, si está publicado, lo que le falta y su «Sobre mí».
+- ``PUT /api/maestros/perfil``: ``{"descripcion": "..."}`` (DA-30), hasta 500 caracteres;
+  vacío o ``null`` la borra. Responde el perfil como el ``GET``.
 """
 from django.conf import settings
 from django.http import HttpResponse
@@ -20,12 +22,14 @@ from comun.api import ErroresDeCampo, leer_json, leer_multipart, manejar_errores
 from expediente.errores import ErrorEstado, ErroresValidacion
 from expediente.models import EstadoExpediente, Expediente
 from perfil import agenda, cobertura, fotos, publicacion
+from perfil import servicios as servicios_perfil
 from perfil.models import Disponibilidad, PerfilPublico
 from perfil.politicas import PoliticaDisponibilidad
 
 CAMPOS_COBERTURA = {"comunas"}
 CAMPOS_BLOQUE = {"dia_semana", "inicio", "fin"}
 ARCHIVOS_FOTO = {"archivo"}
+CAMPOS_PERFIL = {"descripcion"}
 # Una foto de hasta ALTIRO_DOCUMENTO_MAXIMO_BYTES más el resto del formulario;
 # igual que client_max_body_size de la ruta en el proxy (9m).
 MAXIMO_CUERPO_FOTO = settings.ALTIRO_DOCUMENTO_MAXIMO_BYTES + 1024 * 1024
@@ -153,15 +157,25 @@ def _perfil(maestro_id, estado=200):
                 "publicado": not pendientes,
                 "tiene_foto": perfil.foto is not None,
                 "pendientes": pendientes,
+                "descripcion": perfil.descripcion,
             }
         },
         estado,
     )
 
 
-@metodos("GET")
+@metodos("GET", "PUT")
 @requiere_rol("maestro")
+@manejar_errores
 def mi_perfil(request):
+    if request.method == "PUT":
+        datos = leer_json(request, CAMPOS_PERFIL)
+
+        def guardar():
+            servicios_perfil.cambiar_descripcion(request.usuario.pk, datos.get("descripcion"))
+            return _perfil(request.usuario.pk)
+
+        return _con_errores_de_dominio(guardar)
     return _perfil(request.usuario.pk)
 
 

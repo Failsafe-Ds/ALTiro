@@ -181,8 +181,94 @@
     }
     perfil = datos.perfil;
     pintar();
+    pintarDescripcion();
     contenido.hidden = false;
   }
+
+  // --- «Sobre mí» (DA-30) ---
+  // Borrador en sessionStorage mientras se escribe (se borra al guardar o al
+  // cerrar sesión). El servidor recorta y valida el largo; aquí solo se ayuda.
+  const MAXIMO = 500;
+  const CLAVE_BORRADOR = "altiro.mi-perfil.descripcion";
+  const formSobreMi = document.getElementById("form-sobre-mi");
+  const campoDescripcion = document.getElementById("descripcion");
+  const contador = document.getElementById("contador-descripcion");
+  const anuncio = document.getElementById("anuncio-descripcion");
+  // El contador se ve siempre; al lector de pantalla solo se le avisa en
+  // algunos umbrales, para no anunciar cada tecla.
+  const UMBRALES = [100, 50, 20, 0];
+  let ultimoUmbral = null;
+
+  function contar() {
+    const quedan = MAXIMO - campoDescripcion.value.length;
+    contador.textContent = quedan === 1 ? "Te queda 1 carácter." : `Te quedan ${quedan} caracteres.`;
+    const umbral = [...UMBRALES].reverse().find((u) => quedan <= u);
+    if (umbral !== undefined && umbral !== ultimoUmbral) {
+      anuncio.textContent = contador.textContent;
+    }
+    ultimoUmbral = umbral === undefined ? null : umbral;
+  }
+
+  function pintarDescripcion() {
+    const guardada = perfil.descripcion || "";
+    const borrador = formulario.recuperar(CLAVE_BORRADOR);
+    const texto = borrador && borrador.valores ? borrador.valores.descripcion : undefined;
+    if (typeof texto === "string" && texto !== guardada) {
+      campoDescripcion.value = texto;
+      formulario.avisar(formSobreMi, "Recuperamos lo que estabas escribiendo. Todavía no está guardado: revísalo y toca «Guardar «Sobre mí»».", "exito");
+    } else {
+      campoDescripcion.value = guardada;
+      formulario.olvidar(CLAVE_BORRADOR);
+    }
+    contar();
+  }
+
+  campoDescripcion.addEventListener("input", () => {
+    contar();
+    formulario.guardarDatos(CLAVE_BORRADOR, { valores: { descripcion: campoDescripcion.value } });
+  });
+
+  formulario.prepararBoton(formSobreMi);
+  formSobreMi.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    formulario.limpiarErrores(formSobreMi);
+    const texto = formulario.valor(campoDescripcion);
+    campoDescripcion.value = texto;
+    contar();
+    formulario.ocupado(formSobreMi, true, "Guardando…");
+    const { estado, datos } = await api.reemplazar(RUTA, { descripcion: texto });
+    formulario.ocupado(formSobreMi, false);
+    if (estado === 200) {
+      perfil = datos.perfil;
+      formulario.olvidar(CLAVE_BORRADOR);
+      // El campo muestra lo guardado (no se vacía: es el texto vigente del perfil).
+      campoDescripcion.value = perfil.descripcion || "";
+      contar();
+      formulario.avisar(
+        formSobreMi,
+        perfil.descripcion ? "Listo: guardamos tu «Sobre mí». Los clientes lo ven en tu perfil." : "Listo: borramos tu «Sobre mí».",
+        "exito"
+      );
+      return;
+    }
+    if (estado === 401) {
+      sesionTerminada();
+      return;
+    }
+    if (estado === 403) {
+      sinAcceso();
+      return;
+    }
+    if (estado === 0) {
+      formulario.avisar(formSobreMi, "No pudimos conectarnos. Revisa tu señal o tu wifi y toca «Guardar «Sobre mí»» de nuevo. Lo que escribiste sigue aquí.", "error");
+      return;
+    }
+    // Error del servidor: se conserva lo escrito y se marca el campo.
+    const campo = formulario.mostrarErrores(formSobreMi, datos);
+    if (campo) {
+      campo.focus();
+    }
+  });
 
   // --- Subir o cambiar la foto (ADR-021) ---
 

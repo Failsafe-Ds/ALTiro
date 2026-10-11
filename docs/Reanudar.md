@@ -64,6 +64,11 @@ Resultado: pasos 1 a 5 hechos (commits del 2026-10-11, v0.6.0 a v0.6.2), más DA
 
 Avance y decisiones provisionales: en `docs/estado-actual.md` (línea por paso cerrado) y en "Consumo".
 
+### Ronda 2 del pulido (2026-10-11, en curso)
+Observaciones del usuario sobre la v0.6.2: dos flujos (ADR-002 E-3.2), ingresar, cuenta, postulación y documentos (ADR-017 E-4), carrusel, centrado y encabezado (E-3.3), «Sobre mí» (DA-30), «Otros servicios» (DA-31). Orden:
+1. Terminar el backend (servicio general de «Otros servicios» y sus maestros demo) → QA de la ronda → commit v0.6.3.
+2. **Auditoría del código** pedida por el usuario: `ponytail-audit` sobre todo el frontend, lo nuevo del backend desde la primera auditoría y lo que esta dejó sin revisar → corrección → QA → commit.
+
 ## Trabajo anterior (S5)
 S5 cerrado (etiqueta `sprint-5`). Los cinco sprints del informe están construidos. Lo que queda es trabajo del equipo y de la revisión, en una **sesión nueva** (regla 11):
 - RNF-13 con personas (DA-26) y RNF-18 manual en navegadores de marca y Android;
