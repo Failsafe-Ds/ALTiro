@@ -11,11 +11,9 @@
   <script src="js/version.js" defer></script>
   <script src="js/pie.js" defer></script>
   <script src="js/menu.js" defer></script>
-  <script src="js/volver.js" defer></script>
 </head>
 <body>
-  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a>
-    <a class="enlace-encabezado" data-volver href="index.html">← Volver</a></header>
+  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
   <main>
     <h1>Ingresar</h1>
     <form id="ingresar" novalidate>
@@ -24,14 +22,14 @@
       <div class="campo">
         <label for="identificador">Correo o RUT</label>
         <span class="ayuda" id="ayuda-identificador">Si eres maestro, puedes usar tu RUT. Ejemplo: 12.345.678-5</span>
-        <input id="identificador" name="identificador" data-validar="identificador" autocomplete="username" required
+        <input id="identificador" maxlength="254" name="identificador" data-validar="identificador" autocomplete="username" required
                aria-describedby="ayuda-identificador error-identificador">
         <span class="error-campo" id="error-identificador"></span>
       </div>
 
       <div class="campo">
         <label for="contrasena">Contraseña</label>
-        <input id="contrasena" name="contrasena" type="password" autocomplete="current-password" required
+        <input id="contrasena" maxlength="128" name="contrasena" type="password" autocomplete="current-password" required
                aria-describedby="error-contrasena">
         <label class="casilla"><input type="checkbox" data-mostrar="contrasena"> Mostrar contraseña</label>
         <span class="error-campo" id="error-contrasena"></span>

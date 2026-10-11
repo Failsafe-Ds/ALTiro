@@ -20,6 +20,7 @@ from django.http import HttpResponse, JsonResponse
 from autorizacion.decoradores import requiere_rol
 from bitacora import servicios as bitacora
 from comun.api import MENSAJE_CLAVE_DESCONOCIDA, ErroresDeCampo, ErrorSolicitud, manejar_errores, metodos
+from comun.texto import recortar
 from expediente.vigencia import hoy_negocio
 from gestion import exportacion, indicadores
 
@@ -40,7 +41,8 @@ _MES = re.compile(r"\d{4}-\d{2}")
 
 
 def _mes(valor):
-    """Primer día del mes ``AAAA-MM``, o ``None`` si no es válido."""
+    """Primer día del mes ``AAAA-MM`` (recortado), o ``None`` si no es válido."""
+    valor = recortar(valor)
     if not isinstance(valor, str) or not _MES.fullmatch(valor):
         return None
     try:

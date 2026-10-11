@@ -15,15 +15,15 @@ Solo las dos partes (``PoliticaTicket``): un tercero, incluidos los roles
 administrativos, recibe el 404 idéntico con registro (CA-25.1). La respuesta
 dice "tu", "cliente" o "maestro"; sin ids internos ni datos de contacto.
 """
-import re
-import uuid
 
+import uuid
 
 from autorizacion.acceso import obtener_autorizado
 from comun.api import (
     ErrorSolicitud,
     ErroresDeCampo,
     MENSAJE_CLAVE_DESCONOCIDA,
+    MENSAJE_TEXTO_INVALIDO,
     MENSAJE_VALOR_REPETIDO,
     leer_json,
     manejar_errores,
@@ -31,6 +31,7 @@ from comun.api import (
     respuesta_error,
     respuesta_json,
 )
+from comun.texto import FALTA, INVALIDO, LARGO, limpiar_texto
 from expediente.errores import ErrorEstado
 from identidad import frecuencia
 from mensajeria import conversacion
@@ -45,8 +46,6 @@ MENSAJE_TEXTO_LARGO = f"Tu mensaje puede tener hasta {LARGO_MAXIMO} caracteres. 
 MENSAJE_CLAVE_INVALIDA = "No pudimos enviar tu mensaje. Vuelve a cargar la página e inténtalo de nuevo."
 MENSAJE_DESPUES_INVALIDO = "No pudimos actualizar la conversación. Vuelve a cargar la página."
 MENSAJE_DEMASIADOS = "Enviaste muchos mensajes seguidos. Espera {} y vuelve a enviarlo."
-
-_NO_VACIO = re.compile(r"\S")
 
 
 def _uuid(valor):
@@ -76,11 +75,12 @@ def _despues(parametros):
 def _envio(request):
     datos = leer_json(request, CAMPOS_ENVIO)
     errores = {}
-    texto = datos.get("texto")
-    if not isinstance(texto, str) or not _NO_VACIO.search(texto):
-        errores["texto"] = MENSAJE_TEXTO_VACIO
-    elif len(texto) > LARGO_MAXIMO:
-        errores["texto"] = MENSAJE_TEXTO_LARGO
+    # Se recorta antes de medir el largo y de guardar (CLAUDE.md §8-§9).
+    texto, problema = limpiar_texto(datos.get("texto"), LARGO_MAXIMO)
+    if problema:
+        errores["texto"] = {
+            FALTA: MENSAJE_TEXTO_VACIO, INVALIDO: MENSAJE_TEXTO_INVALIDO, LARGO: MENSAJE_TEXTO_LARGO,
+        }[problema]
     clave = _uuid(datos.get("clave_envio"))
     if clave is None:
         errores["clave_envio"] = MENSAJE_CLAVE_INVALIDA

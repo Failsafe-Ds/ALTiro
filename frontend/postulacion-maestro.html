@@ -11,11 +11,9 @@
   <script src="js/version.js" defer></script>
   <script src="js/pie.js" defer></script>
   <script src="js/menu.js" defer></script>
-  <script src="js/volver.js" defer></script>
 </head>
 <body>
-  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a>
-    <a class="enlace-encabezado" data-volver href="index.html">← Volver</a></header>
+  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
   <main>
     <h1>Postular como maestro</h1>
     <section id="con-sesion" class="tarjeta oculto" aria-labelledby="titulo-con-sesion">
@@ -37,18 +35,18 @@
         <div class="campo">
           <label for="rut">RUT</label>
           <span class="ayuda" id="ayuda-rut">Con puntos y guion o sin ellos. Ejemplo: 12.345.678-5</span>
-          <input id="rut" name="rut" data-validar="rut" autocomplete="off" required aria-describedby="ayuda-rut error-rut">
+          <input id="rut" maxlength="12" name="rut" data-validar="rut" autocomplete="off" required aria-describedby="ayuda-rut error-rut">
           <span class="error-campo" id="error-rut"></span>
         </div>
         <div class="campo">
           <label for="nombre">Nombres y apellidos</label>
-          <input id="nombre" name="nombre" autocomplete="name" required aria-describedby="error-nombre">
+          <input id="nombre" maxlength="150" name="nombre" autocomplete="name" required aria-describedby="error-nombre">
           <span class="error-campo" id="error-nombre"></span>
         </div>
         <div class="campo">
           <label for="telefono">Teléfono</label>
           <span class="ayuda" id="ayuda-telefono">9 dígitos. Ejemplo: 9 1234 5678</span>
-          <input id="telefono" name="telefono" type="tel" inputmode="tel" autocomplete="tel" required
+          <input id="telefono" maxlength="15" name="telefono" type="tel" inputmode="tel" autocomplete="tel" required
                  aria-describedby="ayuda-telefono error-telefono">
           <span class="error-campo" id="error-telefono"></span>
         </div>
@@ -63,7 +61,7 @@
         <div class="campo">
           <label for="contrasena">Contraseña</label>
           <span class="ayuda" id="ayuda-contrasena">Al menos 12 caracteres. Puede ser una frase, por ejemplo: mi taller queda en el cerro</span>
-          <input id="contrasena" name="contrasena" type="password" autocomplete="new-password" required
+          <input id="contrasena" maxlength="128" name="contrasena" type="password" autocomplete="new-password" required
                  aria-describedby="ayuda-contrasena error-contrasena">
           <label class="casilla"><input type="checkbox" data-mostrar="contrasena"> Mostrar contraseña</label>
           <span class="error-campo" id="error-contrasena"></span>
@@ -71,13 +69,13 @@
         <div class="campo">
           <label for="correo">Correo (si tienes)</label>
           <span class="ayuda" id="ayuda-correo">No es obligatorio: también puedes ingresar con tu RUT.</span>
-          <input id="correo" name="correo" data-validar="correo" type="email" inputmode="email" autocomplete="email"
+          <input id="correo" maxlength="254" name="correo" data-validar="correo" type="email" inputmode="email" autocomplete="email"
                  aria-describedby="ayuda-correo error-correo">
           <span class="error-campo" id="error-correo"></span>
         </div>
         <div class="acciones">
           <button type="submit">Crear mi cuenta y seguir</button>
-          <button type="button" class="boton-secundario" data-paso="anterior">Volver</button>
+          <button type="button" class="boton-secundario" data-paso="anterior">← Paso anterior</button>
         </div>
       </fieldset>
     </form>

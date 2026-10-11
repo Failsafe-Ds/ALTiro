@@ -51,7 +51,7 @@
   // Solo queda el aviso para volver a ingresar.
   function ocultarCuenta() {
     vaciarDatos();
-    for (const bloque of document.querySelectorAll("main > section, main > nav, main > .acciones")) {
+    for (const bloque of document.querySelectorAll("main section, main .acciones, .opciones-menu")) {
       bloque.classList.add("oculto");
     }
     document.body.dataset.vaciada = "si";
@@ -135,6 +135,7 @@
     mostrar(document.getElementById("campo-telefono-cliente"), !cuenta.telefono);
     mostrar(document.getElementById("seccion-maestro"), !maestro);
     mostrar(document.getElementById("campo-telefono-maestro"), !cuenta.telefono);
+    mostrar(document.getElementById("perfiles-completos"), Boolean(cliente && maestro));
 
     // Un maestro sin correo lo agrega desde aquí (ADR-027, punto 2), para poder recuperar su contraseña.
     document.getElementById("titulo-cambiar-correo").textContent = cuenta.correo ? "Cambiar mi correo" : "Agregar mi correo";
@@ -186,6 +187,10 @@
     const form = pendiente && document.getElementById(pendiente.form);
     if (!form || form.closest(".oculto")) {
       return;
+    }
+    // Página de opciones (opciones.js): se abre la sección del formulario recuperado.
+    if (window.altiroOpciones) {
+      window.altiroOpciones.mostrar(form);
     }
     // Hallazgo UX M-6: el aviso solo aparece si de verdad se recuperó algo.
     // Región y comuna ya las aplicó territorio.conectar: cuentan si quedaron puestas.

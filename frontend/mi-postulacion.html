@@ -13,15 +13,13 @@
   <script src="js/version.js" defer></script>
   <script src="js/pie.js" defer></script>
   <script src="js/menu.js" defer></script>
-  <script src="js/volver.js" defer></script>
+  <script src="js/opciones.js" defer></script>
 </head>
 <body>
   <header class="encabezado">
     <a class="marca" href="index.html">AlTiro</a>
-    <a class="enlace-encabezado" data-volver href="cuenta.html">← Volver</a>
-    <a class="enlace-encabezado" href="cuenta.html">Mi cuenta</a>
   </header>
-  <main>
+  <main data-opciones>
     <h1>Mi postulación</h1>
     <p id="cargando" role="status">Cargando tu postulación…</p>
     <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
@@ -38,7 +36,7 @@
       </fieldset>
       <div class="acciones">
         <button type="submit">Guardar y continuar</button>
-        <button type="button" class="boton-secundario oculto" id="oficios-volver">Volver al resumen</button>
+        <button type="button" class="boton-secundario oculto" id="oficios-volver">Ir al resumen</button>
       </div>
     </form>
 
@@ -70,7 +68,7 @@
       <div class="acciones">
         <button type="submit" id="enviar-documento">Enviar documento</button>
         <button type="button" class="boton-secundario oculto" id="documento-seguir">Seguir sin cambiarlo</button>
-        <button type="button" class="boton-secundario" id="documento-volver">Volver</button>
+        <button type="button" class="boton-secundario" id="documento-volver">← Paso anterior</button>
       </div>
     </form>
 

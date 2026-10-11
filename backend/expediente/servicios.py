@@ -21,6 +21,7 @@ from django.utils import timezone
 from autorizacion.excepciones import ConflictoDeInteres
 from bitacora import servicios as bitacora
 from catalogo.models import Oficio
+from comun.texto import FALTA, INVALIDO, LARGO, limpiar_texto, recortar
 from expediente import almacenamiento, imagenes, vigencia
 from expediente.politicas import PoliticaDocumentoCuratoria, PoliticaExpedienteCuratoria
 from expediente.errores import ErrorEstado, ErroresValidacion
@@ -132,7 +133,8 @@ MENSAJE_RECHAZADO = "Tu postulación no fue aprobada, así que ya no puedes envi
 
 
 def _fecha(texto, errores, campo):
-    """Fecha en formato AAAA-MM-DD; si no es válida, anota el error y devuelve ``None``."""
+    """Fecha en formato AAAA-MM-DD (recortada); si no es válida, anota el error y devuelve ``None``."""
+    texto = recortar(texto)
     try:
         if not _FECHA.fullmatch(texto):
             raise ValueError
@@ -163,8 +165,9 @@ def _validar_datos(datos, archivos, hoy):
     elif tipo is not None and codigo:
         errores["oficio"] = MENSAJE_NO_CORRESPONDE
 
+    # Las fechas se recortan antes de validar: solo espacios cuenta como vacío (CLAUDE.md §8-§9).
     emision = None
-    if not datos.get("fecha_emision"):
+    if not recortar(datos.get("fecha_emision")):
         errores["fecha_emision"] = MENSAJE_FECHA_EMISION_FALTA
     else:
         emision = _fecha(datos["fecha_emision"], errores, "fecha_emision")
@@ -173,7 +176,7 @@ def _validar_datos(datos, archivos, hoy):
 
     # Vencimiento opcional (RF-04, CA-11.2): vacío o ausente = sin vencimiento.
     vencimiento = None
-    if datos.get("fecha_vencimiento"):
+    if recortar(datos.get("fecha_vencimiento")):
         vencimiento = _fecha(datos["fecha_vencimiento"], errores, "fecha_vencimiento")
         if vencimiento is not None:
             if emision is not None and vencimiento <= emision:
@@ -345,17 +348,9 @@ _DESCRIPCION_REQUISITO = {
 
 def _texto_motivo(valor, obligatorio, mensaje_falta):
     """Motivo escrito sin espacios sobrantes. Devuelve ``(texto, mensaje_de_error)``."""
-    if valor is None:
-        valor = ""
-    if not isinstance(valor, str):
-        return None, mensaje_falta
-    if "\x00" in valor:
-        return None, MENSAJE_MOTIVO_INVALIDO
-    texto = valor.strip()
-    if obligatorio and not texto:
-        return None, mensaje_falta
-    if len(texto) > MOTIVO_LARGO_MAXIMO:
-        return None, MENSAJE_MOTIVO_LARGO
+    texto, problema = limpiar_texto(valor, MOTIVO_LARGO_MAXIMO, obligatorio=obligatorio)
+    if problema:
+        return None, {FALTA: mensaje_falta, INVALIDO: MENSAJE_MOTIVO_INVALIDO, LARGO: MENSAJE_MOTIVO_LARGO}[problema]
     return texto, None
 
 

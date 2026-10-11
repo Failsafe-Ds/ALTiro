@@ -29,7 +29,7 @@ from autorizacion.models import RegistroAccesoDenegado
 from autorizacion.politicas import Politica
 from bitacora.models import Bitacora
 from catalogo.models import Oficio
-from comun.api import CABECERA_RECHAZO, respuesta_no_encontrado
+from comun.api import CABECERA_RECHAZO, MENSAJE_TEXTO_INVALIDO, respuesta_no_encontrado
 from expediente import almacenamiento, servicios, vigencia
 from expediente.errores import ErrorEstado
 from expediente.models import Documento, EstadoDocumento, EstadoExpediente, Expediente, TipoDocumento
@@ -295,7 +295,13 @@ def test_sin_motivo_escrito_responde_400_sin_cambios(maestro, cura, motivo):
 
 def test_motivo_demasiado_largo_o_con_caracter_nulo_responde_400(maestro, cura):
     expediente = _expediente(maestro)
-    for motivo, mensaje in (("x" * 1001, servicios.MENSAJE_MOTIVO_LARGO), ("a\x00b", servicios.MENSAJE_MOTIVO_INVALIDO)):
+    # El nulo lo rechaza ``leer_json`` para todo campo (auditoría 2026-10-11, hallazgo 1); otro carácter de
+    # control lo rechaza el motivo con su propio mensaje.
+    for motivo, mensaje in (
+        ("x" * 1001, servicios.MENSAJE_MOTIVO_LARGO),
+        ("a\x00b", MENSAJE_TEXTO_INVALIDO),
+        ("a\x01b", servicios.MENSAJE_MOTIVO_INVALIDO),
+    ):
         respuesta = _cambiar(cura, expediente, OBSERVADO, motivo=motivo)
         assert respuesta.status_code == 400
         assert respuesta.json()["errores"] == {"motivo": mensaje}

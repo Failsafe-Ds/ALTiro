@@ -105,9 +105,12 @@ def metodos(*permitidos):
 
 
 def _texto_procesable(valor):
-    """Falso si un texto trae una secuencia Unicode no procesable (sustituto aislado)."""
+    """Falso si un texto trae una secuencia Unicode no procesable (sustituto aislado) o el
+    carácter nulo, que PostgreSQL no guarda (sin esta revisión sería un 500, RNF-15)."""
     if not isinstance(valor, str):
         return True
+    if "\x00" in valor:
+        return False
     try:
         valor.encode("utf-8")
     except UnicodeEncodeError:
@@ -165,7 +168,7 @@ def leer_multipart(request, campos, archivos):
             errores[campo] = MENSAJE_CAMPO_NO_PERMITIDO
         elif len(textos.getlist(campo)) > 1:
             errores[campo] = MENSAJE_VALOR_REPETIDO
-        elif not _texto_procesable(textos[campo]) or "\x00" in textos[campo]:
+        elif not _texto_procesable(textos[campo]):
             errores[campo] = MENSAJE_TEXTO_INVALIDO
     for campo in adjuntos:
         if campo not in archivos:

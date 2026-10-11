@@ -15,7 +15,6 @@ De moderación (``@requiere_rol("moderacion")`` y ``PoliticaDenuncia``):
 - ``GET  /api/moderacion/denuncias/<ref>/conversacion`` (solo abierta; si no, 404 registrado)
 - ``POST /api/moderacion/denuncias/<ref>/resolucion`` ``{decision, motivo}``
 """
-import re
 
 
 from autorizacion.acceso import obtener_autorizado
@@ -24,12 +23,14 @@ from comun.api import (
     ErrorSolicitud,
     ErroresDeCampo,
     MENSAJE_CLAVE_DESCONOCIDA,
+    MENSAJE_TEXTO_INVALIDO,
     leer_json,
     manejar_errores,
     metodos,
     respuesta_error,
     respuesta_json,
 )
+from comun.texto import FALTA, INVALIDO, LARGO, limpiar_texto
 from evaluaciones import moderacion, servicios
 from evaluaciones.models import (
     DIMENSIONES,
@@ -58,9 +59,6 @@ MENSAJE_MOTIVO_LARGO = f"El motivo puede tener hasta {LARGO_MOTIVO} caracteres. 
 MENSAJE_DECISION = "Elige si la evaluación se mantiene o se retira."
 MENSAJE_FILTRO = "No pudimos aplicar el filtro. Elige «En revisión» o «Resueltas» y vuelve a intentarlo."
 
-_NO_VACIO = re.compile(r"\S")
-
-
 def _conflicto(error):
     return respuesta_error(409, error.mensaje)
 
@@ -71,13 +69,9 @@ def _nota(valor):
 
 
 def _motivo(datos, campo, mensaje_vacio, errores):
-    texto = datos.get(campo)
-    if not isinstance(texto, str) or not _NO_VACIO.search(texto):
-        errores[campo] = mensaje_vacio
-        return None
-    texto = texto.strip()
-    if len(texto) > LARGO_MOTIVO:
-        errores[campo] = MENSAJE_MOTIVO_LARGO
+    texto, problema = limpiar_texto(datos.get(campo), LARGO_MOTIVO)
+    if problema:
+        errores[campo] = {FALTA: mensaje_vacio, INVALIDO: MENSAJE_TEXTO_INVALIDO, LARGO: MENSAJE_MOTIVO_LARGO}[problema]
         return None
     return texto
 
@@ -85,14 +79,12 @@ def _motivo(datos, campo, mensaje_vacio, errores):
 def _leer_evaluacion(request):
     datos = leer_json(request, CAMPOS_EVALUACION)
     errores = {d: MENSAJE_NOTA[d] for d in DIMENSIONES if not _nota(datos.get(d))}
-    comentario = datos.get("comentario", "")
-    if comentario is None:
-        comentario = ""
-    if not isinstance(comentario, str) or len(comentario.strip()) > LARGO_COMENTARIO:
-        errores["comentario"] = MENSAJE_COMENTARIO
+    comentario, problema = limpiar_texto(datos.get("comentario"), LARGO_COMENTARIO, obligatorio=False)
+    if problema:
+        errores["comentario"] = MENSAJE_TEXTO_INVALIDO if problema == INVALIDO else MENSAJE_COMENTARIO
     if errores:
         raise ErroresDeCampo(errores)
-    return {d: datos[d] for d in DIMENSIONES}, comentario.strip()
+    return {d: datos[d] for d in DIMENSIONES}, comentario
 
 
 def _ticket(request, ref):

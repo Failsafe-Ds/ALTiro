@@ -1,4 +1,6 @@
-import http.client, ssl, json, re, datetime
+import http.client, ssl, json, re, datetime, os, sys
+# La contraseña de la cuenta de control de gestión llega por variable de entorno (la imprime preparar_datos.py); nunca fija aquí.
+PWD = os.environ.get("QA_S5_CONTRASENA") or sys.exit("Define QA_S5_CONTRASENA con la contraseña que imprimió preparar_datos.py.")
 CTX = ssl._create_unverified_context(); ck = {}
 def req(m, path, body=None):
     h = http.client.HTTPSConnection("proxy", 443, context=CTX)
@@ -8,7 +10,7 @@ def req(m, path, body=None):
     for v in r.headers.get_all("Set-Cookie") or []:
         k, _, rest = v.partition("="); ck[k] = rest.split(";")[0]
     return r.status, raw
-req("GET", "/api/sesion/csrf"); print(req("POST", "/api/sesion", {"identificador": "qa.s5.ges.vol@example.com", "contrasena": "clave de prueba segura"})[0]); req("GET", "/api/sesion/csrf")
+req("GET", "/api/sesion/csrf"); print(req("POST", "/api/sesion", {"identificador": "qa.s5.ges.vol@example.com", "contrasena": PWD})[0]); req("GET", "/api/sesion/csrf")
 hoy = datetime.date.today(); q = f"?desde={(hoy - datetime.timedelta(days=365)).isoformat()}&hasta={hoy.isoformat()}"
 st, raw = req("GET", "/api/gestion/exportacion" + q); print("EXPORT", st, len(raw), "filas", len(raw.splitlines()) - 1)
 pat = {"correo": r"[\w.+-]+@[\w-]+\.\w+", "rut": r"\b\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]\b", "telefono": r"\+?56\s?9[\s\d]{8,}", "uuid": r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}", "nombres": r"Maestro|Cliente|Prueba|Pasaje|Calle"}

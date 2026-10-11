@@ -11,6 +11,27 @@ const formulario = (() => {
     return Array.from(form.querySelectorAll("input[name], select[name], textarea[name]"));
   }
 
+  // CLAUDE.md §9, punto 2: los espacios al inicio y al final se quitan antes de
+  // validar y enviar. La contraseña nunca se recorta (ADR-013, punto 3).
+  function recortable(campo) {
+    return (
+      (campo.tagName === "TEXTAREA" || campo.tagName === "INPUT") &&
+      !/^(password|file|checkbox|radio|hidden)$/.test(campo.type)
+    );
+  }
+
+  function valor(campo) {
+    return recortable(campo) ? campo.value.trim() : campo.value;
+  }
+
+  // Al salir del campo se ve el valor ya recortado (el mismo que se envía).
+  document.addEventListener("change", (evento) => {
+    const campo = evento.target;
+    if (campo && recortable(campo) && campo.value !== campo.value.trim()) {
+      campo.value = campo.value.trim();
+    }
+  });
+
   // Lee todos los campos, incluidos los de pasos ya completados (ocultos).
   // Se omiten los marcados con data-no-enviar (por ejemplo, la región, que
   // solo filtra la lista de comunas) y los de secciones .oculto.
@@ -20,8 +41,9 @@ const formulario = (() => {
       if (campo.dataset.noEnviar !== undefined || campo.closest(".oculto")) {
         continue;
       }
-      if (campo.value !== "") {
-        datos[campo.name] = campo.value;
+      const escrito = valor(campo);
+      if (escrito !== "") {
+        datos[campo.name] = escrito;
       }
     }
     return datos;
@@ -47,6 +69,8 @@ const formulario = (() => {
     aviso.textContent = texto;
     if (tipo === "error") {
       aviso.focus();
+    } else if (!aviso.hasAttribute("role")) {
+      aviso.setAttribute("role", "status");
     }
   }
 
@@ -90,12 +114,42 @@ const formulario = (() => {
     }
     // Hallazgo UX E-1: si ningún campo quedó marcado, el mensaje general
     // ("revisa los campos marcados") no sirve; se muestran solo los errores.
-    const partes = primero || sinCampo.length === 0 ? [datos.mensaje, ...sinCampo] : sinCampo;
+    const marcados = Object.keys(datos.errores || {}).length - sinCampo.length;
+    // Resumen arriba (CLAUDE.md §9, punto 4): con varios campos marcados se dice cuántos.
+    const resumen = marcados > 1 ? `Hay ${marcados} datos por corregir; cada uno tiene su mensaje junto al campo.` : "";
+    const partes = primero || sinCampo.length === 0 ? [datos.mensaje, resumen, ...sinCampo] : sinCampo;
     avisar(form, partes.filter(Boolean).join(" "), "error");
     if (datos.recargar) {
       form.querySelector(".aviso").append(" ", botonVolverACargar());
     }
+    // El foco va al primer campo con error si está a la vista; si no (por
+    // ejemplo, en otro paso), queda en el resumen y la página lo lleva al campo.
+    if (primero && primero.getClientRects().length && typeof primero.focus === "function") {
+      primero.focus();
+    }
     return primero;
+  }
+
+  // CLAUDE.md §9, puntos 6 y 7: tras el éxito, mensaje de resultado anunciado,
+  // campos limpios y borrador borrado (si se indica su clave).
+  function terminado(form, texto, clave) {
+    form.reset();
+    for (const campo of campos(form)) {
+      campo.removeAttribute("aria-invalid");
+    }
+    if (clave) {
+      olvidar(clave);
+    }
+    avisar(form, texto, "exito");
+  }
+
+  // Mensaje de resultado de una operación que no es un formulario (aceptar,
+  // rechazar, cancelar, exportar…): caja .aviso con role="status" o "alert".
+  function resultado(caja, texto, tipo) {
+    caja.hidden = false;
+    caja.className = "aviso aviso-" + tipo;
+    caja.setAttribute("role", tipo === "error" ? "alert" : "status");
+    caja.textContent = texto;
   }
 
   // --- Sesión iniciada en páginas de cuenta nueva (DEF-QA-001; ADR-013, punto 2 y E-2) ---
@@ -279,7 +333,7 @@ const formulario = (() => {
       }
       evento.preventDefault();
       if (boton.dataset.paso === "siguiente") {
-        const faltantes = Array.from(pasos[actual].querySelectorAll("[required]")).filter((c) => !c.value.trim());
+        const faltantes = Array.from(pasos[actual].querySelectorAll("[required]")).filter((c) => !valor(c));
         if (faltantes.length) {
           mostrarErrores(form, {
             mensaje: "Completa los datos marcados para continuar.",
@@ -381,8 +435,10 @@ const formulario = (() => {
 
   // Igual que normalizar_rut: sin puntos ni guion, 1 a 8 dígitos más el DV,
   // sin cero inicial (HQ-12). Devuelve el texto del error o null.
+  // Los espacios al inicio y al final no cuentan (como en el servidor desde la
+  // auditoría del backend, hallazgo 3).
   function errorRut(valor) {
-    const rut = valor.replace(/[.-]/g, "").toUpperCase();
+    const rut = valor.trim().replace(/[.-]/g, "").toUpperCase();
     if (!/^[0-9]{1,8}[0-9K]$/.test(rut) || rut[0] === "0") {
       return RUT_FORMATO;
     }
@@ -412,7 +468,8 @@ const formulario = (() => {
   }
 
   // Igual que interpretar_identificador: con "@" es correo; sin "@" es RUT.
-  function errorIdentificador(valor) {
+  function errorIdentificador(texto) {
+    const valor = texto.trim();
     if (valor.includes("@")) {
       return errorCorreo(valor) && CORREO_INVALIDO;
     }
@@ -434,11 +491,11 @@ const formulario = (() => {
   function revisar(form, zona = form) {
     const errores = {};
     for (const campo of zona.querySelectorAll("[data-validar]")) {
-      if (campo.closest(".oculto") || !campo.value.trim()) {
+      if (campo.closest(".oculto") || !valor(campo)) {
         continue;
       }
       const validador = VALIDADORES[campo.dataset.validar];
-      const error = validador ? validador(campo.value) : null;
+      const error = validador ? validador(valor(campo)) : null;
       if (error) {
         errores[nombreDeError(campo)] = error;
       }
@@ -446,11 +503,16 @@ const formulario = (() => {
     return Object.keys(errores).length ? { mensaje: "Revisa los campos marcados.", errores } : null;
   }
 
-  function ocupado(form, sí) {
+  // CLAUDE.md §9, punto 3: botón desactivado y con el texto de la espera.
+  function ocupado(form, sí, texto = "Enviando…") {
     const boton = form.querySelector('button[type="submit"]');
+    form.setAttribute("aria-busy", String(sí));
     if (boton) {
+      if (sí && !boton.dataset.texto) {
+        boton.dataset.texto = boton.textContent;
+      }
       boton.disabled = sí;
-      boton.textContent = sí ? "Enviando…" : boton.dataset.texto || boton.textContent;
+      boton.textContent = sí ? texto : boton.dataset.texto || boton.textContent;
     }
   }
 
@@ -471,7 +533,10 @@ const formulario = (() => {
 
   return {
     leer,
+    valor,
     revisar,
+    terminado,
+    resultado,
     errorRut,
     errorCorreo,
     errorIdentificador,

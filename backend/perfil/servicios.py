@@ -17,6 +17,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from catalogo.models import MONTO_MAXIMO, Modalidad, Servicio, ServicioModalidad
+from comun.texto import recortar
 from expediente.errores import ErrorEstado, ErroresValidacion
 from expediente.models import EstadoExpediente, Expediente, OficioMaestro
 from perfil.models import PerfilPublico, ServicioMaestro
@@ -46,12 +47,16 @@ def crear_perfil_publico_para(perfil_maestro):
 # --- Validación ---
 
 
-def _monto(datos, errores):
-    """Entero en pesos, > 0 y <= 10.000.000 (ADR-019, punto 1). Acepta un número o un texto de solo dígitos."""
-    if "monto" not in datos or datos["monto"] in (None, ""):
+def validar_monto(datos, errores):
+    """Entero en pesos, > 0 y <= 10.000.000 (ADR-019, punto 1). Acepta un número o un texto de solo dígitos.
+
+    El texto se recorta antes de validar; solo espacios cuenta como que falta (CLAUDE.md §8-§9).
+    Lo usan el servicio publicado y el precio final del ticket (RF-26, RF-27).
+    """
+    valor = recortar(datos.get("monto"))
+    if valor in (None, ""):
         errores["monto"] = MENSAJE_MONTO_FALTA
         return None
-    valor = datos["monto"]
     if isinstance(valor, str) and _MONTO_TEXTO.fullmatch(valor):
         valor = int(valor)
     if not isinstance(valor, int) or isinstance(valor, bool) or not 0 < valor <= MONTO_MAXIMO:
@@ -133,7 +138,7 @@ def ofrecer_servicio(usuario, datos):
         errores = {}
         servicio = _servicio_del_catalogo(datos, errores)
         modalidad = _modalidad(datos, errores)
-        monto = _monto(datos, errores)
+        monto = validar_monto(datos, errores)
         if servicio is not None:
             if not OficioMaestro.objects.filter(maestro_id=usuario.pk, oficio_id=servicio.oficio_id).exists():
                 errores["servicio"] = MENSAJE_SERVICIO_OFICIO_NO_DECLARADO
@@ -168,7 +173,7 @@ def cambiar_servicio(servicio_maestro, datos):
         if "modalidad" not in datos and "monto" not in datos:
             errores["monto"] = MENSAJE_SIN_CAMBIOS
         modalidad = _modalidad(datos, errores) if "modalidad" in datos else servicio_maestro.modalidad
-        monto = _monto(datos, errores) if "monto" in datos else servicio_maestro.monto
+        monto = validar_monto(datos, errores) if "monto" in datos else servicio_maestro.monto
         if modalidad is not None and "modalidad" in datos:
             _exigir_modalidad_admitida(servicio_maestro.servicio, modalidad, errores)
         if errores:

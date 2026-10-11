@@ -29,6 +29,7 @@ from bitacora import servicios as bitacora
 from catalogo.errores import ErrorVersion
 from catalogo.models import MONTO_MAXIMO, Modalidad, Oficio, Servicio, ServicioModalidad
 from comun.api import ErrorSolicitud, ErroresDeCampo
+from comun.texto import FALTA, INVALIDO, LARGO, limpiar_texto
 
 NOMBRE_LARGO_MAXIMO = 100
 MOTIVO_LARGO_MAXIMO = 1000
@@ -85,15 +86,15 @@ def _nombre(datos, errores, obligatorio):
             errores["nombre"] = MENSAJE_NOMBRE_FALTA
         return None
     valor = datos["nombre"]
-    if not isinstance(valor, str) or not valor.strip():
-        errores["nombre"] = MENSAJE_NOMBRE_FALTA
-        return None
-    texto = " ".join(valor.split())
-    if any(unicodedata.category(c).startswith("C") for c in texto):
-        errores["nombre"] = MENSAJE_NOMBRE_INVALIDO
-        return None
-    if len(texto) > NOMBRE_LARGO_MAXIMO:
-        errores["nombre"] = MENSAJE_NOMBRE_LARGO
+    if isinstance(valor, str):
+        valor = " ".join(valor.split())  # también los espacios internos repetidos
+    texto, problema = limpiar_texto(valor, NOMBRE_LARGO_MAXIMO, una_linea=True)
+    if problema is None and any(unicodedata.category(c).startswith("C") for c in texto):
+        problema = INVALIDO
+    if problema:
+        errores["nombre"] = {
+            FALTA: MENSAJE_NOMBRE_FALTA, INVALIDO: MENSAJE_NOMBRE_INVALIDO, LARGO: MENSAJE_NOMBRE_LARGO,
+        }[problema]
         return None
     return texto
 
@@ -129,21 +130,11 @@ def _version(datos, errores):
 
 
 def _motivo(datos, errores, obligatorio):
-    valor = datos.get("motivo")
-    if valor is None:
-        valor = ""
-    if not isinstance(valor, str):
-        errores["motivo"] = MENSAJE_MOTIVO_FALTA
-        return None
-    if "\x00" in valor:
-        errores["motivo"] = MENSAJE_MOTIVO_INVALIDO
-        return None
-    texto = valor.strip()
-    if obligatorio and not texto:
-        errores["motivo"] = MENSAJE_MOTIVO_FALTA
-        return None
-    if len(texto) > MOTIVO_LARGO_MAXIMO:
-        errores["motivo"] = MENSAJE_MOTIVO_LARGO
+    texto, problema = limpiar_texto(datos.get("motivo"), MOTIVO_LARGO_MAXIMO, obligatorio=obligatorio)
+    if problema:
+        errores["motivo"] = {
+            FALTA: MENSAJE_MOTIVO_FALTA, INVALIDO: MENSAJE_MOTIVO_INVALIDO, LARGO: MENSAJE_MOTIVO_LARGO,
+        }[problema]
         return None
     return texto
 

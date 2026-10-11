@@ -23,6 +23,7 @@ import re
 from django.db import transaction
 from django.utils import timezone
 
+from comun.texto import recortar
 from expediente.errores import ErrorEstado, ErroresValidacion
 from perfil.models import GRANULARIDAD_MINUTOS, MINUTOS_DIA, Disponibilidad
 from perfil.servicios import expediente_editable
@@ -79,7 +80,9 @@ def minutos_de_hora(valor):
     Acepta de "00:00" a "24:00", en punto o y media. Lanza ``HoraInvalida``
     con el mensaje del campo si falta, no tiene la forma o no es múltiplo de 30.
     Lo usan la agenda del maestro y el filtro de bloque de la búsqueda (S4).
+    Recorta los espacios de los extremos antes de validar (CLAUDE.md §8-§9).
     """
+    valor = recortar(valor)
     if valor in (None, ""):
         raise HoraInvalida(MENSAJE_HORA_FALTA)
     coincidencia = _HORA.fullmatch(valor) if isinstance(valor, str) else None

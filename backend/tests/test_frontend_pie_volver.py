@@ -1,9 +1,10 @@
-"""Pie de página con versión y enlace «← Volver» en las páginas estáticas.
+"""Pie de página con versión y encabezado sin botones «Volver» en las páginas estáticas.
 
 Verificación estática (sin navegador): el HTML trae el pie aunque falle JavaScript,
 la versión sale de un solo archivo (js/version.js), no hay scripts ni estilos en
-línea (CSP estricta) y las páginas, salvo el inicio, traen un «Volver» con enlace
-de respaldo real.
+línea (CSP estricta) y ninguna página trae un botón o enlace «Volver»: la marca
+AlTiro del encabezado cumple esa función (ADR-002 E-3, punto 6). El botón Atrás
+del navegador sigue funcionando (pasos con history.pushState).
 
 La carpeta frontend/ no está en la imagen de la aplicación. Para ejecutar:
   docker compose run --rm -v "$(pwd -W)/backend:/app" -v "$(pwd -W)/frontend:/frontend:ro" \
@@ -21,8 +22,18 @@ FRONTEND = next((c for c in CANDIDATOS if (c / "index.html").exists()), None)
 
 pytestmark = pytest.mark.skipif(FRONTEND is None, reason="frontend/ no está montado (ver docstring)")
 
-# Páginas que ya traen su propio enlace a la página padre en el encabezado.
-CON_ENLACE_PROPIO = {"conversacion.html", "evaluar.html", "curatoria-expediente.html"}
+# «← Paso anterior» es un control del formulario por pasos, no un «Volver» de
+# navegación: sin él, un formulario restaurado en el paso 2 tras recargar no
+# tendría cómo llegar al paso 1 (no hay historial previo, RNF-20). Se permite
+# exactamente ese texto y solo en estas páginas (ADR-002 E-3.1, PROVISIONAL).
+PASO_ANTERIOR = "← Paso anterior"
+FORMULARIOS_POR_PASOS = {
+    "registro-cliente.html",
+    "postulacion-maestro.html",
+    "mi-postulacion.html",
+    "pedir-trabajo.html",
+    "mis-servicios.html",
+}
 
 
 def paginas():
@@ -67,13 +78,27 @@ def test_pie_y_scripts(ruta):
 
 
 @pytest.mark.parametrize("ruta", paginas(), ids=ids(paginas()) if FRONTEND else None)
-def test_volver(ruta):
+def test_sin_volver(ruta):
     html = ruta.read_text(encoding="utf-8")
-    nombre = ruta.name
-    if nombre == "index.html" or ruta.parent.name == "errores" or nombre in CON_ENLACE_PROPIO:
-        assert "data-volver" not in html
-        return
-    enlace = re.search(r'<a [^>]*data-volver[^>]*href="([^"]+)"[^>]*>← Volver</a>', html)
-    assert enlace, "falta el enlace «← Volver» con href de respaldo"
-    assert (FRONTEND / enlace.group(1)).exists()
-    assert re.search(r'src="js/volver\.js" defer', html)
+    assert "data-volver" not in html
+    assert "volver.js" not in html
+    # Ningún botón ni enlace cuyo texto sea «Volver» (con o sin flecha, o «Volver a…»).
+    # "Volver a cargar" (recargar datos) y "No, volver" (cancelar una confirmación) no navegan.
+    textos = re.findall(r"<(?:a|button)\b[^>]*>\s*([^<]*)<", html)
+    navegar = [t.strip() for t in textos if re.match(r"(←\s*)?Volver\b(?! a cargar)", t.strip())]
+    assert not navegar, f"botones «Volver» que deben eliminarse: {navegar}"
+    # «Paso anterior» solo en los formularios por pasos y siempre con el mismo texto.
+    pasos = [t.strip() for t in textos if re.search(r"[Pp]aso anterior", t)]
+    if ruta.name in FORMULARIOS_POR_PASOS:
+        assert pasos and all(t == PASO_ANTERIOR for t in pasos), f"texto distinto de «{PASO_ANTERIOR}»: {pasos}"
+    else:
+        assert not pasos, f"«Paso anterior» fuera de un formulario por pasos: {pasos}"
+    # Encabezado: solo la marca AlTiro (el menú lo agrega menu.js con sesión).
+    encabezado = re.search(r"<header class=\"encabezado\">(.*?)</header>", html, re.S)
+    assert encabezado, "falta el encabezado"
+    enlaces = re.findall(r"<a\b[^>]*>", encabezado.group(1))
+    assert len(enlaces) == 1 and 'class="marca"' in enlaces[0]
+
+
+def test_sin_script_volver():
+    assert not (FRONTEND / "js" / "volver.js").exists()

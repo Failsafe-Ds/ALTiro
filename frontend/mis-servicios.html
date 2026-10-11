@@ -14,15 +14,13 @@
   <script src="js/version.js" defer></script>
   <script src="js/pie.js" defer></script>
   <script src="js/menu.js" defer></script>
-  <script src="js/volver.js" defer></script>
+  <script src="js/opciones.js" defer></script>
 </head>
 <body>
   <header class="encabezado">
     <a class="marca" href="index.html">AlTiro</a>
-    <a class="enlace-encabezado" data-volver href="cuenta.html">← Volver</a>
-    <a class="enlace-encabezado" href="cuenta.html">Mi cuenta</a>
   </header>
-  <main>
+  <main data-opciones>
     <h1 id="titulo-pagina" tabindex="-1">Mis servicios</h1>
     <p id="cargando" role="status">Cargando tus servicios…</p>
     <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
@@ -83,7 +81,7 @@
             <div class="campo">
               <label for="nuevo-monto" id="etiqueta-nuevo-monto">Tu precio en pesos (obligatorio)</label>
               <span class="ayuda" id="ayuda-nuevo-monto"></span>
-              <input id="nuevo-monto" name="monto" inputmode="numeric" autocomplete="off"
+              <input id="nuevo-monto" maxlength="12" name="monto" inputmode="numeric" autocomplete="off"
                      aria-describedby="ayuda-nuevo-monto error-nuevo-monto">
               <span class="error-campo" id="error-nuevo-monto"></span>
             </div>
@@ -92,7 +90,7 @@
           <div class="acciones">
             <button type="button" id="agregar-siguiente">Continuar</button>
             <button type="submit" id="agregar-guardar" hidden>Agregar servicio</button>
-            <button type="button" class="boton-secundario" id="agregar-atras" hidden>Volver al paso anterior</button>
+            <button type="button" class="boton-secundario" id="agregar-atras" hidden>← Paso anterior</button>
             <button type="button" class="boton-secundario" id="agregar-cancelar">Cancelar</button>
           </div>
         </form>
@@ -110,7 +108,7 @@
       <div class="campo">
         <label for="cambiar-monto">Tu precio en pesos (obligatorio)</label>
         <span class="ayuda" id="ayuda-cambiar-monto">Solo números. Por ejemplo: 25000.</span>
-        <input id="cambiar-monto" name="monto" inputmode="numeric" autocomplete="off"
+        <input id="cambiar-monto" maxlength="12" name="monto" inputmode="numeric" autocomplete="off"
                aria-describedby="ayuda-cambiar-monto error-cambiar-monto">
         <span class="error-campo" id="error-cambiar-monto"></span>
       </div>

@@ -13,6 +13,8 @@ from django.contrib.auth.password_validation import CommonPasswordValidator
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 
+from comun.api import MENSAJE_TEXTO_INVALIDO
+from comun.texto import FALTA, INVALIDO, limpiar_texto
 from identidad.errores import ErrorValidacion
 
 # --- Correo (ADR-013, punto 5) ---
@@ -81,7 +83,7 @@ def normalizar_rut(valor):
     )
     if not isinstance(valor, str):
         raise ErrorValidacion("rut", mensaje_formato)
-    rut = valor.replace(".", "").replace("-", "").upper()
+    rut = valor.strip().replace(".", "").replace("-", "").upper()
     if not _PATRON_RUT.fullmatch(rut):
         raise ErrorValidacion("rut", mensaje_formato)
     # Un cero a la izquierda daría una segunda forma del mismo RUT y burlaría la
@@ -181,11 +183,13 @@ NOMBRE_LARGO_MAXIMO = 150
 
 
 def normalizar_nombre(valor):
-    """Exige un nombre no vacío; recorta espacios al inicio y al final."""
-    if not isinstance(valor, str) or not valor.strip():
+    """Exige un nombre no vacío y de una línea; recorta espacios al inicio y al final."""
+    nombre, problema = limpiar_texto(valor, NOMBRE_LARGO_MAXIMO, una_linea=True)
+    if problema == FALTA:
         raise ErrorValidacion("nombre", "Ingresa tu nombre.")
-    nombre = valor.strip()
-    if len(nombre) > NOMBRE_LARGO_MAXIMO:
+    if problema == INVALIDO:
+        raise ErrorValidacion("nombre", MENSAJE_TEXTO_INVALIDO)
+    if problema:
         raise ErrorValidacion(
             "nombre", f"El nombre es demasiado largo. Usa como máximo {NOMBRE_LARGO_MAXIMO} caracteres."
         )

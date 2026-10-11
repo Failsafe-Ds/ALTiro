@@ -8,7 +8,9 @@ from perfil import agenda, ocurrencias
 from perfil.models import Cobertura, Disponibilidad, PerfilPublico, ServicioMaestro
 from tickets.models import EstadoTicket, Ticket, MotivoCierre
 from tickets.servicios import calcular_vence_en
-PWD = "clave de prueba segura"; SUF = uuid.uuid4().hex[:6]
+from busqueda.cuentas_demo import contrasena_aleatoria
+# Contraseña al azar en cada corrida, impresa una sola vez en el JSON final (ADR-028): nunca fija en el repositorio.
+PWD = contrasena_aleatoria(); SUF = uuid.uuid4().hex[:6]
 def rut(n):
     c = 31_000_000 + n; s = 0; f = 2
     for d in reversed(str(c)):

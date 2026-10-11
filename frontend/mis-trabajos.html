@@ -14,13 +14,10 @@
   <script src="js/version.js" defer></script>
   <script src="js/pie.js" defer></script>
   <script src="js/menu.js" defer></script>
-  <script src="js/volver.js" defer></script>
 </head>
 <body>
   <header class="encabezado">
     <a class="marca" href="index.html">AlTiro</a>
-    <a class="enlace-encabezado" data-volver href="cuenta.html">← Volver</a>
-    <a class="enlace-encabezado" href="cuenta.html">Mi cuenta</a>
   </header>
   <main>
     <h1 id="titulo-pagina" tabindex="-1">Mis trabajos</h1>
@@ -95,7 +92,7 @@
           <div class="campo">
             <label for="monto-final">Precio final en pesos</label>
             <span class="ayuda" id="precio-publicado"></span>
-            <input id="monto-final" name="monto" inputmode="numeric" autocomplete="off"
+            <input id="monto-final" maxlength="12" name="monto" inputmode="numeric" autocomplete="off"
                    aria-describedby="precio-publicado explicacion-precio">
             <span class="ayuda" id="explicacion-precio" aria-live="polite"></span>
           </div>

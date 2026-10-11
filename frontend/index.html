@@ -15,24 +15,33 @@
 <body>
   <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
   <main>
-    <h1>Maestros verificados para tu hogar</h1>
-    <p>Encuentra maestros verificados para trabajos en tu hogar.</p>
     <div id="aviso-inicio" class="aviso" role="status" tabindex="-1"></div>
+    <section class="portada" aria-labelledby="titulo-inicio">
+      <h1 id="titulo-inicio">Maestros verificados para tu hogar</h1>
+      <p class="bajada">Gasfitería, electricidad, pintura y más: elige el oficio, mira su calificación y pide el trabajo en el horario que te acomode.</p>
+      <!-- Búsqueda pública (HU-02; RF-09): no requiere sesión. -->
+      <div class="acciones">
+        <a class="boton" href="categorias.html">Ver oficios</a>
+        <a class="boton boton-secundario" href="buscar.html">Buscar un maestro</a>
+      </div>
+    </section>
 
-    <!-- Búsqueda pública (HU-02; RF-09): no requiere sesión. -->
-    <div class="acciones">
-      <a class="boton" href="buscar.html">Buscar un maestro</a>
-    </div>
+    <!-- E-3: con sesión, el acceso a su inicio; sin sesión, Ingresar, Crear cuenta y Postular (no van en el encabezado). -->
+    <section id="con-sesion" class="inicio-cuenta oculto" aria-labelledby="titulo-con-sesion">
+      <h2 id="titulo-con-sesion">Ya ingresaste</h2>
+      <div class="acciones">
+        <a id="ir-inicio" class="boton boton-secundario" href="cuenta.html">Ir a mi inicio</a>
+      </div>
+    </section>
 
-    <div id="con-sesion" class="acciones oculto">
-      <a class="boton boton-secundario" href="cuenta.html">Ir a mi cuenta</a>
-    </div>
-
-    <div id="sin-sesion" class="acciones">
-      <a class="boton boton-secundario" href="ingresar.html">Ingresar</a>
-      <a class="boton boton-secundario" href="registro-cliente.html">Crear mi cuenta para pedir trabajos</a>
-      <a class="boton boton-secundario" href="postulacion-maestro.html">Soy maestro: quiero postular</a>
-    </div>
+    <section id="sin-sesion" class="inicio-cuenta" aria-labelledby="titulo-sin-sesion">
+      <h2 id="titulo-sin-sesion">Tu cuenta</h2>
+      <div class="acciones">
+        <a class="boton boton-secundario" href="ingresar.html">Ingresar</a>
+        <a class="boton boton-secundario" href="registro-cliente.html">Crear mi cuenta para pedir trabajos</a>
+        <a class="boton boton-secundario" href="postulacion-maestro.html">Soy maestro: quiero postular</a>
+      </div>
+    </section>
   </main>
   <footer class="pie" role="contentinfo">
     <p>AlTiro <span id="pie-version"></span> · © 2026 Equipo AlTiro.</p>

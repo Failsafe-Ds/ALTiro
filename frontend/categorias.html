@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>¿Qué necesitas hoy? — AlTiro</title>
+  <link rel="stylesheet" href="css/base.css">
+  <script src="js/api.js" defer></script>
+  <script src="js/dom.js" defer></script>
+  <script src="js/iconos.js" defer></script>
+  <script src="js/formulario.js" defer></script>
+  <script src="js/categorias.js" defer></script>
+  <script src="js/version.js" defer></script>
+  <script src="js/pie.js" defer></script>
+  <script src="js/menu.js" defer></script>
+</head>
+<body class="pagina-grilla">
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+  </header>
+  <main>
+    <!-- Inicio del cliente (ADR-002 E-3, punto 7): entrada a la búsqueda por
+         oficio (HU-02, RF-09), con los oficios del catálogo público (GET /api/oficios).
+         Pública: un visitante también puede verla. -->
+    <h1 id="titulo-pagina" tabindex="-1">¿Qué necesitas hoy?</h1>
+    <p class="bajada">Elige el oficio y te mostramos maestros verificados cerca de ti.</p>
+
+    <p id="cargando-categorias" class="buscando" role="status" aria-live="polite">Cargando oficios…</p>
+    <div id="aviso-categorias" class="aviso angosto" role="alert" tabindex="-1"></div>
+
+    <ul id="lista-categorias" class="lista-categorias" aria-labelledby="titulo-pagina" hidden></ul>
+
+    <p class="otra-busqueda"><a class="enlace-ayuda" href="buscar.html">Buscar con más filtros (comuna, día y horario)</a></p>
+  </main>
+  <footer class="pie" role="contentinfo">
+    <p>AlTiro <span id="pie-version"></span> · © 2026 Equipo AlTiro.</p>
+    <p>Prueba de concepto académica; no es un servicio comercial. Los datos de demostración son ficticios.</p>
+  </footer>
+</body>
+</html>

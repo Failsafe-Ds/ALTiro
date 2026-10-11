@@ -42,6 +42,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from comun.api import MENSAJE_TEXTO_INVALIDO, ErroresDeCampo
+from comun.texto import FALTA, INVALIDO, LARGO, limpiar_texto, recortar
 from expediente import vigencia
 from expediente.errores import ErrorEstado
 from expediente.models import Expediente
@@ -93,7 +94,6 @@ MENSAJE_PENDIENTE_VENCIDO = (
 _FECHA = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _DIGITOS = re.compile(r"[0-9]{1,6}")
 # Caracteres de control (salvo el salto de línea y el tabulador de la descripción).
-_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 
 
 class AutoPedido(Exception):
@@ -149,6 +149,7 @@ def _servicio_ref(valor, errores):
 
 
 def _comuna(valor, errores):
+    valor = recortar(valor)
     if valor in (None, ""):
         errores["comuna"] = MENSAJE_COMUNA_FALTA
         return None
@@ -163,6 +164,7 @@ def _comuna(valor, errores):
 
 
 def _fecha(valor, hoy, errores):
+    valor = recortar(valor)
     if valor in (None, ""):
         errores["fecha"] = MENSAJE_FECHA_FALTA
         return None
@@ -189,20 +191,14 @@ def _hora(valor, campo, errores):
 
 
 def _texto(valor, campo, largo, falta, largo_excedido, errores, una_linea):
-    if valor is None or (isinstance(valor, str) and not valor.strip()):
-        errores[campo] = falta
-        return None
-    if not isinstance(valor, str):
-        errores[campo] = falta
-        return None
-    valor = valor.strip()
-    if _CONTROL.search(valor) or (una_linea and ("\n" in valor or "\t" in valor)):
-        errores[campo] = MENSAJE_TEXTO_INVALIDO
-        return None
-    if len(valor) > largo:
-        errores[campo] = largo_excedido.format(largo=f"{largo:,}".replace(",", "."))
-        return None
-    return valor
+    texto, problema = limpiar_texto(valor, largo, una_linea=una_linea)
+    if problema:
+        errores[campo] = {
+            FALTA: falta,
+            INVALIDO: MENSAJE_TEXTO_INVALIDO,
+            LARGO: largo_excedido.format(largo=f"{largo:,}".replace(",", ".")),
+        }[problema]
+    return texto
 
 
 def _materiales(valor, errores):

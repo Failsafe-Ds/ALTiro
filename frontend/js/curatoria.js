@@ -3,7 +3,7 @@
 //   antiguo al más reciente. La API ya excluye el expediente propio (CA-19.4)
 //   y no entrega el RUT: la cola tampoco lo muestra.
 // - El filtro y la página viven en la dirección (?estado=&pagina=) para que
-//   "Volver a la cola" desde el detalle regrese al mismo lugar. Son solo
+//   el botón Atrás del navegador desde el detalle regrese al mismo lugar. Son solo
 //   navegación: el servidor valida el filtro (400 si no lo reconoce).
 // - El resultado se anuncia con aria-live; ningún estado depende solo del color.
 "use strict";

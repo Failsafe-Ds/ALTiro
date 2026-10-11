@@ -2,23 +2,66 @@
    RNF-14: objetivos táctiles de al menos 44 x 44 px.
    RNF-16 (WCAG 2.2): texto con contraste >= 4,5:1 y bordes, íconos y foco
    >= 3:1 contra lo que tienen al lado (hallazgo UX O-5).
-   Ningún estado depende solo del color: los errores llevan ícono y texto. */
+   Ningún estado depende solo del color: los errores llevan ícono y texto.
+   Valores visuales: design-system/altiro/MASTER.md (ADR-002, E-3). Ningún
+   color suelto en las reglas: todo pasa por estas variables. */
+
+/* Plus Jakarta Sans (OFL, ver fuentes/OFL.txt), variable 200-800, subconjunto
+   latino de Fontsource 5.3.0, alojada en el sitio (CSP: font-src 'self'). */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("../fuentes/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2-variations"),
+    url("../fuentes/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
-  --texto: #1a1a1a;
-  --texto-suave: #4a4a4a;
+  /* Color (MASTER, contrastes medidos con WCAG 2.2, RNF-16). */
+  --marca: #c8102e;
+  --marca-oscura: #a50e26;
+  --marca-suave: #fff4f4;
+  --texto: #1f1f1f;
+  --texto-suave: #5a5a5a;
+  --blanco: #ffffff;
   --fondo: #ffffff;
-  --fondo-suave: #f3f4f6;
-  --borde: #6b7280;
-  --primario: #0b5cad;
-  --primario-oscuro: #084a8c;
-  --error: #b00020;
+  --fondo-suave: #f6f6f6;
+  --borde: #767676;
+  --linea: #e4e4e4;
+  --estrella: #8a4b00;
+  --error: #7a0a1c;
   --error-fondo: #fdecee;
   --exito: #1b6e20;
   --exito-fondo: #e8f5e9;
-  /* O-5: negro. 21:1 sobre el fondo blanco y 3,15:1 contra el azul de los
-     botones primarios (#ffbf47 daba 1,64:1 sobre blanco). */
+  /* Advertencias y sugerencias (paleta ya medida en el S4: 6,8:1 sobre blanco). */
+  --advertencia: #8a4b00;
+  --advertencia-fondo: #fff4e5;
+  /* Negro: 21:1 sobre blanco y 3,57:1 contra --marca. */
   --foco: #000000;
+
+  /* Tipografía. */
+  --fuente: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Espaciado (MASTER: 0,25 · 0,5 · 0,75 · 1 · 1,5 · 2 · 3 rem). */
+  --esp-1: 0.25rem;
+  --esp-2: 0.5rem;
+  --esp-3: 0.75rem;
+  --esp-4: 1rem;
+  --esp-5: 1.5rem;
+  --esp-6: 2rem;
+  --esp-7: 3rem;
+
+  /* Forma y movimiento. */
   --radio: 0.5rem;
+  --radio-foto: 0.75rem;
+  --transicion: 150ms ease;
+  /* Ancho del contenido: angosto en formularios, amplio en grillas. */
+  --ancho: 34rem;
+  --ancho-amplio: 80rem;
+  --margen-lateral: max(var(--esp-4), calc((100% - var(--ancho-amplio)) / 2));
 }
 
 *,
@@ -32,9 +75,12 @@ html {
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
   margin: 0;
-  padding: 1rem;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 0;
+  font-family: var(--fuente);
   font-size: 1.0625rem;
   line-height: 1.5;
   color: var(--texto);
@@ -42,41 +88,83 @@ body {
 }
 
 main {
-  max-width: 32rem;
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: var(--ancho);
   margin: 0 auto;
+  padding: 0 var(--esp-4);
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
 }
 
 h1 {
-  font-size: 1.6rem;
-  line-height: 1.25;
-  margin: 0.5rem 0 1rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: var(--esp-5) 0 var(--esp-4);
 }
 
 h2 {
-  font-size: 1.25rem;
-  margin: 1.5rem 0 0.75rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: var(--esp-5) 0 var(--esp-3);
+}
+
+@media (min-width: 48rem) {
+  h1 {
+    font-size: 2rem;
+  }
 }
 
 a {
-  color: var(--primario);
+  color: var(--marca);
+  text-underline-offset: 0.15em;
+  transition: color var(--transicion), background-color var(--transicion);
 }
 
+a:hover {
+  color: var(--marca-oscura);
+}
+
+/* Encabezado (MASTER): a todo el ancho, fondo blanco y línea inferior. Sin
+   sesión, solo la marca; con sesión, la marca y el botón «Menú» (menu.js). */
 .encabezado {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 32rem;
-  margin: 0 auto 0.5rem;
+  min-height: 3.5rem;
+  padding: var(--esp-2) var(--margen-lateral);
+  border-bottom: 1px solid var(--linea);
+  background: var(--fondo);
 }
 
 .marca {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--texto);
-  text-decoration: none;
-  min-height: 44px;
   display: inline-flex;
   align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: var(--marca);
+  text-decoration: none;
+}
+
+.marca:hover {
+  color: var(--marca-oscura);
+}
+
+/* Sin movimiento para quien lo pidió en su sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* --- Formularios --- */
@@ -117,7 +205,7 @@ select:focus,
 textarea:focus,
 button:focus,
 a:focus {
-  outline: 3px solid var(--foco);
+  outline: 2px solid var(--foco);
   outline-offset: 2px;
 }
 
@@ -134,7 +222,7 @@ a:focus {
 }
 
 .error-campo:not(:empty)::before {
-  content: "⚠ ";
+  content: "\26A0\FE0E  ";
 }
 
 /* --- Botones --- */
@@ -148,43 +236,55 @@ button,
   min-height: 48px;
   padding: 0.6rem 1rem;
   font: inherit;
-  font-weight: 700;
-  color: #ffffff;
-  background: var(--primario);
-  border: 2px solid var(--primario);
+  font-weight: 600;
+  color: var(--blanco);
+  background: var(--marca);
+  border: 2px solid var(--marca);
   border-radius: var(--radio);
   text-decoration: none;
   cursor: pointer;
+  transition: background-color var(--transicion), color var(--transicion), border-color var(--transicion);
 }
 
 button:hover,
 .boton:hover {
-  background: var(--primario-oscuro);
+  color: var(--blanco);
+  background: var(--marca-oscura);
+  border-color: var(--marca-oscura);
 }
 
-/* Mientras se envía, el botón dice "Enviando…" o "Cerrando sesión…": se
-   conserva su contraste (con opacity 0.7 el texto bajaba a 3,5:1) y el
-   borde punteado indica el estado sin depender del color (RNF-16). */
+/* Mientras se envía, el botón dice "Enviando…" o "Cerrando sesión…" (el
+   texto dice el estado; MASTER: opacidad 0,6). El borde punteado lo refuerza
+   sin depender del color (RNF-16). */
 button[disabled] {
   border-style: dashed;
-  cursor: wait;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 button[disabled]:hover {
-  background: var(--primario);
+  background: var(--marca);
+  border-color: var(--marca);
+}
+
+/* Secundario (MASTER): borde --borde (4,54:1) y texto --texto. */
+.boton-secundario,
+button.boton-secundario {
+  color: var(--texto);
+  background: var(--fondo);
+  border-color: var(--borde);
+}
+
+.boton-secundario:hover,
+button.boton-secundario:hover {
+  color: var(--texto);
+  background: var(--fondo-suave);
+  border-color: var(--texto);
 }
 
 .boton-secundario[disabled]:hover {
   background: var(--fondo);
-}
-
-.boton-secundario {
-  color: var(--primario);
-  background: var(--fondo);
-}
-
-.boton-secundario:hover {
-  background: var(--fondo-suave);
+  border-color: var(--borde);
 }
 
 .acciones {
@@ -193,12 +293,12 @@ button[disabled]:hover {
   margin-top: 1.5rem;
 }
 
-/* --- Avisos --- */
+/* --- Avisos (MASTER: borde izquierdo de 4 px, ícono y texto) --- */
 
 .aviso {
   padding: 0.75rem 1rem;
   border-radius: var(--radio);
-  border-left: 6px solid;
+  border-left: 4px solid;
   margin-bottom: 1rem;
 }
 
@@ -216,8 +316,9 @@ button[disabled]:hover {
   font-weight: 600;
 }
 
+/* U+FE0E: el símbolo se dibuja como texto, nunca como emoji (MASTER). */
 .aviso-error::before {
-  content: "⚠ ";
+  content: "\26A0\FE0E  ";
 }
 
 .aviso-exito {
@@ -227,7 +328,7 @@ button[disabled]:hover {
 }
 
 .aviso-exito::before {
-  content: "✓ ";
+  content: "\2713  ";
 }
 
 /* --- Pasos --- */
@@ -322,7 +423,7 @@ h3 {
 legend:focus,
 h1:focus,
 h2:focus {
-  outline: 3px solid var(--foco);
+  outline: 2px solid var(--foco);
   outline-offset: 2px;
 }
 
@@ -348,7 +449,7 @@ h2:focus {
 }
 
 .casilla-grande:has(input:checked) {
-  border: 3px solid var(--primario);
+  border: 3px solid var(--marca);
   background: var(--fondo-suave);
 }
 
@@ -444,8 +545,8 @@ h2:focus {
 }
 
 .estado-observado {
-  color: #8a4b00;
-  background: #fff4e5;
+  color: var(--advertencia);
+  background: var(--advertencia-fondo);
 }
 
 .estado-aprobado {
@@ -470,8 +571,8 @@ h2:focus {
 
 .motivo {
   padding: 0.75rem 1rem;
-  border-left: 6px solid #8a4b00;
-  background: #fff4e5;
+  border-left: 6px solid var(--advertencia);
+  background: var(--advertencia-fondo);
   color: var(--texto);
   font-weight: 600;
   border-radius: var(--radio);
@@ -544,17 +645,16 @@ textarea {
   line-height: 1.4;
 }
 
-.pagina-amplia main,
-.pagina-amplia .pie,
-.pagina-amplia .encabezado {
-  max-width: 32rem;
+/* El encabezado y el pie ya van a todo el ancho; solo el contenido se amplía.
+   .pagina-grilla (categorías y búsqueda) usa el ancho amplio desde el celular,
+   porque su grilla pasa de 1 a 4 columnas. */
+.pagina-grilla main {
+  max-width: calc(var(--ancho-amplio) + 2 * var(--esp-4));
 }
 
 @media (min-width: 60rem) {
-  .pagina-amplia main,
-  .pagina-amplia .pie,
-  .pagina-amplia .encabezado {
-    max-width: 72rem;
+  .pagina-amplia main {
+    max-width: 74rem;
   }
 
   .columnas {
@@ -591,7 +691,7 @@ textarea {
 .filtros .filtro {
   width: auto;
   min-width: 44px;
-  color: var(--primario);
+  color: var(--marca);
   background: var(--fondo);
 }
 
@@ -600,8 +700,8 @@ textarea {
 }
 
 .filtros .filtro[aria-pressed="true"] {
-  color: #ffffff;
-  background: var(--primario);
+  color: var(--blanco);
+  background: var(--marca);
 }
 
 .filtros .filtro[aria-pressed="true"]::before {
@@ -615,7 +715,7 @@ textarea {
 }
 
 .resultado:focus {
-  outline: 3px solid var(--foco);
+  outline: 2px solid var(--foco);
   outline-offset: 2px;
 }
 
@@ -680,18 +780,21 @@ textarea {
   margin-bottom: 1.25rem;
 }
 
-/* Botón de una acción definitiva (rechazar): rojo con 6,6:1 sobre blanco y,
+/* Botón de una acción definitiva (rechazar): texto y borde vino (9,75:1) y,
    además del color, el texto dice qué hace. */
 .boton-peligro,
 button.boton-peligro {
-  color: #ffffff;
-  background: var(--error);
+  color: var(--error);
+  background: var(--fondo);
   border-color: var(--error);
 }
 
+.boton-peligro:hover,
 button.boton-peligro:hover,
 button.boton-peligro[disabled]:hover {
-  background: #8c0019;
+  color: var(--error);
+  background: var(--error-fondo);
+  border-color: var(--error);
 }
 
 .confirmacion {
@@ -706,11 +809,11 @@ button.boton-peligro[disabled]:hover {
 }
 
 .confirmacion h3::before {
-  content: "⚠ ";
+  content: "\26A0\FE0E  ";
 }
 
 .confirmacion h3:focus {
-  outline: 3px solid var(--foco);
+  outline: 2px solid var(--foco);
   outline-offset: 2px;
 }
 
@@ -773,8 +876,8 @@ button.boton-peligro[disabled]:hover {
    en cada aviso. Texto 16:1 e ícono 6,3:1 sobre #fff4e5
    (docs/testing/rnf-16-contrastes.md). */
 .avisos {
-  border-left: 6px solid #8a4b00;
-  background: #fff4e5;
+  border-left: 6px solid var(--advertencia);
+  background: var(--advertencia-fondo);
 }
 
 .avisos h2,
@@ -808,7 +911,7 @@ button.boton-peligro[disabled]:hover {
 
 .aviso-vencimiento .icono-aviso {
   flex: none;
-  color: #8a4b00;
+  color: var(--advertencia);
 }
 
 .aviso-vencimiento .detalle-aviso {
@@ -841,7 +944,7 @@ button.boton-peligro[disabled]:hover {
 
 .resultado-documento:focus,
 .documento h3:focus {
-  outline: 3px solid var(--foco);
+  outline: 2px solid var(--foco);
   outline-offset: 2px;
 }
 
@@ -860,8 +963,8 @@ button.boton-peligro[disabled]:hover {
 .tarjeta .motivos-servicio {
   margin: 0.5rem 0;
   padding: 0.25rem 0.75rem;
-  border-left: 6px solid #8a4b00;
-  background: #fff4e5;
+  border-left: 6px solid var(--advertencia);
+  background: var(--advertencia-fondo);
   border-radius: var(--radio);
 }
 
@@ -1156,39 +1259,103 @@ button.boton-quitar {
   font-weight: 600;
 }
 
+/* Maestros en resultados, estilo Fiverr (MASTER): foto 4:3 arriba y la
+   información debajo, sin recuadro de tarjeta. Todo el bloque es un solo
+   enlace al perfil (un solo destino de tabulación). Grilla 1/2/3/4 columnas. */
 .lista-maestros {
   display: grid;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-6) var(--esp-5);
+  margin: var(--esp-4) 0 0;
 }
 
-/* Tarjeta de RF-13: foto (160 px, mostrada a 5 rem para que valga en pantallas
-   densas), nombre, oficio y calificación; el botón debajo, a todo el ancho. */
+@media (min-width: 35rem) {
+  .lista-maestros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 56.25rem) {
+  .lista-maestros {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 75rem) {
+  .lista-maestros {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .tarjeta-maestro {
-  display: grid;
-  grid-template-columns: 5rem minmax(0, 1fr);
-  gap: 0.75rem 1rem;
-  align-items: start;
-  margin-bottom: 0;
+  min-width: 0;
+}
+
+.enlace-maestro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  min-height: 44px;
+  color: var(--texto);
+  text-decoration: none;
+  border-radius: var(--radio-foto);
+}
+
+.enlace-maestro:hover .nombre-tarjeta,
+.enlace-maestro:focus-visible .nombre-tarjeta {
+  text-decoration: underline;
+}
+
+.enlace-maestro:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 4px;
 }
 
 .foto-tarjeta {
   display: block;
-  width: 5rem;
-  height: 5rem;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  margin-bottom: var(--esp-2);
   object-fit: cover;
-  border: 1px solid var(--borde);
-  border-radius: var(--radio);
+  border-radius: var(--radio-foto);
   background: var(--fondo-suave);
+  transition: opacity var(--transicion);
 }
 
-.tarjeta-texto {
-  min-width: 0;
+.enlace-maestro:hover .foto-tarjeta {
+  opacity: 0.9;
+}
+
+.nombre-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1) var(--esp-2);
 }
 
 .nombre-tarjeta {
-  margin: 0 0 0.25rem;
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+/* «Verificado»: ícono y texto (no solo color). */
+.verificado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--exito);
+}
+
+.icono-svg {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
 }
 
 .oficio-tarjeta,
@@ -1197,18 +1364,45 @@ button.boton-quitar {
   margin: 0;
 }
 
+.oficio-tarjeta {
+  font-size: 0.9375rem;
+}
+
 .comunas-tarjeta {
+  font-size: 0.9375rem;
+  color: var(--texto-suave);
   overflow-wrap: anywhere;
 }
 
-.calificacion-tarjeta,
+/* Estrellas: ícono --estrella (6,8:1), nota en negrita y cantidad entre
+   paréntesis; el texto completo va para el lector de pantalla. */
+.calificacion-tarjeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9375rem;
+}
+
+.calificacion-tarjeta .icono-svg {
+  color: var(--estrella);
+}
+
+.nota-tarjeta {
+  font-weight: 700;
+  color: var(--estrella);
+}
+
+.cantidad-tarjeta,
+.sin-evaluaciones {
+  color: var(--texto-suave);
+}
+
 .calificacion-ficha {
   color: var(--texto-suave);
 }
 
-.tarjeta-maestro .incumple,
-.tarjeta-maestro .ver-perfil {
-  grid-column: 1 / -1;
+.tarjeta-maestro .incumple {
+  margin-top: var(--esp-2);
 }
 
 /* Sugerencias fuera del filtro (RF-12, CA-04.2): sección aparte, con un borde
@@ -1217,7 +1411,7 @@ button.boton-quitar {
 .sugerencias {
   margin-top: 2rem;
   padding-top: 0.5rem;
-  border-top: 4px solid #8a4b00;
+  border-top: 4px solid var(--advertencia);
 }
 
 .incumple {
@@ -1226,16 +1420,17 @@ button.boton-quitar {
   align-items: flex-start;
   margin: 0;
   padding: 0.5rem 0.75rem;
-  border-left: 6px solid #8a4b00;
-  background: #fff4e5;
+  border-left: 4px solid var(--advertencia);
+  background: var(--advertencia-fondo);
   border-radius: var(--radio);
+  font-size: 0.9375rem;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .icono-incumple {
   flex: none;
-  color: #8a4b00;
+  color: var(--advertencia);
 }
 
 .paginacion-busqueda .texto-pagina {
@@ -1304,7 +1499,7 @@ button.boton-quitar {
 
 .mensaje-propio {
   background: var(--fondo-suave);
-  border-left-color: var(--primario);
+  border-left-color: var(--marca);
 }
 
 .mensaje-cabeza {
@@ -1359,7 +1554,7 @@ button.boton-quitar {
 }
 
 .nota:has(input:checked) {
-  border: 4px solid var(--primario);
+  border: 4px solid var(--marca);
   background: var(--fondo-suave);
   font-weight: 700;
 }
@@ -1401,11 +1596,13 @@ button.boton-quitar {
 }
 
 /* --- Pie de página (versión y aviso) --- */
+/* MASTER: fondo --fondo-suave a todo el ancho y texto --texto-suave (6,4:1). */
 .pie {
-  max-width: 32rem;
-  margin: 2rem auto 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--texto-suave);
+  flex-shrink: 0;
+  margin-top: var(--esp-7);
+  padding: var(--esp-5) var(--margen-lateral);
+  border-top: 1px solid var(--linea);
+  background: var(--fondo-suave);
   font-size: 0.875rem;
   color: var(--texto-suave);
 }
@@ -1418,9 +1615,7 @@ button.boton-quitar {
 .encabezado {
   flex-wrap: wrap;
   gap: 0.25rem 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--borde);
-  margin-bottom: 1rem;
+  margin-bottom: var(--esp-2);
 }
 
 .encabezado .marca {
@@ -1437,24 +1632,31 @@ button.boton-quitar {
   padding: 0 1rem;
   font: inherit;
   font-weight: 600;
-  color: var(--primario);
+  color: var(--texto);
   background: var(--fondo);
-  border: 2px solid var(--primario);
+  border: 2px solid var(--borde);
   border-radius: var(--radio);
   cursor: pointer;
 }
 
-/* Sin esto, "button:hover" pinta el fondo azul oscuro bajo el texto azul y
-   «Menú» queda ilegible (RNF-17). */
-.menu-boton:hover {
-  color: var(--primario-oscuro);
-  background: var(--fondo-suave);
+.menu-boton {
+  width: auto;
 }
 
+/* Sin esto, "button:hover" pinta el fondo de la marca bajo el texto oscuro y
+   «Menú» queda ilegible (RNF-17). */
+.menu-boton:hover {
+  color: var(--texto);
+  background: var(--fondo-suave);
+  border-color: var(--texto);
+}
+
+/* Abierto: fondo suave de la marca (5,46:1) y el estado en aria-expanded. */
 .menu-boton[aria-expanded="true"],
 .menu-boton[aria-expanded="true"]:hover {
-  color: #fff;
-  background: var(--primario);
+  color: var(--marca);
+  background: var(--marca-suave);
+  border-color: var(--marca);
 }
 
 .menu-lista {
@@ -1467,8 +1669,9 @@ button.boton-quitar {
   padding: 0.25rem;
   list-style: none;
   background: var(--fondo);
-  border: 2px solid var(--borde);
+  border: 1px solid var(--linea);
   border-radius: var(--radio);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 12%);
 }
 
 .menu-lista a,
@@ -1493,15 +1696,18 @@ button.boton-quitar {
   background: var(--fondo-suave);
 }
 
+/* Página actual: fondo suave, barra de 3 px y negrita (no solo color). */
 .menu-lista a[aria-current="page"] {
   font-weight: 700;
-  border-left: 4px solid var(--primario);
+  color: var(--marca);
+  background: var(--marca-suave);
+  border-left: 3px solid var(--marca);
 }
 
 .menu-lista a:focus-visible,
 .menu-boton:focus-visible,
 .menu-salir:focus-visible {
-  outline: 3px solid var(--foco);
+  outline: 2px solid var(--foco);
   outline-offset: 2px;
 }
 
@@ -1550,4 +1756,308 @@ details.tarjeta > summary {
   font-size: 1.25rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+/* --- Rediseño ADR-002 E-3: piezas comunes de las páginas de grilla --- */
+
+/* Bloques que siguen angostos dentro de una página de grilla (formularios y avisos). */
+.angosto {
+  max-width: var(--ancho);
+}
+
+.bajada {
+  margin: 0 0 var(--esp-5);
+  font-size: 1.0625rem;
+  color: var(--texto-suave);
+}
+
+/* Categorías (MASTER): grilla de oficios con ícono y nombre; cada uno es un
+   enlace con objetivo táctil completo. 2 columnas en 360 px, hasta 4. */
+.lista-categorias {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 40rem) {
+  .lista-categorias {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--esp-4);
+  }
+}
+
+@media (min-width: 64rem) {
+  .lista-categorias {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.enlace-categoria {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--esp-4);
+  height: 100%;
+  min-height: 7.5rem;
+  padding: var(--esp-4);
+  color: var(--texto);
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--fondo-suave);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-foto);
+  transition: background-color var(--transicion), border-color var(--transicion);
+}
+
+.enlace-categoria:hover {
+  color: var(--texto);
+  background: var(--marca-suave);
+  border-color: var(--marca);
+}
+
+.enlace-categoria:hover .nombre-categoria {
+  text-decoration: underline;
+}
+
+.icono-categoria {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  color: var(--marca);
+  background: var(--fondo);
+  border-radius: 50%;
+}
+
+.icono-categoria .icono-svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.nombre-categoria {
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+
+.otra-busqueda {
+  margin: var(--esp-5) 0 0;
+}
+
+/* Inicio (index.html): portada con la acción principal visible. */
+.portada {
+  margin: 0 calc(-1 * var(--esp-4));
+  padding: var(--esp-6) var(--esp-4);
+  background: var(--marca-suave);
+}
+
+.portada h1 {
+  margin-top: 0;
+}
+
+.portada .acciones {
+  margin-top: var(--esp-5);
+}
+
+@media (min-width: 40rem) {
+  .portada {
+    margin: var(--esp-5) 0 0;
+    padding: var(--esp-6);
+    border-radius: var(--radio-foto);
+  }
+
+  .portada .acciones,
+  .inicio-cuenta .acciones {
+    grid-template-columns: repeat(auto-fit, minmax(14rem, max-content));
+  }
+}
+
+.inicio-cuenta h2 {
+  margin-top: var(--esp-6);
+}
+
+/* Foco visible en todo lo que se puede activar (2 px negro con separación). */
+:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* --- Rediseño ADR-002 E-3.1 (parte 2): páginas de opciones y resto de pantallas --- */
+
+/* Bloques: separadores decorativos claros (--linea) en lugar del borde de
+   control; los campos y botones conservan --borde (≥ 3:1). */
+.tarjeta {
+  padding: var(--esp-4);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-foto);
+  margin-bottom: var(--esp-5);
+}
+
+.tarjeta > h2:first-child,
+.tarjeta > h3:first-child {
+  margin-top: 0;
+}
+
+.seccion {
+  border-top-color: var(--linea);
+}
+
+.subtitulo {
+  margin-top: var(--esp-6);
+  font-size: 1.1rem;
+}
+
+/* El aviso toma el color del texto en su borde izquierdo (MASTER). */
+.aviso {
+  border-left-color: currentColor;
+}
+
+/* Formularios con aire: botón principal separado del último campo. */
+form > button[type="submit"],
+form > .acciones {
+  margin-top: var(--esp-4);
+}
+
+/* Datos de la cuenta en dos columnas cuando hay espacio. */
+@media (min-width: 30rem) {
+  .datos {
+    display: grid;
+    grid-template-columns: minmax(8rem, max-content) 1fr;
+    column-gap: var(--esp-5);
+  }
+
+  .datos dd {
+    margin-bottom: var(--esp-3);
+  }
+}
+
+@media (min-width: 48rem) {
+  .tarjeta {
+    padding: var(--esp-5);
+  }
+
+  /* Botones de una sola acción: ancho natural en pantalla ancha. */
+  .acciones {
+    grid-template-columns: repeat(auto-fit, minmax(12rem, max-content));
+  }
+}
+
+/* Página de opciones (MASTER, «Página de opciones», estilo Steam). */
+main.opciones {
+  max-width: var(--ancho);
+}
+
+.opciones-menu {
+  margin-top: var(--esp-4);
+}
+
+.opciones-plegable {
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  background: var(--fondo-suave);
+}
+
+.opciones-plegable > summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 var(--esp-4);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.opciones-grupo {
+  padding: 0 var(--esp-2) var(--esp-2);
+}
+
+.opciones-titulo {
+  margin: var(--esp-3) var(--esp-3) var(--esp-1);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-suave);
+}
+
+.opciones-grupo ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.opciones-grupo a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--esp-3);
+  border-left: 3px solid transparent;
+  border-radius: 0 var(--radio) var(--radio) 0;
+  color: var(--texto);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.opciones-grupo a:hover {
+  color: var(--marca-oscura);
+  background: var(--fondo);
+}
+
+.opciones-grupo a[aria-current="page"] {
+  color: var(--marca);
+  background: var(--marca-suave);
+  border-left-color: var(--marca);
+}
+
+.opciones-contenido {
+  min-width: 0;
+}
+
+@media (min-width: 48rem) {
+  main.opciones {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: var(--esp-6);
+    align-items: start;
+    max-width: calc(15rem + var(--esp-6) + var(--ancho) + 6rem + 2 * var(--esp-4));
+  }
+
+  .opciones-menu {
+    position: sticky;
+    top: var(--esp-4);
+    margin-top: var(--esp-6);
+  }
+
+  /* En pantalla ancha el menú siempre está abierto: el resumen sobra. */
+  .opciones-plegable.fijo > summary {
+    display: none;
+  }
+
+  .opciones-plegable.fijo {
+    padding-top: var(--esp-1);
+  }
+}
+
+.opciones-plegable > summary {
+  justify-content: space-between;
+}
+
+.opciones-plegable > summary::after {
+  content: "\25BE";
+  color: var(--texto-suave);
+}
+
+.opciones-plegable[open] > summary::after {
+  content: "\25B4";
+}
+
+/* Botón dentro de un aviso: ancho natural en pantalla ancha. */
+@media (min-width: 48rem) {
+  .aviso .boton,
+  .aviso button {
+    width: auto;
+  }
 }

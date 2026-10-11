@@ -1,6 +1,6 @@
 // Evaluar una orden finalizada y ver o denunciar la evaluación recibida
 // (HU-09, HU-18, HU-21; RF-29, RF-31; CA-09.1, CA-09.2, CA-18.1; ADR-026, E-3 y E-4).
-// - GET /api/tickets/<ref>: datos del pedido (título y botón Volver).
+// - GET /api/tickets/<ref>: datos del pedido (título).
 // - GET /api/tickets/<ref>/evaluaciones: {mia, recibida, puede_evaluar, aviso, evalua_a}.
 // - POST /api/tickets/<ref>/evaluacion {puntualidad, trabajo, cordialidad, comentario}.
 // - POST /api/tickets/<ref>/evaluacion-recibida/denuncia {motivo}.
@@ -259,10 +259,6 @@
       return;
     }
     const ticket = pedido.datos.ticket;
-    const esMaestro = Object.prototype.hasOwnProperty.call(ticket, "precio_registrable");
-    const volver = document.getElementById("volver");
-    volver.href = esMaestro ? "mis-trabajos.html" : "mis-pedidos.html";
-    volver.textContent = esMaestro ? "Mis trabajos" : "Mis pedidos";
     document.getElementById("subtitulo").textContent =
       `${ticket.servicio.nombre}, ${formato.fechaConReferencia(ticket.bloque.fecha)}, de ${ticket.bloque.inicio} a ${ticket.bloque.fin}`;
     if (!(await cargarEvaluaciones())) {

@@ -128,7 +128,7 @@
       : `¿Confirmas que no estás de acuerdo con ${monto}? Le avisaremos al maestro.`;
     const si = elemento("button", "", accion === "aceptacion" ? "Sí, aceptar" : "Sí, no estoy de acuerdo");
     si.type = "button";
-    const volver = elemento("button", "boton-secundario", "Volver");
+    const volver = elemento("button", "boton-secundario", "No, volver");
     volver.type = "button";
     const confirmacion = elemento("div", "", elemento("p", "", elemento("strong", "", pregunta)),
       elemento("div", "acciones", si, volver));

@@ -502,7 +502,7 @@
     if (estado === 403) {
       // Conflicto de interés (CA-19.4) o rol retirado: el mensaje del servidor y sin acciones.
       sinAcciones = true;
-      curatoria.avisar(avisoPagina, "error", datos.mensaje, curatoria.enlaceBoton("Volver a la cola", "curatoria.html"));
+      curatoria.avisar(avisoPagina, "error", datos.mensaje, curatoria.enlaceBoton("Ir a la cola de expedientes", "curatoria.html"));
       if (detalle) {
         pintar(detalle);
       }
@@ -632,7 +632,7 @@
     const cuenta = await api.obtener("/api/cuenta");
     const roles = cuenta.estado === 200 && Array.isArray(cuenta.datos.cuenta.roles) ? cuenta.datos.cuenta.roles : [];
     if (roles.includes("curatoria")) {
-      curatoria.avisar(avisoPagina, "error", datos.mensaje, curatoria.enlaceBoton("Volver a la cola", "curatoria.html"));
+      curatoria.avisar(avisoPagina, "error", datos.mensaje, curatoria.enlaceBoton("Ir a la cola de expedientes", "curatoria.html"));
     } else {
       curatoria.avisarSinRol(avisoPagina);
     }
@@ -643,7 +643,7 @@
       avisoPagina,
       "error",
       "No encontramos este expediente. Vuelve a la cola y ábrelo desde la lista.",
-      curatoria.enlaceBoton("Volver a la cola", "curatoria.html")
+      curatoria.enlaceBoton("Ir a la cola de expedientes", "curatoria.html")
     );
   }
 
@@ -676,18 +676,6 @@
       avisarNoEncontrado();
     } else {
       curatoria.avisarErrorCarga(avisoPagina, datos.mensaje, () => cargar());
-    }
-  }
-
-  // "Volver a la cola" regresa al filtro y la página de donde se vino.
-  if (document.referrer) {
-    try {
-      const origen = new URL(document.referrer);
-      if (origen.origin === location.origin && origen.pathname.endsWith("/curatoria.html")) {
-        document.getElementById("volver-cola").href = `curatoria.html${origen.search}`;
-      }
-    } catch (error) {
-      // Dirección de origen ilegible: se usa la cola sin filtro.
     }
   }
 

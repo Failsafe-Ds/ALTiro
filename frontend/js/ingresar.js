@@ -77,7 +77,9 @@
     formulario.ocupado(form, false);
     if (estado === 200) {
       const roles = datos.cuenta && Array.isArray(datos.cuenta.roles) ? datos.cuenta.roles : [];
-      location.assign(paginaDestino(roles) || "cuenta.html");
+      // "siguiente" tiene prioridad; si no, el inicio del rol (menu.js, ADR-002 E-3).
+      const inicio = typeof window.altiroInicio === "function" ? window.altiroInicio(roles) : "cuenta.html";
+      location.assign(paginaDestino(roles) || inicio);
       return;
     }
     // Nunca se conserva la contraseña escrita tras un error.

@@ -306,7 +306,7 @@
       );
     }
     document.getElementById("documento-seguir").classList.toggle("oculto", !documento || reemplazo);
-    document.getElementById("documento-volver").textContent = reemplazo ? "Volver al resumen" : "Volver";
+    document.getElementById("documento-volver").textContent = reemplazo ? "Ir al resumen" : "← Paso anterior";
     botonEnviar.textContent = documento ? "Enviar de nuevo" : "Enviar documento";
     botonEnviar.dataset.texto = botonEnviar.textContent;
 

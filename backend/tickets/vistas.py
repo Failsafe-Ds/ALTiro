@@ -45,7 +45,7 @@ from comun.api import (
     respuesta_json,
 )
 from expediente.errores import ErrorEstado
-from perfil.servicios import _monto as validar_monto
+from perfil.servicios import validar_monto
 from tickets import avisos as avisos_ticket
 from tickets import serializacion, servicios, transiciones
 from tickets.politicas import PoliticaTicket

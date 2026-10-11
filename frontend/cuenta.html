@@ -12,18 +12,17 @@
   <script src="js/version.js" defer></script>
   <script src="js/pie.js" defer></script>
   <script src="js/menu.js" defer></script>
-  <script src="js/volver.js" defer></script>
+  <script src="js/opciones.js" defer></script>
 </head>
 <body>
-  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a>
-    <a class="enlace-encabezado" data-volver href="cuenta.html">← Volver</a></header>
-  <main>
+  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
+  <main data-opciones>
     <h1>Mi cuenta</h1>
     <div id="aviso-cuenta" class="aviso" role="status" tabindex="-1"></div>
     <div id="sesion-terminada" class="aviso" role="alert" tabindex="-1"></div>
 
-    <section class="tarjeta" aria-labelledby="titulo-datos">
-      <h2 id="titulo-datos">Mis datos</h2>
+    <section id="datos" data-seccion="Mis datos" aria-labelledby="titulo-datos">
+      <h2 id="titulo-datos" tabindex="-1">Mis datos</h2>
       <dl class="datos">
         <dt>Nombre</dt><dd id="dato-nombre">…</dd>
         <dt>Teléfono</dt><dd id="dato-telefono">…</dd>
@@ -32,10 +31,8 @@
         <dt class="oculto" id="titulo-comuna">Comuna</dt><dd class="oculto" id="dato-comuna"></dd>
         <dt class="oculto" id="titulo-rut">RUT</dt><dd class="oculto" id="dato-rut"></dd>
       </dl>
-    </section>
 
-    <section class="tarjeta" aria-labelledby="titulo-opciones">
-      <h2 id="titulo-opciones">¿Qué quieres hacer?</h2>
+      <h3 id="titulo-opciones" class="subtitulo">¿Qué quieres hacer?</h3>
       <nav id="accesos-maestro" class="grupo-opciones oculto" aria-labelledby="titulo-accesos-maestro">
         <h3 id="titulo-accesos-maestro">Mi trabajo como maestro</h3>
         <ul class="lista-opciones">
@@ -81,6 +78,10 @@
       </nav>
     </section>
 
+    <section id="perfiles" data-seccion="Mis perfiles" aria-labelledby="titulo-perfiles" hidden>
+      <h2 id="titulo-perfiles" tabindex="-1">Mis perfiles</h2>
+      <p>Con una misma cuenta puedes pedir trabajos y trabajar como maestro. Aquí agregas el perfil que te falta.</p>
+
     <section id="seccion-cliente" class="seccion oculto" aria-labelledby="titulo-cliente">
       <h2 id="titulo-cliente">Quiero pedir trabajos</h2>
       <p>Agrega tu comuna para pedir trabajos con esta misma cuenta.</p>
@@ -99,13 +100,13 @@
         <div class="campo oculto" id="campo-correo-cliente">
           <label for="correo-cliente">Correo</label>
           <span class="ayuda" id="ayuda-correo-cliente">Para pedir trabajos necesitas un correo.</span>
-          <input id="correo-cliente" name="correo" data-validar="correo" type="email" inputmode="email" autocomplete="email"
+          <input id="correo-cliente" maxlength="254" name="correo" data-validar="correo" type="email" inputmode="email" autocomplete="email"
                  aria-describedby="ayuda-correo-cliente error-correo">
           <span class="error-campo" id="error-correo"></span>
         </div>
         <div class="campo oculto" id="campo-telefono-cliente">
           <label for="telefono-cliente">Teléfono</label>
-          <input id="telefono-cliente" name="telefono" type="tel" inputmode="tel" autocomplete="tel"
+          <input id="telefono-cliente" maxlength="15" name="telefono" type="tel" inputmode="tel" autocomplete="tel"
                  aria-describedby="error-telefono">
           <span class="error-campo" id="error-telefono"></span>
         </div>
@@ -122,12 +123,12 @@
         <div class="campo">
           <label for="rut">RUT</label>
           <span class="ayuda" id="ayuda-rut">Ejemplo: 12.345.678-5</span>
-          <input id="rut" name="rut" data-validar="rut" autocomplete="off" aria-describedby="ayuda-rut error-rut">
+          <input id="rut" maxlength="12" name="rut" data-validar="rut" autocomplete="off" aria-describedby="ayuda-rut error-rut">
           <span class="error-campo" id="error-rut"></span>
         </div>
         <div class="campo oculto" id="campo-telefono-maestro">
           <label for="telefono-maestro">Teléfono</label>
-          <input id="telefono-maestro" name="telefono" type="tel" inputmode="tel" autocomplete="tel"
+          <input id="telefono-maestro" maxlength="15" name="telefono" type="tel" inputmode="tel" autocomplete="tel"
                  aria-describedby="error-telefono-maestro">
           <span class="error-campo" id="error-telefono-maestro"></span>
         </div>
@@ -135,9 +136,11 @@
         <button type="submit">Postular</button>
       </form>
     </section>
+    <p id="perfiles-completos" class="nota-ayuda oculto">Ya usas AlTiro como cliente y como maestro: no te falta ningún perfil.</p>
+    </section>
 
-    <details id="seccion-seguridad" class="tarjeta">
-      <summary id="titulo-seguridad">Seguridad de mi cuenta</summary>
+    <section id="seguridad" data-seccion="Seguridad" aria-labelledby="titulo-seguridad" hidden>
+      <h2 id="titulo-seguridad" tabindex="-1">Seguridad de mi cuenta</h2>
       <p>Para cambiar tu contraseña o tu correo te pedimos tu contraseña actual.</p>
 
       <form id="cambiar-contrasena" novalidate>
@@ -145,14 +148,14 @@
         <div class="aviso" role="alert" tabindex="-1"></div>
         <div class="campo">
           <label for="contrasena-actual">Contraseña actual</label>
-          <input id="contrasena-actual" name="contrasena" type="password" autocomplete="current-password" required
+          <input id="contrasena-actual" maxlength="128" name="contrasena" type="password" autocomplete="current-password" required
                  aria-describedby="error-contrasena-actual">
           <span class="error-campo" id="error-contrasena-actual"></span>
         </div>
         <div class="campo">
           <label for="contrasena-nueva">Contraseña nueva</label>
           <span class="ayuda" id="ayuda-contrasena-nueva">Al menos 12 caracteres. Puede ser una frase que recuerdes.</span>
-          <input id="contrasena-nueva" name="contrasena_nueva" type="password" autocomplete="new-password" required
+          <input id="contrasena-nueva" maxlength="128" name="contrasena_nueva" type="password" autocomplete="new-password" required
                  aria-describedby="ayuda-contrasena-nueva error-contrasena_nueva">
           <label class="casilla"><input type="checkbox" data-mostrar="contrasena-nueva"> Mostrar contraseña</label>
           <span class="error-campo" id="error-contrasena_nueva"></span>
@@ -165,24 +168,25 @@
         <div class="aviso" role="alert" tabindex="-1"></div>
         <div class="campo">
           <label for="correo-nuevo">Correo nuevo</label>
-          <input id="correo-nuevo" name="correo" data-validar="correo" type="email" inputmode="email" autocomplete="email" required
+          <input id="correo-nuevo" maxlength="254" name="correo" data-validar="correo" type="email" inputmode="email" autocomplete="email" required
                  aria-describedby="error-correo-nuevo">
           <span class="error-campo" id="error-correo-nuevo"></span>
         </div>
         <div class="campo">
           <label for="contrasena-correo">Contraseña actual</label>
-          <input id="contrasena-correo" name="contrasena" type="password" autocomplete="current-password" required
+          <input id="contrasena-correo" maxlength="128" name="contrasena" type="password" autocomplete="current-password" required
                  aria-describedby="error-contrasena-correo">
           <span class="error-campo" id="error-contrasena-correo"></span>
         </div>
         <button type="submit">Guardar correo</button>
       </form>
-    </details>
 
-    <div id="aviso-cerrar" class="aviso" role="alert" tabindex="-1"></div>
-    <div class="acciones">
-      <button type="button" id="cerrar-sesion" class="boton-secundario">Cerrar sesión</button>
-    </div>
+      <h3>Cerrar sesión en este teléfono</h3>
+      <div id="aviso-cerrar" class="aviso" role="alert" tabindex="-1"></div>
+      <div class="acciones">
+        <button type="button" id="cerrar-sesion" class="boton-secundario">Cerrar sesión</button>
+      </div>
+    </section>
   </main>
   <footer class="pie" role="contentinfo">
     <p>AlTiro <span id="pie-version"></span> · © 2026 Equipo AlTiro.</p>

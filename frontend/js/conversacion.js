@@ -244,6 +244,7 @@
     evento.preventDefault();
     const texto = campoTexto.value;
     avisoEnvio.className = "aviso";
+    avisoEnvio.setAttribute("role", "alert");
     avisoEnvio.replaceChildren();
     if (!texto.trim()) {
       errorTexto.textContent = "Escribe tu mensaje antes de enviarlo.";
@@ -263,6 +264,8 @@
       pendiente = null;
       campoTexto.value = "";
       guardarBorrador("");
+      // Mensaje de resultado (CLAUDE.md §9, punto 7).
+      formulario.resultado(avisoEnvio, "Mensaje enviado.", "exito");
       await consultarNuevos(true);
       campoTexto.focus();
       return;
@@ -292,11 +295,16 @@
 
   // --- Carga ---
 
+  // Bandeja de la parte (sin botón «Volver» en el encabezado, ADR-002 E-3):
+  // solo se ofrece como salida cuando la conversación no está disponible.
+  let bandeja = { href: "cuenta.html", texto: "Ir a mi cuenta" };
+
   function pintarPedido(ticket) {
     const bloque = ticket.bloque;
     const esMaestro = Object.prototype.hasOwnProperty.call(ticket, "precio_registrable");
-    document.getElementById("volver").href = esMaestro ? "mis-trabajos.html" : "mis-pedidos.html";
-    document.getElementById("volver").textContent = esMaestro ? "Mis trabajos" : "Mis pedidos";
+    bandeja = esMaestro
+      ? { href: "mis-trabajos.html", texto: "Ir a mis trabajos" }
+      : { href: "mis-pedidos.html", texto: "Ir a mis pedidos" };
     const con = esMaestro ? "" : (ticket.maestro ? ` con ${ticket.maestro.nombre}` : "");
     document.getElementById("subtitulo").textContent =
       `${ticket.servicio.nombre}${con}, ${formato.fechaConReferencia(bloque.fecha)}, de ${bloque.inicio} a ${bloque.fin}`;
@@ -332,8 +340,8 @@
       return;
     }
     if (estado === 409) {
-      const enlace = elemento("a", "boton boton-secundario", "Volver");
-      enlace.href = document.getElementById("volver").href;
+      const enlace = elemento("a", "boton boton-secundario", bandeja.texto);
+      enlace.href = bandeja.href;
       errorPagina(datos.mensaje || "Esta conversación ya no está disponible.", enlace);
       return;
     }

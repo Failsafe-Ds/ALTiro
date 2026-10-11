@@ -92,8 +92,10 @@
     return texto ? `buscar.html?${texto}` : "buscar.html";
   }
 
+  // Solo el oficio (por ejemplo, desde categorias.html) no es una búsqueda:
+  // lo deja elegido en el formulario y falta la comuna.
   function hayBusqueda(filtros) {
-    return ["oficio", "comuna", "fecha", "inicio", "fin"].some((nombre) => filtros[nombre]);
+    return ["comuna", "fecha", "inicio", "fin"].some((nombre) => filtros[nombre]);
   }
 
   function leerFormulario() {
@@ -189,7 +191,8 @@
   }
 
   // Cada paso del formulario deja una entrada en el historial: el botón Atrás
-  // del teléfono y «← Volver» retroceden un paso dentro de la página.
+  // del navegador o del teléfono retrocede un paso dentro de la página sin
+  // perder lo elegido (RNF-20). La página no tiene botón «Volver» (ADR-002 E-3).
   function enPasoCuando() {
     return Boolean(history.state && history.state.altiroPaso === "cuando");
   }
@@ -209,7 +212,6 @@
     history.pushState({ altiroPaso: "cuando" }, "", location.href);
     mostrarPaso(pasoCuando, true);
   });
-  document.getElementById("volver-que").addEventListener("click", volverAlPrimerPaso);
   document.getElementById("quitar-cuando").addEventListener("click", () => {
     selectFecha.value = "";
     hora24.poner(inicioHora, inicioMinutos, "");
@@ -314,45 +316,77 @@
     return `Atiende en: ${lista}`;
   }
 
+  // RF-13: promedio y cantidad con estrella ("4,8 (23)"); el lector de
+  // pantalla oye el texto completo del servidor. Sin evaluaciones, el texto
+  // del servidor (CA-05.2). El promedio ya viene redondeado a un decimal.
+  function calificacionTarjeta(maestro) {
+    const p = elemento("p", "calificacion-tarjeta");
+    const datos = maestro.calificacion;
+    if (!datos) {
+      p.append(elemento("span", "sin-evaluaciones", maestro.calificacion_texto || ""));
+      return p;
+    }
+    const nota = Number(datos.promedio).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const visible = [
+      iconos.crear("estrella"),
+      elemento("span", "nota-tarjeta", nota),
+      elemento("span", "cantidad-tarjeta", `(${datos.cantidad})`),
+    ];
+    for (const nodo of visible.slice(1)) {
+      nodo.setAttribute("aria-hidden", "true");
+    }
+    p.append(...visible, elemento("span", "solo-lector", `Calificación: ${maestro.calificacion_texto}`));
+    return p;
+  }
+
+  // Estilo Fiverr (ADR-002 E-3, MASTER): foto arriba e información debajo, sin
+  // recuadro; todo el bloque es un solo enlace al perfil. Solo presentación:
+  // el orden y los datos son los del servidor.
   function tarjeta(maestro, conIncumple) {
-    const item = elemento("li", "tarjeta tarjeta-maestro");
+    const item = elemento("li", "tarjeta-maestro");
+    const enlace = elemento("a", "enlace-maestro");
+    enlace.href = `perfil-maestro.html?m=${encodeURIComponent(maestro.ref)}`;
     const foto = document.createElement("img");
     foto.className = "foto-tarjeta";
-    // Ancho y alto fijos: la página no se mueve mientras llegan las fotos (RNF-02).
-    foto.width = 160;
-    foto.height = 160;
+    // Ancho y alto fijos (4:3): la página no se mueve mientras llegan las fotos (RNF-02).
+    foto.width = 480;
+    foto.height = 360;
     foto.loading = "lazy";
     foto.decoding = "async";
-    foto.alt = `Foto de ${maestro.nombre}`;
+    // El nombre ya está en el enlace: la foto no repite texto.
+    foto.alt = "";
     const ruta = rutaFoto(maestro.foto);
     if (ruta) {
       foto.src = ruta;
+      // Variante de 480 px de la misma ruta pública (perfil/fotos.py, TAMANOS):
+      // el navegador la pide solo si la foto se muestra más grande que 160 px.
+      if (ruta.includes("tam=160")) {
+        foto.srcset = `${ruta} 160w, ${ruta.replace("tam=160", "tam=480")} 480w`;
+        foto.sizes = "(min-width: 75rem) 19rem, (min-width: 56.25rem) 31vw, (min-width: 35rem) 46vw, 92vw";
+      }
     }
-    const texto = elemento(
-      "div",
-      "tarjeta-texto",
-      elemento("h3", "nombre-tarjeta", maestro.nombre),
+    // Todos los resultados y sugerencias son maestros publicados, es decir,
+    // aprobados por curatoría (ADR-019): de ahí «Verificado» (ícono y texto).
+    const verificado = elemento("span", "verificado", iconos.crear("verificado"), "Verificado");
+    enlace.append(
+      foto,
+      elemento("div", "nombre-linea", elemento("h3", "nombre-tarjeta", maestro.nombre), verificado),
       elemento("p", "oficio-tarjeta", maestro.oficio ? maestro.oficio.nombre : ""),
-      elemento("p", "comunas-tarjeta", textoAtiendeEn(maestro)),
-      // RF-13: promedio y cantidad; sin evaluaciones, el texto (CA-05.2).
-      elemento("p", "calificacion-tarjeta",
-        maestro.calificacion ? `Calificación: ${maestro.calificacion_texto}` : maestro.calificacion_texto || "")
+      calificacionTarjeta(maestro),
+      elemento("p", "comunas-tarjeta", textoAtiendeEn(maestro))
     );
-    item.append(foto, texto);
     if (conIncumple) {
       // CA-04.3: el criterio que no cumple, con ícono y texto (no solo color).
       const incumple = elemento(
         "p",
         "incumple",
-        elemento("span", "icono-incumple", "⚠"),
+        elemento("span", "icono-incumple", "⚠︎"),
         elemento("span", "", `No cumple: ${maestro.incumple_texto || ""}`)
       );
       incumple.firstChild.setAttribute("aria-hidden", "true");
-      item.append(incumple);
+      enlace.append(incumple);
     }
-    const ver = elemento("a", "boton boton-secundario ver-perfil", "Ver perfil", elemento("span", "solo-lector", ` de ${maestro.nombre}`));
-    ver.href = `perfil-maestro.html?m=${encodeURIComponent(maestro.ref)}`;
-    item.append(ver);
+    item.append(enlace);
     return item;
   }
 
@@ -471,6 +505,10 @@
       formulario.limpiarErrores(form);
       if (origen === "formulario" || origen === "pagina") {
         history.pushState({ altiroPaso: "resultados" }, "", direccionDe(filtros));
+      } else if (origen === "categoria") {
+        // Desde una categoría con la comuna del perfil: la dirección queda con
+        // la búsqueda completa (se puede recargar y compartir).
+        history.replaceState({ altiroPaso: "resultados" }, "", direccionDe(filtros));
       }
       pintarResultados(filtros, datos);
       plegarFormulario();
@@ -536,20 +574,22 @@
       tituloResultados.focus();
       return;
     }
+    if (!hayBusqueda(filtros)) {
+      // Sin búsqueda en la dirección: el formulario con lo ya elegido (RNF-20).
+      actual = null;
+      ocultarResultados();
+      formulario.limpiarErrores(form);
+      actualizarResumenCuando();
+      desplegarFormulario(pasoQue, false);
+      titulo.focus();
+      return;
+    }
     if (filtros.region !== selectRegion.value && selectRegion.options.length > 1) {
       location.reload();
       return;
     }
     ponerEnFormulario(filtros);
-    if (hayBusqueda(filtros)) {
-      buscar(filtros, "historial");
-      return;
-    }
-    actual = null;
-    ocultarResultados();
-    formulario.limpiarErrores(form);
-    desplegarFormulario(pasoQue, false);
-    titulo.focus();
+    buscar(filtros, "historial");
   });
 
   // --- Inicio ---
@@ -573,6 +613,17 @@
     await Promise.all(listas);
     if (busqueda) {
       pintarResumen(actual || filtros);
+      return;
+    }
+    // Llegó con un oficio del catálogo (categorías): si el cliente tiene su
+    // comuna en el perfil, se busca de inmediato; si no, falta elegir la comuna.
+    // El oficio solo queda elegido si está en la lista del catálogo (elegir()).
+    if (filtros.oficio && selectOficio.value === filtros.oficio) {
+      if (selectComuna.value) {
+        buscar(leerFormulario(), "categoria");
+      } else {
+        selectRegion.focus();
+      }
     }
   }
 
