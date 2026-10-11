@@ -1360,6 +1360,7 @@ button.boton-quitar {
 
 .oficio-tarjeta,
 .comunas-tarjeta,
+.precio-tarjeta,
 .calificacion-tarjeta {
   margin: 0;
 }
@@ -1372,6 +1373,11 @@ button.boton-quitar {
   font-size: 0.9375rem;
   color: var(--texto-suave);
   overflow-wrap: anywhere;
+}
+
+/* DA-29, ADR-022 E-2: precio publicado, "Desde $X" en 600 (MASTER). */
+.precio-tarjeta {
+  font-weight: 600;
 }
 
 /* Estrellas: ícono --estrella (6,8:1), nota en negrita y cantidad entre

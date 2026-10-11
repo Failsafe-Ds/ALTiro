@@ -317,3 +317,12 @@ Registros previstos en la propuesta del S4 (§10) y detectados en el QA de cierr
 - **Impacto:** `busqueda/servicios.py`, `busqueda/sugerencias.py`, `busqueda/vistas.py`, `frontend/js/buscar.js`, `frontend/css/base.css` y pruebas de búsqueda. Sin cambios de modelo ni migraciones. RF-12 sigue dentro de su texto. RF-13 agrega un dato que la ficha ya mostraba.
 - **Autorización:** usuario (2026-10-04). Falta la conformidad del representante del producto.
 - **Relacionado:** RF-12, RF-13, CA-04.2, CA-04.3, RNF-01; ADR-019 (D-14), ADR-022.
+
+### DA-29 — Precio «Desde $X» en cada resultado de búsqueda
+- **Fecha:** 2026-10-11 (pulido post-S5, fuera de sprint).
+- **Alcance original:** RF-13 pide en cada resultado fotografía, nombre, calificación promedio y oficio. El precio se veía recién en la ficha del maestro.
+- **Cambio:** cada resultado (y cada sugerencia) muestra el precio publicado del servicio que coincide con el oficio buscado, con su modalidad («Desde $X por trabajo» o «$X por hora»). Es un dato que el maestro ya publica (RF de servicios: todo servicio publicado tiene modalidad y monto). No se agrega filtro ni orden por precio: el puntaje de RF-10 y RF-11 no cambia. Detalle en ADR-022, E-2.
+- **Motivo:** el usuario tomó Fiverr como referencia (ADR-002 E-3); comparar precios sin abrir cada ficha ahorra pasos al cliente.
+- **Impacto:** respuesta de la API de búsqueda (un campo nuevo, calculado en lote), `frontend/js/buscar.js` y pruebas de búsqueda. Sin migraciones. Hay que volver a revisar RNF-01.
+- **Autorización:** usuario (2026-10-11), que lo incluirá en el próximo informe. Falta la conformidad del representante del producto.
+- **Relacionado:** RF-10, RF-11, RF-13, HU-03, RNF-01; ADR-002 E-3, ADR-022.

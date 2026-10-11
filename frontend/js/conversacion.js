@@ -23,7 +23,7 @@
   const avisoEstado = document.getElementById("aviso-estado");
   const lista = document.getElementById("lista-mensajes");
   const sinMensajes = document.getElementById("sin-mensajes");
-  const formulario = document.getElementById("formulario-mensaje");
+  const formMensaje = document.getElementById("formulario-mensaje");
   const campoTexto = document.getElementById("texto");
   const errorTexto = document.getElementById("error-texto");
   const avisoEnvio = document.getElementById("aviso-envio");
@@ -155,7 +155,7 @@
       llegoAjeno = llegoAjeno || mensaje.autor !== "tu";
     }
     return llegoAjeno;
-    sinMensajes.hidden = vistos.size > 0 || formulario.hidden;
+    sinMensajes.hidden = vistos.size > 0 || formMensaje.hidden;
   }
 
   function pintarEstado(datos) {
@@ -165,7 +165,7 @@
     } else {
       avisoEstado.hidden = true;
     }
-    formulario.hidden = !datos.puede_escribir;
+    formMensaje.hidden = !datos.puede_escribir;
     if (!datos.puede_escribir) {
       detenerSondeo();
     }
@@ -240,7 +240,7 @@
     campoTexto.removeAttribute("aria-invalid");
   });
 
-  formulario.addEventListener("submit", async (evento) => {
+  formMensaje.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     const texto = campoTexto.value;
     avisoEnvio.className = "aviso";

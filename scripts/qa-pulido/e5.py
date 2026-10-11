@@ -1,0 +1,27 @@
+from lib2 import *
+with sync_playwright() as b_:
+    b = lanzar(b_)
+    c, pg = ctx(b, 360); api_login(pg, D["A"]); ir(pg, "conversacion.html?ticket=" + D["acep"]); pg.wait_for_timeout(800)
+    n0 = pg.locator("#lista-mensajes li").count()
+    pg.fill("#texto", "  Prueba de espacios QA  "); pg.click("#enviar"); pg.wait_for_timeout(2500)
+    n1 = pg.locator("#lista-mensajes li").count()
+    print("mensajes antes/después de enviar (sin recargar):", n0, n1, "| errores JS:", [e for e in pg.errs if e.startswith("js")])
+    print("aviso-envio:", repr(pg.inner_text("#aviso-envio")), "| foco:", pg.evaluate("document.activeElement.id"))
+    pg.reload(); pg.wait_for_load_state("networkidle"); pg.wait_for_timeout(900)
+    txt = pg.evaluate("[...document.querySelectorAll('#lista-mensajes li')].map(l=>JSON.stringify(l.innerText.slice(0,120)))")
+    print("tras recargar:", pg.locator("#lista-mensajes li").count(), txt[-2:])
+    r = api(pg, "/api/tickets/%s/mensajes" % D["acep"], None, "obtener") if False else pg.evaluate("async(t)=>{const x=await api.obtener('/api/tickets/'+t+'/mensajes');return JSON.stringify(x.datos).slice(-300)}", D["acep"])
+    print("API (final):", r)
+    c.close()
+    # evaluar: ¿hay región viva en el resultado?
+    c, pg = ctx(b, 360); api_login(pg, D["A"]); ir(pg, "evaluar.html?ticket=" + D["fin3"]); pg.wait_for_timeout(800)
+    for n, nom in ((4, "puntualidad"), (4, "trabajo"), (4, "cordialidad")):
+        pg.locator("input[name=%s]" % nom).nth(n).check()
+    pg.fill("#comentario", "  Excelente (QA)  ")
+    pg.evaluate("""()=>{window.__log=[];new MutationObserver(m=>m.forEach(x=>{let e=x.target.nodeType===1?x.target:x.target.parentElement;const live=e&&e.closest('[aria-live],[role=status],[role=alert]');if(live)window.__log.push(live.id+'|'+live.getAttribute('role')+'|'+live.getAttribute('aria-live')+'|'+live.textContent.trim().slice(0,60))})).observe(document.body,{subtree:true,childList:true,characterData:true})}""")
+    pg.locator("button[type=submit]").first.click(); pg.wait_for_timeout(2500)
+    print("evaluar: regiones vivas modificadas tras enviar:", pg.evaluate("window.__log"), "| foco:", pg.evaluate("document.activeElement.id"))
+    c.close()
+    c, pg = ctx(b, 1280); api_login(pg, D["CUR"]); ir(pg, "curatoria.html")
+    print([ (x[0][:8], x[1]) for x in pg.evaluate("[...document.querySelectorAll('a[href*=curatoria-expediente]')].map(a=>[a.getAttribute('href').split('ref=')[1], a.parentElement.parentElement.innerText.slice(0,50).split(String.fromCharCode(10)).join(' ')])")])
+    c.close()

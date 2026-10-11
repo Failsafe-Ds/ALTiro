@@ -10,7 +10,11 @@ nombre, foto de 160 px, oficio y calificación (``{promedio, cantidad}``, o
 y las comunas que atiende (``atiende_en``, hasta ``MAXIMO_COMUNAS`` nombres, y
 ``atiende_en_mas``; ADR-022, E-1): primero la comuna buscada, después las de
 la misma región y al final las demás, cada grupo en orden alfabético, así que
-el orden no delata la base. **Nunca** el puntaje ni sus componentes, cuál es la
+el orden no delata la base. Y el ``precio`` del servicio visible del oficio
+buscado (DA-29; ADR-022, E-2): ``{modalidad, modalidad_texto, monto, desde}``,
+con los mismos nombres que la ficha pública; si hay más de uno, el de menor
+monto y ``desde`` verdadero. Se toma de la misma carga de servicios de la
+búsqueda (sin consultas extra) y no entra al puntaje ni al orden. **Nunca** el puntaje ni sus componentes, cuál es la
 comuna base, el RUT ni el contacto (ADR-022, puntos 2 y 5). Las sugerencias van en
 una lista aparte y cada una indica qué criterio incumple (RF-12, CA-04.2,
 CA-04.3). ``Cache-Control: no-store`` (una licencia que vence o una
@@ -22,6 +26,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 
 from busqueda import servicios, sugerencias
+from catalogo.models import Modalidad
 from evaluaciones import calificacion
 from comun.api import manejar_errores, metodos, publica
 from expediente import vigencia
@@ -63,6 +68,17 @@ def atiende_en(candidato, buscada, nombres):
     return [nombres[codigo][0] for codigo in orden[:MAXIMO_COMUNAS]], max(0, len(orden) - MAXIMO_COMUNAS)
 
 
+def precio(candidato):
+    """Precio publicado del oficio buscado, sin consultas extra (DA-29; ADR-022, E-2)."""
+    servicio = candidato.precio
+    return {
+        "modalidad": servicio.modalidad,
+        "modalidad_texto": Modalidad(servicio.modalidad).label,
+        "monto": servicio.monto,
+        "desde": candidato.servicios_del_oficio > 1,
+    }
+
+
 def tarjeta(candidato, oficio, buscada, nombres):
     perfil = candidato.perfil
     comunas, mas = atiende_en(candidato, buscada, nombres)
@@ -75,6 +91,7 @@ def tarjeta(candidato, oficio, buscada, nombres):
         "calificacion_texto": calificacion.texto(candidato.calificacion),
         "atiende_en": comunas,
         "atiende_en_mas": mas,
+        "precio": precio(candidato),
     }
 
 

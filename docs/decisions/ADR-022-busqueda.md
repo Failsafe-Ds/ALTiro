@@ -62,3 +62,15 @@
   - límite conocido: si un maestro atiende una sola comuna, esa es su base. Pasa lo mismo en la ficha.
 - **Pruebas:** `tests/test_busqueda.py` (sugerencias de otra provincia de la región, nunca de otra región, prioridad de la provincia, orden de `atiende_en` igual con cualquier base, máximo de 3 más el conteo).
 - **Aprobación:** usuario / equipo de desarrollo, 2026-10-04. Falta la conformidad del representante del producto.
+
+### E-2 — Precio publicado en la tarjeta
+- **Fecha:** 2026-10-11. Pedido del usuario en el pulido post-S5; registrado como DA-29.
+- **Cambio en el punto 5 (tarjeta):**
+  - cada resultado y cada sugerencia agrega `precio`: `{modalidad, modalidad_texto, monto, desde}`, con los mismos nombres y valores que los servicios de la ficha pública (punto 4);
+  - es el precio del servicio **visible** del oficio buscado (la misma regla que decide si el maestro entra, RNF-25, CA-24.4). Un servicio de otro oficio nunca cuenta;
+  - si el maestro tiene más de un servicio visible de ese oficio, va el de **menor monto** (empate: el más antiguo) y `desde` es verdadero; la pantalla dice "Desde $25.000 por trabajo" o "$12.000 por hora";
+  - es un dato que el maestro ya publica en su ficha; no revela la comuna base ni datos personales.
+- **Sin filtro ni orden por precio:** el precio no entra al puntaje (punto 2) ni al desempate (punto 3). El orden es el mismo con cualquier precio.
+- **Rendimiento (RNF-01):** sale de la misma consulta de servicios que ya hace la búsqueda (`cargar_candidatos`); no agrega consultas ni crece con los resultados.
+- **Pruebas:** `tests/test_busqueda.py` (campo en resultados y sugerencias, menor monto con "Desde", otro oficio no cuenta, el orden no cambia al invertir los precios, consultas constantes).
+- **Aprobación:** usuario, 2026-10-11 (DA-29). Falta la conformidad del representante del producto.

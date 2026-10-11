@@ -104,3 +104,10 @@ Otras lecturas con el mismo volumen (10 hilos, 200 lecturas cada una, `scripts/m
 Sin respuestas distintas de 200 y todo en 2 s o menos. **Paginación del GET de mensajes:** con este volumen no importa (máximo 23 mensajes, 4 KB, 0,09 s). El tope de 1.000 caracteres por mensaje acota la respuesta, pero no el número de mensajes: si una conversación real creciera a cientos, conviene paginar. Se deja como observación, no como defecto (el informe no fija umbral para esta lectura).
 
 RNF-04 durante las corridas (`docker stats`, 14 muestras): picos app 113,5 MiB, planificador 49,1 MiB, db 37,4 MiB, proxy 21,6 MiB, respaldo 0,8 MiB; suma ≈ 222 MiB frente a 2 GB: cumple.
+
+## Revisión 2026-10-11 — precio en los resultados (DA-29, ADR-022 E-2)
+
+- **Motivo:** DA-29 agrega el precio publicado a cada resultado y pide volver a revisar RNF-01. El precio sale de la misma carga de servicios (sin consultas nuevas; `test_paginas_de_veinte_y_consultas_constantes` sigue pasando).
+- **Condiciones:** misma herramienta y parámetros (`scripts/medir_rnf01.py --hilos 10 --busquedas 400`, imagen `altiro-dev-app:local`), pero contra la **pila de desarrollo** `altiro-dev` (https://localhost:8443), que tiene la carga de demostración de ADR-028 E-2 (unos 3.500 maestros, más que el volumen de 100 del informe): es un caso **más exigente** que el oficial. Mismo equipo de referencia. Limitación del proxy (ADR-029) activa.
+- **Resultado:** 0 respuestas distintas de 200; **100 %** en 2 s o menos (400 de 400); p95 **0,261 s**, mediana 0,202 s, máximo 0,341 s; 8,3 s en total. **Cumple** RNF-01.
+- **No reemplaza** la medición oficial con el volumen del informe (pila `altiro-volumen`); la complementa.

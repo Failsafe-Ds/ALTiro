@@ -20,7 +20,8 @@ from busqueda.vistas import MENSAJE_SIN_RESULTADOS, SIN_EVALUACIONES
 from comun.api import MENSAJE_CLAVE_DESCONOCIDA
 from expediente.models import Documento, EstadoExpediente, Expediente
 from perfil import agenda, cobertura, ocupacion, ocurrencias, publicacion
-from perfil.models import Cobertura, PerfilPublico
+from catalogo.models import Modalidad, Oficio, Servicio, ServicioModalidad
+from perfil.models import Cobertura, PerfilPublico, ServicioMaestro
 from tests import busqueda_ayudas as ay
 from tests.ayudas import TEXTO_PROHIBIDO
 from tests.privacidad import assert_campos_ausentes
@@ -407,6 +408,7 @@ def test_rf13_tarjeta_con_lista_explicita_de_campos(catalogo):
         "calificacion_texto": "Todavía no tiene evaluaciones",
         "atiende_en": ["Concepción"],
         "atiende_en_mas": 0,
+        "precio": {"modalidad": "por_trabajo", "modalidad_texto": "Por trabajo", "monto": 20001, "desde": False},
     }]
 
 
@@ -417,10 +419,11 @@ def test_el_puntaje_la_comuna_base_y_los_datos_personales_no_van_en_la_respuesta
     for respuesta in (buscar(), buscar(comuna=str(ay.CORONEL)), con_bloque(ay.HOY, "14:00", "15:00"),
                       buscar(comuna=str(ay.HUALPEN))):
         assert respuesta.status_code == 200
+        # "monto" ya no está prohibido: el precio publicado va en la tarjeta (DA-29; ADR-022, E-2).
         assert_campos_ausentes(
             respuesta,
             {"puntaje", "score", "disponibilidad", "cercania", "es_base", "base", "comuna_base", "principal",
-             "comunas", "rut", "telefono", "correo", "id", "perfil_maestro_id", "expediente", "estado", "monto"},
+             "comunas", "rut", "telefono", "correo", "id", "perfil_maestro_id", "expediente", "estado"},
             valores=[usuario.perfil_maestro.rut, "910000001", str(expediente.ref)],
         )
 
@@ -464,6 +467,8 @@ def test_paginas_de_veinte_y_consultas_constantes(catalogo, django_assert_max_nu
     # 15: la calificación en lote sobre ``evaluacion`` (S5, incremento 5; una sola consulta, sin N+1).
     assert len(con_cinco.captured_queries) <= 15
     assert primera["total"] == 50 and primera["paginas"] == 3 and len(primera["resultados"]) == 20
+    # DA-29, ADR-022 E-2: el precio sale de la misma carga de servicios, sin consultas por maestro.
+    assert all(t["precio"]["monto"] > 0 for t in primera["resultados"])
     tercera = buscar(pagina="3").json()
     assert len(tercera["resultados"]) == 10
     todas = todas_las_refs()
@@ -500,8 +505,10 @@ def test_ca04_2_ca04_3_sugerencias_separadas_con_el_criterio_que_incumplen(catal
     for sugerencia in datos["sugerencias"]:
         assert sugerencia["incumple_texto"] == sugerencias.TEXTOS[sugerencia["incumple"]]
         assert set(sugerencia) == {"ref", "nombre", "foto", "oficio", "calificacion", "calificacion_texto",
-                                   "atiende_en", "atiende_en_mas", "incumple", "incumple_texto"}
+                                   "atiende_en", "atiende_en_mas", "precio", "incumple", "incumple_texto"}
     assert [s["atiende_en"] for s in datos["sugerencias"]] == [["Concepción"], ["Coronel"], ["Lebu"]]
+    # DA-29, ADR-022 E-2: las sugerencias también traen el precio del oficio buscado.
+    assert [s["precio"]["monto"] for s in datos["sugerencias"]] == [20001, 20002, 20003]
 
 
 def test_e1_la_misma_provincia_va_antes_que_el_resto_de_la_region(catalogo):
@@ -560,3 +567,43 @@ def test_la_ficha_muestra_los_bloques_de_catorce_dias(catalogo):
     assert bloques[0]["ref"] == patrones[(840, 3)]
     servicio = respuesta.json()["maestro"]["servicios"][0]
     assert servicio["ref"] == str(catalogo["pintura"].ref)
+
+
+# --- Precio publicado en la tarjeta (DA-29; ADR-022, E-2) ---
+
+
+def _segundo_servicio_de_pintura(usuario, monto, modalidad):
+    servicio = Servicio.objects.create(oficio=Oficio.objects.get(codigo="pintura"), nombre="Pintura de fachada", orden=2)
+    ServicioModalidad.objects.create(servicio=servicio, modalidad=modalidad, precio_referencia=30000)
+    ServicioMaestro.objects.create(maestro_id=usuario.pk, servicio=servicio, modalidad=modalidad, monto=monto)
+
+
+def test_e2_con_dos_servicios_del_oficio_va_el_de_menor_monto_y_dice_desde(catalogo):
+    usuario = ay.maestro(1, catalogo, servicios=["pintura", "gasfiteria"])  # pintura a 20001, gasfitería a 20001
+    _segundo_servicio_de_pintura(usuario, 12000, Modalidad.POR_HORA)
+
+    tarjeta, = buscar().json()["resultados"]
+
+    assert tarjeta["precio"] == {"modalidad": "por_hora", "modalidad_texto": "Por hora", "monto": 12000, "desde": True}
+
+
+def test_e2_el_servicio_mas_barato_de_otro_oficio_no_cuenta(catalogo):
+    usuario = ay.maestro(1, catalogo, servicios=["pintura", "gasfiteria"])
+    ServicioMaestro.objects.filter(maestro_id=usuario.pk, servicio=catalogo["gasfiteria"]).update(monto=1000)
+
+    tarjeta, = buscar().json()["resultados"]
+
+    assert tarjeta["precio"]["monto"] == 20001 and tarjeta["precio"]["desde"] is False
+
+
+def test_e2_el_precio_no_cambia_el_orden(catalogo):
+    """RF-10, RF-11: el mismo orden con los precios al revés (el más barato al final y después al principio)."""
+    for n in range(1, 9):
+        ay.maestro(n, catalogo, bloques=[((n % 3) + 1, "14:00", "18:00")])
+    antes = todas_las_refs()
+    for posicion, ref in enumerate(antes):
+        ServicioMaestro.objects.filter(maestro__perfil_publico__ref=ref).update(monto=1000 * (len(antes) - posicion))
+    assert todas_las_refs() == antes
+    for posicion, ref in enumerate(antes):
+        ServicioMaestro.objects.filter(maestro__perfil_publico__ref=ref).update(monto=1000 * (posicion + 1))
+    assert todas_las_refs() == antes

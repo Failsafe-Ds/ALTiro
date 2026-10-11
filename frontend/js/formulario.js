@@ -13,12 +13,46 @@ const formulario = (() => {
 
   // CLAUDE.md §9, punto 2: los espacios al inicio y al final se quitan antes de
   // validar y enviar. La contraseña nunca se recorta (ADR-013, punto 3).
+  // La contraseña se reconoce por autocomplete o data-contrasena, no por el
+  // type: «Mostrar contraseña» lo cambia a text (DEF-QA-016).
+  function esContrasena(campo) {
+    return (
+      campo.type === "password" ||
+      campo.hasAttribute("data-contrasena") ||
+      /^(current|new)-password$/.test(campo.getAttribute("autocomplete") || "")
+    );
+  }
+
   function recortable(campo) {
     return (
       (campo.tagName === "TEXTAREA" || campo.tagName === "INPUT") &&
-      !/^(password|file|checkbox|radio|hidden)$/.test(campo.type)
+      !esContrasena(campo) &&
+      !/^(file|checkbox|radio|hidden)$/.test(campo.type)
     );
   }
+
+  // DEF-QA-019: los espacios iniciales se quitan al escribir o pegar, antes de
+  // que maxlength corte el texto.
+  document.addEventListener("input", (evento) => {
+    const campo = evento.target;
+    if (campo && campo.tagName && recortable(campo) && /^\s/.test(campo.value)) {
+      campo.value = campo.value.trimStart();
+    }
+  });
+
+  document.addEventListener("paste", (evento) => {
+    const campo = evento.target;
+    if (!campo || !campo.tagName || !recortable(campo) || !evento.clipboardData) {
+      return;
+    }
+    const texto = evento.clipboardData.getData("text");
+    if (texto === texto.trim()) {
+      return;
+    }
+    evento.preventDefault();
+    campo.setRangeText(texto.trim(), campo.selectionStart, campo.selectionEnd, "end");
+    campo.dispatchEvent(new Event("input", { bubbles: true }));
+  });
 
   function valor(campo) {
     return recortable(campo) ? campo.value.trim() : campo.value;
@@ -125,7 +159,10 @@ const formulario = (() => {
     // El foco va al primer campo con error si está a la vista; si no (por
     // ejemplo, en otro paso), queda en el resumen y la página lo lleva al campo.
     if (primero && primero.getClientRects().length && typeof primero.focus === "function") {
-      primero.focus();
+      primero.focus({ preventScroll: true });
+      // DEF-QA-020: el campo y su mensaje quedan a la vista.
+      const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      primero.scrollIntoView({ block: "center", behavior: sinMovimiento ? "auto" : "smooth" });
     }
     return primero;
   }
@@ -227,7 +264,7 @@ const formulario = (() => {
   function guardar(form, clave, paso) {
     const valores = {};
     for (const campo of campos(form)) {
-      if (campo.type !== "password" && campo.value !== "") {
+      if (!esContrasena(campo) && campo.value !== "") {
         valores[campo.name] = campo.value;
       }
     }
@@ -380,7 +417,7 @@ const formulario = (() => {
     if (previo) {
       for (const [nombre, valor] of Object.entries(previo.valores || {})) {
         const campo = form.querySelector(`[name="${nombre}"]`);
-        if (campo && campo.type !== "password") {
+        if (campo && !esContrasena(campo)) {
           campo.value = valor;
         }
       }

@@ -71,6 +71,7 @@
   const avisoPagina = document.getElementById("aviso-pagina");
   const contenido = document.getElementById("contenido");
   const avisoEvaluar = document.getElementById("aviso-evaluar");
+  const resultadoEnvio = document.getElementById("resultado-envio");
   const mia = document.getElementById("mia");
   const formEvaluacion = document.getElementById("formulario-evaluacion");
   const sinRecibida = document.getElementById("sin-recibida");
@@ -311,6 +312,9 @@
         avisoEvaluar.hidden = false;
         avisoEvaluar.textContent = datos.mensaje || "No pudimos guardar tu evaluación. Vuelve a abrir el pedido.";
       }
+      if (estado === 201) {
+        formulario.resultado(resultadoEnvio, "Tu evaluación quedó registrada.", "exito");
+      }
       document.getElementById("titulo-mia").focus();
       return;
     }
@@ -335,6 +339,7 @@
     if (estado === 201) {
       escribirBorrador(claveMotivo, "");
       await cargarEvaluaciones();
+      formulario.resultado(resultadoEnvio, "Tu denuncia quedó registrada.", "exito");
       document.getElementById("recibida").focus();
       return;
     }

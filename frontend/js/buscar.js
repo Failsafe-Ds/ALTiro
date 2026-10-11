@@ -3,7 +3,8 @@
 // - GET /api/busqueda?oficio=<código>&comuna=<CUT>[&fecha=AAAA-MM-DD&inicio=HH:MM&fin=HH:MM][&pagina=N].
 //   Respuesta: { resultados, total, pagina, paginas, mensaje, sugerencias }.
 //   Cada tarjeta trae ref, nombre, foto (160 px), oficio, calificacion_texto,
-//   atiende_en (hasta 3 comunas, sin marcar la base) y atiende_en_mas;
+//   atiende_en (hasta 3 comunas, sin marcar la base), atiende_en_mas y
+//   precio {modalidad, modalidad_texto, monto, desde} (DA-29; ADR-022, E-2);
 //   cada sugerencia, además, incumple e incumple_texto (el criterio que no cumple).
 // - Los filtros van en la dirección de la página (buscar.html?oficio=…&region=…&comuna=…):
 //   la búsqueda se puede recargar y compartir. "region" solo sirve para llenar
@@ -316,6 +317,18 @@
     return `Atiende en: ${lista}`;
   }
 
+  // DA-29, ADR-022 E-2: "Desde $25.000 por trabajo" o "$12.000 por hora".
+  // Solo se muestra: el orden lo da el servidor y no depende del precio.
+  function textoPrecio(maestro) {
+    const precio = maestro.precio;
+    const pesos = precio ? formato.monto(precio.monto) : "";
+    if (!pesos) {
+      return "";
+    }
+    const texto = `${pesos} ${String(precio.modalidad_texto || "").toLowerCase()}`.trim();
+    return precio.desde ? `Desde ${texto}` : texto;
+  }
+
   // RF-13: promedio y cantidad con estrella ("4,8 (23)"); el lector de
   // pantalla oye el texto completo del servidor. Sin evaluaciones, el texto
   // del servidor (CA-05.2). El promedio ya viene redondeado a un decimal.
@@ -373,7 +386,8 @@
       elemento("div", "nombre-linea", elemento("h3", "nombre-tarjeta", maestro.nombre), verificado),
       elemento("p", "oficio-tarjeta", maestro.oficio ? maestro.oficio.nombre : ""),
       calificacionTarjeta(maestro),
-      elemento("p", "comunas-tarjeta", textoAtiendeEn(maestro))
+      elemento("p", "comunas-tarjeta", textoAtiendeEn(maestro)),
+      elemento("p", "precio-tarjeta", textoPrecio(maestro))
     );
     if (conIncumple) {
       // CA-04.3: el criterio que no cumple, con ícono y texto (no solo color).

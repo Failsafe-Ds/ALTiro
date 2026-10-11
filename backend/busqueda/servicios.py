@@ -204,6 +204,10 @@ class Candidato:
     comunas: dict = field(default_factory=dict)  # codigo -> es_base
     ofrecibles: list = field(default_factory=list)  # Ocurrencia
     calificacion: object = None  # evaluaciones.calificacion.Calificacion, la fija ``ordenar``
+    # Servicios visibles del oficio buscado: el de menor monto y cuántos son
+    # (DA-29; ADR-022, E-2). Solo para mostrar: nunca entra al puntaje ni al orden.
+    precio: object = None  # ServicioMaestro
+    servicios_del_oficio: int = 0
 
 
 def cargar_candidatos(oficio, comunas, ahora, hoy):
@@ -230,6 +234,9 @@ def cargar_candidatos(oficio, comunas, ahora, hoy):
         candidato = candidatos.setdefault(servicio.maestro_id, Candidato(servicio.maestro_id))
         if not publicacion.motivos_no_visible_de(servicio, contextos[servicio.maestro_id], hoy):
             candidato.servicio_visible = True
+            candidato.servicios_del_oficio += 1
+            if candidato.precio is None or (servicio.monto, servicio.pk) < (candidato.precio.monto, candidato.precio.pk):
+                candidato.precio = servicio
     ids = [m for m, c in candidatos.items() if c.servicio_visible]
     if not ids:
         return []
