@@ -70,6 +70,19 @@ Observaciones del usuario sobre la v0.6.2: dos flujos (ADR-002 E-3.2), ingresar,
 Resultado: v0.6.3 (03bbb8b) y v0.6.4; QA ronda 2 en `docs/testing/qa-pulido-post-s5.md`, auditoría 2 con sus 11 hallazgos corregidos. **Ojo:** la suite completa siempre con `-v "$(pwd -W)/frontend:/frontend:ro"`; sin ese montaje faltan 58 pruebas de pantallas.
 2. **Auditoría del código** pedida por el usuario: `ponytail-audit` sobre todo el frontend, lo nuevo del backend desde la primera auditoría y lo que esta dejó sin revisar → corrección → QA → commit.
 
+### Rediseño con Bootstrap (2026-10-12) — v0.6.5 a v0.6.8, subido (`f9e509b`)
+Pedidos del usuario, uno por versión (detalle en ADR-002 E-4 a E-4.3):
+- v0.6.5 (E-4): Bootstrap 5.3.8 alojado y React permitido; «Tu cuenta» en una fila; contenido de la portada centrado.
+- v0.6.6 (E-4.1): carrusel de oficios en abanico, dinámico (avanza solo); encabezado rojo con botones blancos de contorno negro.
+- v0.6.7 (E-4.2): carrusel sin botones (solo puntos, toque, deslizar y teclado).
+- v0.6.8 (E-4.3): contenido centrado en todas las páginas; ficha del maestro en dos columnas con panel «Pide un horario».
+
+**Para retomar:**
+- Ver el diseño: `scripts/qa-pulido/capturas.py` (instrucciones dentro; capturas con Playwright en la red `altiro-dev_frontal`, sin cuentas). Las capturas de la extensión de Chrome se congelaban.
+- Pendiente del equipo: conformidad del representante, backlog, próximo informe y el riesgo WCAG 2.2.2 (ver `docs/estado-actual.md` → "Pendientes").
+- Sugerido: un pase del agente `qa` (lista de `qa.md`) sobre las pantallas de E-4 a E-4.3 y medir de nuevo RNF-02 con Bootstrap.
+- Siguiente paso posible con Bootstrap: migrar componentes pantalla por pantalla al tocarlas (no de una vez).
+
 ## Trabajo anterior (S5)
 S5 cerrado (etiqueta `sprint-5`). Los cinco sprints del informe están construidos. Lo que queda es trabajo del equipo y de la revisión, en una **sesión nueva** (regla 11):
 - RNF-13 con personas (DA-26) y RNF-18 manual en navegadores de marca y Android;
