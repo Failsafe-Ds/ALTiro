@@ -65,11 +65,6 @@
     aviso.focus();
   }
 
-  function formatearRut(rut) {
-    const cuerpo = rut.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    return cuerpo + "-" + rut.slice(-1);
-  }
-
   function formatearTelefono(telefono) {
     // "+56" + 9 dígitos (ADR-013, E-3) => "+56 9 1234 5678".
     return telefono.replace(/^\+56(\d)(\d{4})(\d{4})$/, "+56 $1 $2 $3");
@@ -113,7 +108,7 @@
     mostrar(document.getElementById("titulo-rut"), Boolean(maestro));
     mostrar(document.getElementById("dato-rut"), Boolean(maestro));
     if (maestro) {
-      document.getElementById("dato-rut").textContent = formatearRut(maestro.rut);
+      document.getElementById("dato-rut").textContent = formulario.formatearRut(maestro.rut);
     }
     // Accesos al expediente (HU-11, HU-17). Solo navegación: la API vuelve a
     // exigir el rol de maestro en cada consulta.

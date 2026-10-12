@@ -7,6 +7,12 @@
 //   "valor" es del mismo origen y su ruta exacta está en la lista cerrada
 //   "rutas"; si no, null. Para enlaces que llegan del servidor (avisos,
 //   hallazgo B-4): evita "javascript:", "//otro-sitio" y rutas parecidas.
+// - enlaceIngresar(siguiente, ticket): botón «Ingresar de nuevo» que vuelve a
+//   esta página tras ingresar ("siguiente" es una clave de la lista cerrada de
+//   ingresar.js; "ticket", el ref del pedido cuando la página lo necesita).
+// - sesionTerminada(caja, siguiente, texto, ticket): aviso de sesión terminada
+//   en "caja" con ese botón; recibe el foco (hallazgo 9, auditoría 2: antes
+//   había una copia por página).
 "use strict";
 
 const dom = (() => {
@@ -42,5 +48,19 @@ const dom = (() => {
     return url.pathname + url.search + url.hash;
   }
 
-  return { elemento, opcion, enlaceInterno };
+  function enlaceIngresar(siguiente, ticket) {
+    const enlace = elemento("a", "boton", "Ingresar de nuevo");
+    enlace.href =
+      `ingresar.html?aviso=sesion&siguiente=${siguiente}` + (ticket ? `&ticket=${encodeURIComponent(ticket)}` : "");
+    return enlace;
+  }
+
+  function sesionTerminada(caja, siguiente, texto, ticket) {
+    caja.className = "aviso aviso-error";
+    caja.hidden = false;
+    caja.replaceChildren(texto, " ", enlaceIngresar(siguiente, ticket));
+    caja.focus();
+  }
+
+  return { elemento, opcion, enlaceInterno, enlaceIngresar, sesionTerminada };
 })();

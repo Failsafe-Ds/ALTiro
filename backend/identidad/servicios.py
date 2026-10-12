@@ -50,6 +50,8 @@ _MENSAJE_CORREO_EN_USO = (
     "Este correo ya está registrado. Si es tuyo, inicia sesión con ese correo y continúa desde tu cuenta."
 )
 _MENSAJE_RUT_EN_USO = "Ese RUT ya tiene una postulación. Si es tuyo, inicia sesión con tu RUT."  # CA-11.3
+# Quien ya inició sesión y agrega el perfil de maestro: no revela de quién es el RUT.
+MENSAJE_RUT_EN_OTRA_CUENTA = "Este RUT ya está registrado en otra cuenta. Si es tuyo, ingresa con esa cuenta o escríbenos."
 # Mensajes al agregar cliente o maestro a una cuenta existente (RNF-15, RNF-17):
 # sin "perfil" ni "solicitud". ``{para}`` dice para qué se pide el dato.
 PARA_CLIENTE = "pedir trabajos"
@@ -318,9 +320,14 @@ def agregar_perfil_maestro(usuario, *, rut, telefono=AUSENTE):
         raise ErrorValidacion("perfil", MENSAJE_YA_ES_MAESTRO)
     rut = normalizar_rut(rut)
     telefono = _dato_faltante(usuario, "telefono", telefono, normalizar_telefono, PARA_MAESTRO)
-    _rut_libre(rut)
-    _completar_usuario(usuario, telefono=telefono)
-    _crear_perfil_maestro(usuario, rut)
+    try:
+        _rut_libre(rut)
+        _completar_usuario(usuario, telefono=telefono)
+        _crear_perfil_maestro(usuario, rut)
+    except ErrorValidacion as error:
+        if error.campo == "rut":
+            raise ErrorValidacion("rut", MENSAJE_RUT_EN_OTRA_CUENTA) from None
+        raise
     _exigir_invariantes(usuario)
     return usuario
 

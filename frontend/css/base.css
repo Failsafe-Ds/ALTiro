@@ -142,6 +142,9 @@ a:hover {
   /* E-3.3: degradado vertical suave; contraste medido sobre --encabezado-arriba
      (marca 4,86:1, texto 13,6:1, borde 3,75:1). */
   background: linear-gradient(to bottom, var(--encabezado-arriba), var(--fondo));
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: var(--esp-2);
 }
 
 .marca {
@@ -298,10 +301,11 @@ button.boton-secundario:hover {
 
 /* --- Avisos (MASTER: borde izquierdo de 4 px, ícono y texto) --- */
 
+/* El aviso toma el color del texto en su borde izquierdo (MASTER). */
 .aviso {
   padding: 0.75rem 1rem;
   border-radius: var(--radio);
-  border-left: 4px solid;
+  border-left: 4px solid currentColor;
   margin-bottom: 1rem;
 }
 
@@ -347,13 +351,6 @@ button.boton-secundario:hover {
 }
 
 /* --- Cuenta --- */
-
-.tarjeta {
-  padding: 1rem;
-  border: 1px solid var(--borde);
-  border-radius: var(--radio);
-  margin-bottom: 1rem;
-}
 
 .datos {
   margin: 0;
@@ -409,14 +406,6 @@ legend {
 h3 {
   font-size: 1.1rem;
   margin: 1.25rem 0 0.5rem;
-}
-
-.enlace-encabezado {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 0.25rem;
-  font-weight: 600;
 }
 
 .aviso button {
@@ -1408,6 +1397,8 @@ button.boton-quitar {
 
 .calificacion-ficha {
   color: var(--texto-suave);
+  font-weight: 600;
+  margin: 0 0 1rem;
 }
 
 .tarjeta-maestro .incumple {
@@ -1479,11 +1470,6 @@ button.boton-quitar {
 
 .leyenda-bloques {
   margin-top: 0;
-}
-
-.calificacion-ficha {
-  font-weight: 600;
-  margin: 0 0 1rem;
 }
 
 /* --- Conversación del pedido (HU-07, RF-25; ADR-026, E-2) --- */
@@ -1568,10 +1554,6 @@ button.boton-quitar {
   font-weight: 700;
 }
 
-.calificacion {
-  margin: 0.5rem 0;
-}
-
 .lista-comentarios {
   display: grid;
   gap: 0.75rem;
@@ -1621,12 +1603,6 @@ button.boton-quitar {
 }
 
 /* --- Menú principal del encabezado (ADR-002, E-2) --- */
-.encabezado {
-  flex-wrap: wrap;
-  gap: 0.25rem 0.75rem;
-  margin-bottom: var(--esp-2);
-}
-
 .encabezado .marca {
   margin-right: auto;
 }
@@ -1755,7 +1731,7 @@ button.boton-quitar {
 .seccion {
   margin: 0 0 1.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid var(--borde);
+  border-top: 1px solid var(--linea);
 }
 
 details.tarjeta > summary {
@@ -1949,18 +1925,9 @@ button.carrusel-boton[aria-disabled="true"] {
   margin-top: 0;
 }
 
-.seccion {
-  border-top-color: var(--linea);
-}
-
 .subtitulo {
   margin-top: var(--esp-6);
   font-size: 1.1rem;
-}
-
-/* El aviso toma el color del texto en su borde izquierdo (MASTER). */
-.aviso {
-  border-left-color: currentColor;
 }
 
 /* Formularios con aire: botón principal separado del último campo. */
@@ -2011,6 +1978,7 @@ main.opciones {
 .opciones-plegable > summary {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   min-height: 48px;
   padding: 0 var(--esp-4);
   font-weight: 600;
@@ -2086,10 +2054,6 @@ main.opciones {
   .opciones-plegable.fijo {
     padding-top: var(--esp-1);
   }
-}
-
-.opciones-plegable > summary {
-  justify-content: space-between;
 }
 
 .opciones-plegable > summary::after {

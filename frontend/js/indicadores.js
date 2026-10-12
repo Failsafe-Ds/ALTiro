@@ -57,10 +57,7 @@
 
   function tratarError(estado, datos) {
     if (estado === 401) {
-      const enlace = document.createElement("a");
-      enlace.className = "boton";
-      enlace.href = "ingresar.html?aviso=sesion&siguiente=indicadores";
-      enlace.textContent = "Ingresar de nuevo";
+      const enlace = dom.enlaceIngresar("indicadores");
       formulario.mostrarErrores(form, { mensaje: "Tu sesión terminó. Vuelve a ingresar para seguir.", errores: {} });
       form.querySelector(".aviso").append(" ", enlace);
       return;

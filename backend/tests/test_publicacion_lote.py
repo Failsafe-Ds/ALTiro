@@ -46,6 +46,33 @@ def test_lote_y_uno_a_uno_dan_los_mismos_motivos(reloj):
     assert vistos == set(publicacion.MOTIVOS) | {"visible"}
 
 
+def test_el_camino_de_a_uno_usa_el_mismo_contexto_que_el_lote(reloj, monkeypatch):
+    """Auditoría ponytail 2, hallazgo 7: un solo camino arma el ``Contexto``.
+
+    Si alguien vuelve a armar el contexto de a uno por otra vía, esta prueba
+    falla aunque hoy den lo mismo; ``test_lote_y_uno_a_uno_dan_los_mismos_motivos``
+    compara los resultados.
+    """
+    catalogo = ay.catalogo_basico()
+    ay.escenario_aleatorio(catalogo)
+    servicio = ServicioMaestro.objects.select_related("servicio__oficio").order_by("pk").first()
+    original = publicacion.contextos_en_lote
+    llamadas = []
+
+    def espia(maestro_ids, servicio_ids=None):
+        llamadas.append((list(maestro_ids), servicio_ids))
+        return original(maestro_ids, servicio_ids)
+
+    monkeypatch.setattr(publicacion, "contextos_en_lote", espia)
+    lote = original([servicio.maestro_id])[servicio.maestro_id]
+
+    assert publicacion.motivos_no_visible(servicio, ay.HOY) == publicacion.motivos_no_visible_de(servicio, lote, ay.HOY)
+    assert llamadas == [([servicio.maestro_id], {servicio.servicio_id})]
+    # El ``elegible`` ya calculado reemplaza al del lote, sin tocar lo demás.
+    con_elegible = publicacion.motivos_no_visible(servicio, ay.HOY, elegible=False)
+    assert publicacion.MAESTRO_NO_ELEGIBLE in con_elegible
+
+
 def test_contextos_en_lote_usa_consultas_constantes(reloj, django_assert_max_num_queries):
     catalogo = ay.catalogo_basico()
     maestros = ay.escenario_aleatorio(catalogo, cantidad=12)

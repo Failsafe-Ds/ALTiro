@@ -8,6 +8,9 @@
 // - 429 (demasiadas solicitudes): el de la app (ADR-007) y el del proxy
 //   (ADR-029) traen { mensaje, errores } en español. Si el cuerpo no se puede
 //   leer, el mensaje se arma con Retry-After (segundos) para decir cuánto esperar.
+// - Tiempo límite (hallazgo 5, auditoría 2): con señal irregular una petición
+//   puede quedar colgada minutos. Pasado el límite se corta y se responde como
+//   sin conexión (estado 0), con un texto que lo dice y conserva lo escrito.
 "use strict";
 
 const api = (() => {
@@ -17,6 +20,19 @@ const api = (() => {
   };
   const SIN_CONEXION_LECTURA = {
     mensaje: "No pudimos conectarnos. Revisa tu señal o tu wifi y toca «Reintentar».",
+    errores: {},
+  };
+  // 20 s para JSON (red móvil limitada, RNF-02: las respuestas pesan pocos
+  // KB); 120 s para subir una foto de hasta 8 MB (ADR-015) a 4 Mbps o menos.
+  const LIMITE_JSON_MS = 20000;
+  const LIMITE_SUBIDA_MS = 120000;
+  const SIN_RESPUESTA = {
+    mensaje:
+      "La conexión está muy lenta y no recibimos respuesta a tiempo. Revisa tu señal o tu wifi e inténtalo de nuevo. Lo que escribiste sigue aquí.",
+    errores: {},
+  };
+  const SIN_RESPUESTA_LECTURA = {
+    mensaje: "La conexión está muy lenta y no recibimos respuesta a tiempo. Revisa tu señal o tu wifi y toca «Reintentar».",
     errores: {},
   };
   const RESPUESTA_ILEGIBLE = {
@@ -71,20 +87,35 @@ const api = (() => {
       cabeceras["Content-Type"] = "application/json";
       opciones.body = JSON.stringify(datos);
     }
-    let respuesta;
+    const control = new AbortController();
+    const reloj = setTimeout(() => control.abort(), LIMITE_JSON_MS);
+    opciones.signal = control.signal;
+    const lectura = metodo === "GET";
     try {
-      respuesta = await fetch(ruta, opciones);
-    } catch (error) {
-      return { estado: 0, datos: metodo === "GET" ? SIN_CONEXION_LECTURA : SIN_CONEXION };
+      let respuesta;
+      try {
+        respuesta = await fetch(ruta, opciones);
+      } catch (error) {
+        if (control.signal.aborted) {
+          return { estado: 0, datos: lectura ? SIN_RESPUESTA_LECTURA : SIN_RESPUESTA };
+        }
+        return { estado: 0, datos: lectura ? SIN_CONEXION_LECTURA : SIN_CONEXION };
+      }
+      // Señal interna (ADR-006, E-1): solo el rechazo CSRF lleva esta cabecera.
+      const rechazoCsrf = respuesta.status === 403 && respuesta.headers.get("AlTiro-Rechazo") === "csrf";
+      if (respuesta.status === 204) {
+        return { estado: 204, datos: null, rechazoCsrf };
+      }
+      const cuerpo = await respuesta.json().catch(() => null);
+      if (control.signal.aborted) {
+        // El límite venció mientras llegaba el cuerpo.
+        return { estado: 0, datos: lectura ? SIN_RESPUESTA_LECTURA : SIN_RESPUESTA };
+      }
+      const cuerpoFinal = cuerpoOFalla(cuerpo, respuesta.status, respuesta.headers.get("Retry-After"));
+      return { estado: respuesta.status, datos: cuerpoFinal, rechazoCsrf };
+    } finally {
+      clearTimeout(reloj);
     }
-    // Señal interna (ADR-006, E-1): solo el rechazo CSRF lleva esta cabecera.
-    const rechazoCsrf = respuesta.status === 403 && respuesta.headers.get("AlTiro-Rechazo") === "csrf";
-    if (respuesta.status === 204) {
-      return { estado: 204, datos: null, rechazoCsrf };
-    }
-    const cuerpo = await respuesta.json().catch(() => null);
-    const cuerpoFinal = cuerpoOFalla(cuerpo, respuesta.status, respuesta.headers.get("Retry-After"));
-    return { estado: respuesta.status, datos: cuerpoFinal, rechazoCsrf };
   }
 
   async function pedir(metodo, ruta, datos) {
@@ -118,6 +149,7 @@ const api = (() => {
     return new Promise((resolver) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", ruta);
+      xhr.timeout = LIMITE_SUBIDA_MS;
       xhr.setRequestHeader("Accept", "application/json");
       xhr.setRequestHeader("X-CSRFToken", leerCookie("csrftoken"));
       // Content-Type lo pone el navegador (multipart con su separador).
@@ -143,9 +175,10 @@ const api = (() => {
         const cuerpoFinal = cuerpoOFalla(cuerpo, xhr.status, xhr.getResponseHeader("Retry-After"));
         resolver({ estado: xhr.status, datos: cuerpoFinal, rechazoCsrf });
       });
-      for (const falla of ["error", "abort", "timeout"]) {
+      for (const falla of ["error", "abort"]) {
         xhr.addEventListener(falla, () => resolver({ estado: 0, datos: SIN_CONEXION }));
       }
+      xhr.addEventListener("timeout", () => resolver({ estado: 0, datos: SIN_RESPUESTA }));
       xhr.send(formData);
     });
   }

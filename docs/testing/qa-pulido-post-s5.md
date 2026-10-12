@@ -93,3 +93,74 @@ Devolver DEF-QA-017 y DEF-QA-016 al agente frontend (críticos para la defensa: 
 
 Cuentas de QA: nueva corrida de `prep_pulido.py` en `altiro-dev` (contraseña al azar nueva en `datos.json`, borrado después; cuentas demo sin tocar). `d5.py` ahora toma el expediente en revisión desde la lista de curatoría. Resultados: `d1.py`, `d2.py` y `d5.py` sin FAIL; `e5.py` sin error JS; `verificar.sh` casos=3085 fallos=0; `test_frontend_pie_volver.py` 62 passed.
 Precio en resultados (DA-29, `.precio-tarjeta`), `buscar.html?oficio=pintura&region=8&comuna=8101`: 20 resultados con «$25.000 por trabajo», «Desde $8.500 por hora», a 360 y 1280 px, sin desborde horizontal, 17 px.
+
+## Ronda 2 (v0.6.3)
+
+Fecha: 2026-10-11, commit 03bbb8b. Alcance: ADR-002 E-3.2 y E-3.3, ADR-017 E-4, DA-30, DA-31 y `design-system/altiro/MASTER.md`. La suite (2125) ya había pasado; no se repitió. Mismo ambiente que arriba (Chromium 360×740 táctil y 1280×740, Playwright 1.63, `altiro-dev`). Axe-core 4.10.3, reglas WCAG 2.2 A/AA.
+
+Cuentas: `scripts/qa-pulido/prep_ronda2.py` crea, solo en `altiro-dev`, cuentas `qa.r2.*@example.com` y maestros «QA Ronda Dos» (cliente solo; maestro y cliente a la vez, con pedidos aceptados y finalizados en ambos papeles; dos clientes para postular). Contraseña aleatoria por corrida en `datos.json` (excluido de git y borrado al terminar). Las cuentas demo no se tocaron. Las cuentas que postulan quedan con el expediente en curso (son de QA).
+
+Scripts (`scripts/qa-pulido/`, se corren con `run.sh <script>`): `ronda2_flujos.py` (1 a 3), `ronda2_cuenta_botones.py` (3), `ronda2_postulacion.py <ancho> <CP|CP2>` (4, 5, 8, 9), `ronda2_carrusel_encabezado.py` (6, 8, 10), `ronda2_sobre_mi.py` (7, 9), `ronda2_cuenta_validaciones.py` (9).
+
+### Resultados
+
+| # | Verificación | Resultado | Evidencia |
+|---|---|---|---|
+| 1a | Marca por página: flujo cliente a `categorias`, flujo maestro a `mis-trabajos` | PASS | 12 páginas × 2 anchos (`categorias`, `buscar`, `perfil-maestro`, `pedir-trabajo`, `mis-pedidos`; `mis-trabajos`, `mi-perfil`, `mis-servicios`, `mi-cobertura`, `mi-agenda`, `mis-documentos`, `mi-postulacion`): el `href` de la marca coincide con el flujo. |
+| 1b | Páginas neutras siguen el último flujo | PASS | `cuenta` e `index` tras `mis-pedidos` dan `categorias`; tras `mis-trabajos` dan `mis-trabajos`; sin flujo previo, `mis-trabajos` (orden de E-3 para una cuenta con maestro). |
+| 1c | El menú cambia de flujo | PASS | Con cuenta dual el menú trae «Buscar maestros» y «Mi trabajo como maestro»; elegir uno cambia la marca y se mantiene en la neutra siguiente. |
+| 1d | `conversacion` y `evaluar` según la parte | PASS | Cuenta dual llegando desde el flujo contrario: como maestro del pedido, `mis-trabajos`; como cliente, `categorias` (ambas páginas, ambos anchos). |
+| 1e | Cuenta solo cliente sin «Mi trabajo como maestro» | PASS | Menú: Buscar maestros, Mis pedidos, Mi cuenta. |
+| 2a | «Cerrar sesión en este dispositivo» en el menú y en `cuenta` | PASS | Texto exacto en ambos. |
+| 2b | Ningún texto dice «celular» ni «teléfono» para la sesión | FAIL | `cuenta.html:190`: «Sales de AlTiro solo en este dispositivo (celular o computador)…». Ver DEF-QA-021. |
+| 3a | Ingresar centrada y legible | PASS | Formulario de 328 px (360) y 416 px (1280), márgenes laterales iguales (16/16 y 432/432), cuerpo de 17 px, sin desborde. |
+| 3b | `cuenta`: botones en fila que se envuelve | PASS | Las acciones de «Mis datos» (`#datos .lista-opciones`: 7 enlaces de 46 px) son `flex` con `wrap`: 360 da 2 por fila; 1280 da 4 y 3; separación de 8 px. Sin desborde horizontal. |
+| 4a | Postular desde cliente: los pasos se entienden | PASS | La sección explica «escribe tu RUT, marca oficios, fotos de cédula, antecedentes y licencia si el oficio la necesita» y luego muestra «Paso 1 de 3». |
+| 4b | RUT con formato al salir del campo | PASS | `33672203-9` pasa a `33.672.203-9` (también con K), 360 y 1280. |
+| 4c | RUT `1.111.111-1` rechazado junto al campo | PASS | «El RUT no es válido: revisa los números y el dígito verificador…» bajo el campo, visible, `aria-invalid=true`. |
+| 4d | Lleva a `mi-postulacion` | PASS | Ambos anchos; la cuenta pasa a tener perfil de maestro con la misma sesión. |
+| 5a | Cada paso dice qué documento pide | PASS | «Cédula de identidad», «Certificado de antecedentes», «Licencia SEC de Gas»; cada uno con la ayuda de dónde leer las fechas. |
+| 5b | Cédula: vencimiento obligatorio en pantalla | PASS | Etiqueta «(obligatorio)» y `required`; enviar sin fecha da error bajo el campo, visible. |
+| 5c | Cédula: vencimiento obligatorio en la API | PASS | `POST /api/maestros/expediente/documentos` sin `fecha_vencimiento` responde 400 con `errores.fecha_vencimiento` («Escribe la fecha de vencimiento de tu cédula…»). |
+| 5d | Antecedentes y licencia «(si tiene)» | PASS | Etiqueta «Fecha de vencimiento (si tiene)», sin `required`. |
+| 5e | Ir adelante y volver conserva fotos y fechas | PASS | Cédula, oficios y cédula otra vez: 2 fotos y ambas fechas; antecedentes, cédula y antecedentes: foto y fecha. |
+| 5f | Al recargar, aviso de volver a elegir las fotos | PASS | «Volviste a cargar la página y el navegador no guarda las fotos: elige de nuevo…» (`role=alert`). |
+| 5g | Nada de las fotos en `localStorage` ni `sessionStorage` | PASS | `localStorage` vacío; `sessionStorage` solo `altiro.flujo` y, con fotos sin enviar, la marca `altiro.postulacion.fotos = "1"` (1 carácter, sin datos); desaparece al enviar. |
+| 6a | Carrusel: 9 oficios, «Otros servicios» con ícono | PASS | 9 `li`, todos con SVG. |
+| 6b | Teclado y botones; anuncia los extremos | PASS | 360: «Oficios 8 a 9 de 9. Llegaste al final de la lista.» y «Oficios 1 a 2 de 9. Estás al inicio de la lista.» (`aria-live=polite`, `aria-disabled` en el extremo); Tab llega a «Otros servicios» y queda entera en el carrusel (ambos anchos). |
+| 6c | 1280: botones ocultos si caben todos | PASS | 1280: sin desborde (`scrollWidth = clientWidth`) y controles `hidden`; 360: desborde de 1008 px y botones de 48 px. |
+| 6d | `prefers-reduced-motion`: sin animación | PASS | 360: `scroll-behavior: auto`, transición de 0 s, el desplazamiento salta 300 px en un cuadro. A 1280 no es observable (sin botones). |
+| 6e | Sin desplazamiento lateral de la página | PASS | `scrollWidth <= innerWidth` en reposo, tras los botones y tras Tab. |
+| 6f | Contenido centrado en las tarjetas | PASS | Centro del ícono y del nombre igual al de la tarjeta (±2 px) en las 9. |
+| 6g | Encabezado: degradado `#FBE4E7` a blanco, ambas versiones | PASS | `linear-gradient(rgb(251,228,231), rgb(255,255,255))` sin sesión y con sesión. |
+| 6h | Contraste de la marca y del botón «Menú» | PASS | Fórmula WCAG sobre el tono más oscuro `#FBE4E7`: marca 4,86:1 (umbral 4,5); botón «Menú» (texto sobre su fondo blanco) 13,62:1. Axe sin fallas de contraste. |
+| 7a | `mi-perfil` «Sobre mí»: editar, contador, recorte | PASS | `maxlength=500`; 510 tecleados quedan en 500 con «Te quedan 0 caracteres.»; al guardar se recortan los bordes; la ayuda advierte no poner teléfono ni correo. |
+| 7b | 501 caracteres: error y se conserva lo escrito | PASS | Con el `maxlength` retirado a propósito: «Tu descripción puede tener hasta 500 caracteres. Acórtala un poco.» bajo el campo, visible; el texto sigue (501). API: 400 en `descripcion`. |
+| 7c | Borrador tras recargar y mensaje de resultado | PASS | «Recuperamos lo que estabas escribiendo…»; guardar da «Listo: guardamos tu «Sobre mí»…» (`role=alert`); el borrador se elimina; botón «Guardando…» desactivado durante la espera. |
+| 7d | Ficha pública: saltos, HTML como texto, vacía oculta | PASS | `white-space: pre-line` (2 líneas); `<b>` y `<script>` quedan como texto escapado, sin elementos; descripción vacía oculta la sección. Ambos anchos. |
+| 7e | API: terceros y cliente no editan | PASS | Sin sesión 401; cliente sin perfil de maestro 403; el endpoint solo opera sobre la sesión (no recibe `ref`): `maestro` o `ref` en el cuerpo dan 400 sin 500; editar al maestro A no cambió la descripción del maestro B (`GET /api/maestros/publicos/<ref>`). |
+| 8 | «Otros servicios» (DA-31) | PASS | En categorías (6a), en la declaración de oficios de la postulación (9 oficios) y `buscar?oficio=otros&comuna=8101` da 1 resultado, «$19.000 por hora». |
+| 9a | Validaciones mínimas: `cuenta` (agregar perfil de maestro) | PASS | `maxlength` 12; solo espacios da error de campo vacío visible; espacios de los bordes recortados; envío en espera con botón desactivado «Enviando…»; error del servidor («Ese RUT ya tiene una postulación…») junto al campo, dato conservado, aviso `role=alert`. |
+| 9b | `mi-postulacion` (documentos) | PASS | Un dato faltante (vencimiento) no borra fotos ni emisión; botón desactivado «Enviando…» y «Enviando fotos… 0 %» (`role=status`); éxito: «Recibimos tu cédula de identidad.» y el paso siguiente aparece sin datos previos. |
+| 9c | `mi-perfil` («Sobre mí») | PASS | Ver 7a a 7c. API: 500 caracteres da 200, 501 da 400, número da 400, solo espacios da 200 y se borra, `"  valor  "` se guarda como «valor». |
+| 10a | Consola sin errores de CSP ni de JavaScript | PASS | `categorias`, `ingresar`, `cuenta`, `mi-perfil`, `mi-postulacion`, `buscar`, `perfil-maestro`: 0 CSP y 0 `pageerror`. Solo `Failed to load resource` por el 401 de `GET /api/cuenta` en páginas públicas (observación 2 de arriba), el 404 de la foto del fixture (observación 4) y los 400 de las pruebas de validación. |
+| 10b | Axe (RNF-16): `categorias`, `ingresar`, `cuenta`, `mi-perfil` | PASS | 360 y 1280, además `categorias` con sesión y `mi-perfil#sobre-mi`: 0 violaciones; 10 a 34 nodos de contraste aprobados por página; 1 resultado «incompleto» por página (no es falla). Es un muestreo con axe, no una medición manual de todos los pares. |
+
+Resumen: 41 verificaciones, 40 PASS, 1 FAIL (DEF-QA-021), 0 BLOCKED.
+
+### Defecto
+
+**DEF-QA-021** (baja). ADR-002 E-3.2 («Cerrar sesión en este dispositivo»: no se adivina si es teléfono o computador). `frontend/cuenta.html:190`, sección «Cerrar sesión»: «Sales de AlTiro solo en este dispositivo (celular o computador). Si usas AlTiro en otro, allí tu sesión sigue abierta.»
+- Pasos: ingresar con cualquier cuenta y abrir `cuenta.html#seguridad`.
+- Esperado: ningún texto dice «celular» ni «teléfono» al hablar de la sesión. Observado: el párrafo dice «celular o computador».
+- Responsable: frontend (quitar «(celular o computador)»).
+- **Estado: corregido** (v0.6.4). Se quitó «(celular o computador)»; `ronda2_flujos.py` 68 PASS, incluido 2b.
+
+### Observaciones (sin defecto)
+
+1. Un error de campo (por ejemplo el del RUT en `cuenta`) sigue visible al corregir el dato y salir del campo; se limpia al reenviar. Es el comportamiento común de `formulario.js`. **Atendida en v0.6.4:** al corregir y salir, el error se limpia si el dato ya es válido para la pantalla.
+2. `PUT /api/maestros/perfil` sin la clave `descripcion` (o con `null`) borra el «Sobre mí» con 200. Está documentado en `cambiar_descripcion` («vacío o `null` lo borra»); la pantalla siempre envía la clave.
+3. Con un RUT que ya tiene postulación, `cuenta` muestra «Si es tuyo, inicia sesión con tu RUT», aunque la persona ya inició sesión. El texto viene del servidor y es el mismo del registro; el coordinador decide si lo ajusta.
+4. La marca `altiro.postulacion.fotos = "1"` en `sessionStorage` permite avisar tras recargar; no contiene datos del documento. Se acepta como PASS en 5g.
+5. A 1280 no se puede probar `prefers-reduced-motion` con botones (están ocultos porque caben los 9 oficios); se probó a 360.
+6. Limitaciones: móvil emulado y solo Chromium; la espera de red se simula reteniendo la petición, no con un perfil de ancho de banda; el contraste de la marca se calculó con la fórmula WCAG sobre `#FBE4E7` además de axe.

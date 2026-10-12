@@ -393,6 +393,19 @@ def test_descripcion_de_500_caracteres_se_acepta_y_501_responde_400_en_el_campo(
     assert _descripcion(maestro) == "a" * DESCRIPCION_LARGO_MAXIMO
 
 
+@pytest.mark.parametrize("datos", [{}, {"otra": "x"}])
+def test_sin_la_clave_descripcion_responde_400_y_no_borra(maestro, datos):
+    PerfilPublico.objects.filter(perfil_maestro_id=maestro.pk).update(descripcion="Antes")
+
+    respuesta = _put_perfil(_sesion(), datos)
+
+    assert respuesta.status_code == 400
+    if not datos:
+        assert respuesta.json()["errores"] == {"descripcion": servicios_perfil.MENSAJE_DESCRIPCION_FALTA}
+        assert respuesta.json()["mensaje"]
+    assert _descripcion(maestro) == "Antes"
+
+
 @pytest.mark.parametrize("valor", ["Hola\x00mundo", "Hola\x07", 123, ["texto"], {"a": 1}])
 def test_descripcion_con_caracter_nulo_o_que_no_es_texto_responde_400_en_el_campo(maestro, valor):
     respuesta = _put_perfil(_sesion(), {"descripcion": valor})

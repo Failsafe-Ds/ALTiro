@@ -68,7 +68,7 @@ const curatoria = (() => {
       aviso,
       "error",
       "Tu sesión terminó. Vuelve a ingresar para seguir revisando expedientes.",
-      enlaceBoton("Ingresar de nuevo", "ingresar.html?aviso=sesion&siguiente=curatoria")
+      dom.enlaceIngresar("curatoria")
     );
   }
 

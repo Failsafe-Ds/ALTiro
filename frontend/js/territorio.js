@@ -8,12 +8,7 @@
 const territorio = (() => {
   const SIN_SENAL = "Revisa tu señal o tu wifi y toca «Reintentar».";
 
-  function opcion(valor, texto) {
-    const elemento = document.createElement("option");
-    elemento.value = valor;
-    elemento.textContent = texto;
-    return elemento;
-  }
+  const opcion = dom.opcion;
 
   // Aviso de error junto al campo (debajo de su bloque .campo), con "Reintentar".
   function avisarFalla(select, texto, reintentar) {
@@ -45,10 +40,16 @@ const territorio = (() => {
     quitarFalla(selectComuna);
     selectComuna.replaceChildren(opcion("", region ? "Cargando comunas…" : "Primero elige tu región"));
     selectComuna.disabled = true;
+    // Hallazgo 3 (auditoría 2): con red lenta, la respuesta de una región
+    // anterior puede llegar después; solo vale la de la última región elegida.
+    selectComuna.dataset.region = region;
     if (!region) {
       return;
     }
     const { estado, datos } = await api.obtener(`/api/territorio/regiones/${encodeURIComponent(region)}/comunas`);
+    if (selectComuna.dataset.region !== region) {
+      return;
+    }
     if (estado !== 200) {
       selectComuna.replaceChildren(opcion("", "No pudimos cargar las comunas"));
       avisarFalla(selectComuna, `No pudimos cargar las comunas. ${estado === 0 ? SIN_SENAL : "Toca «Reintentar»."}`, () =>

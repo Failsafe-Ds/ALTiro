@@ -45,12 +45,29 @@ const formulario = (() => {
     if (!campo || !campo.tagName || !recortable(campo) || !evento.clipboardData) {
       return;
     }
+    // Hallazgo 2 (auditoría 2): email y number no admiten selección
+    // (selectionStart es null y setRangeText falla); ahí pega el navegador y el
+    // valor se recorta al salir del campo y al enviar (valor()).
+    if (typeof campo.selectionStart !== "number") {
+      return;
+    }
     const texto = evento.clipboardData.getData("text");
     if (texto === texto.trim()) {
       return;
     }
+    const inicio = campo.selectionStart;
+    const fin = campo.selectionEnd;
+    let limpio = texto.trim();
+    // setRangeText no respeta maxlength: se corta lo pegado al espacio libre.
+    if (campo.maxLength > 0) {
+      limpio = limpio.slice(0, Math.max(0, campo.maxLength - (campo.value.length - (fin - inicio))));
+    }
+    try {
+      campo.setRangeText(limpio, inicio, fin, "end");
+    } catch (error) {
+      return; // Sin preventDefault: el navegador pega como siempre.
+    }
     evento.preventDefault();
-    campo.setRangeText(texto.trim(), campo.selectionStart, campo.selectionEnd, "end");
     campo.dispatchEvent(new Event("input", { bubbles: true }));
   });
 
@@ -250,10 +267,20 @@ const formulario = (() => {
   const PREFIJO = "altiro.";
   const VIGENCIA_MS = 2 * 60 * 60 * 1000;
 
+  // Almacenamiento: sessionStorage por defecto; "local" para los borradores
+  // de conversación y evaluación (UX-S5-09), que deben sobrevivir a cerrar la
+  // pestaña. Acceder a cualquiera de los dos puede fallar (modo privado).
+  function deposito(tipo) {
+    return tipo === "local" ? window.localStorage : window.sessionStorage;
+  }
+
+  // Claves locales que formulario.js limpia (vencidas al cargar, todas al salir).
+  const PREFIJOS_LOCALES = ["altiro.conversacion.", "altiro.evaluar."];
+
   // Guarda un objeto con la hora actual. Nunca debe incluir contraseñas.
-  function guardarDatos(clave, datos) {
+  function guardarDatos(clave, datos, tipo) {
     try {
-      sessionStorage.setItem(clave, JSON.stringify(Object.assign({}, datos, { guardado: Date.now() })));
+      deposito(tipo).setItem(clave, JSON.stringify(Object.assign({}, datos, { guardado: Date.now() })));
       return true;
     } catch (error) {
       // Almacenamiento no disponible: el formulario sigue funcionando.
@@ -276,19 +303,20 @@ const formulario = (() => {
     return typeof guardado === "number" && edad >= 0 && edad <= VIGENCIA_MS;
   }
 
-  function olvidar(clave) {
+  function olvidar(clave, tipo) {
     try {
-      sessionStorage.removeItem(clave);
+      deposito(tipo).removeItem(clave);
     } catch (error) {
       // Nada que hacer.
     }
   }
 
-  // Devuelve lo guardado solo si no venció; si venció, lo borra.
-  function recuperar(clave) {
+  // Devuelve lo guardado solo si no venció; si venció, lo borra. Lo que no es
+  // un borrador (por ejemplo «altiro.flujo», texto simple de menu.js) se deja.
+  function recuperar(clave, tipo) {
     let previo = null;
     try {
-      previo = JSON.parse(sessionStorage.getItem(clave));
+      previo = JSON.parse(deposito(tipo).getItem(clave));
     } catch (error) {
       previo = null;
     }
@@ -296,15 +324,33 @@ const formulario = (() => {
       return null;
     }
     if (!vigente(previo.guardado)) {
-      olvidar(clave);
+      olvidar(clave, tipo);
       return null;
     }
     return previo;
   }
 
-  function clavesPropias() {
+  // Borrador de un solo texto (conversación, evaluación): guarda { texto } o,
+  // si está vacío, lo borra. Devuelve el texto vigente o "".
+  function guardarTexto(clave, texto) {
+    if (texto) {
+      guardarDatos(clave, { texto }, "local");
+    } else {
+      olvidar(clave, "local");
+    }
+  }
+
+  function recuperarTexto(clave) {
+    const previo = recuperar(clave, "local");
+    return previo && typeof previo.texto === "string" ? previo.texto : "";
+  }
+
+  function clavesPropias(tipo) {
     try {
-      return Object.keys(sessionStorage).filter((clave) => clave.startsWith(PREFIJO));
+      const claves = Object.keys(deposito(tipo));
+      return tipo === "local"
+        ? claves.filter((clave) => PREFIJOS_LOCALES.some((prefijo) => clave.startsWith(prefijo)))
+        : claves.filter((clave) => clave.startsWith(PREFIJO));
     } catch (error) {
       return [];
     }
@@ -312,25 +358,19 @@ const formulario = (() => {
 
   // Tras cerrar sesión con éxito: no queda nada escrito en este teléfono.
   function olvidarTodo() {
-    for (const clave of clavesPropias()) {
-      olvidar(clave);
-    }
-    // Borradores de conversación y evaluación (UX-S5-09): viven en localStorage.
-    try {
-      for (const clave of Object.keys(localStorage)) {
-        if (clave.startsWith("altiro.conversacion.") || clave.startsWith("altiro.evaluar.")) {
-          localStorage.removeItem(clave);
-        }
+    for (const tipo of ["session", "local"]) {
+      for (const clave of clavesPropias(tipo)) {
+        olvidar(clave, tipo);
       }
-    } catch (error) {
-      // Sin almacenamiento: nada que borrar.
     }
   }
 
-  // Al cargar cualquier página con formularios se descarta lo vencido, aunque
-  // la persona no vuelva al formulario que lo guardó.
-  for (const clave of clavesPropias()) {
-    recuperar(clave);
+  // Al cargar cualquier página se descarta lo vencido de ambos almacenamientos
+  // (hallazgo 4, auditoría 2), aunque la persona no vuelva al formulario.
+  for (const tipo of ["session", "local"]) {
+    for (const clave of clavesPropias(tipo)) {
+      recuperar(clave, tipo);
+    }
   }
 
   // --- Pasos ---
@@ -519,7 +559,11 @@ const formulario = (() => {
   // (11.111.111-1), para que se vea qué se escribió. No cambia lo que se valida:
   // el servidor quita puntos y guion igual que errorRut. Un RUT inválido queda
   // tal como se escribió, para poder corregirlo.
+  // También la usan «Mi cuenta» y curatoría para mostrar el RUT guardado.
   function formatearRut(valor) {
+    if (!valor || valor.trim().length < 2) {
+      return valor || "";
+    }
     const rut = valor.trim().replace(/[.-]/g, "").toUpperCase();
     const cuerpo = rut.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     return `${cuerpo}-${rut.slice(-1)}`;
@@ -547,6 +591,31 @@ const formulario = (() => {
     const id = (campo.getAttribute("aria-describedby") || "").split(/\s+/).find((t) => t.startsWith("error-"));
     return id ? id.slice("error-".length) : campo.name;
   }
+
+  // Observación del QA (ronda 2): al corregir un campo con error y salir de él,
+  // su error se limpia si el dato ya parece válido (no espera al reenvío). Solo
+  // se revisa lo que la pantalla sabe revisar (obligatorio, formato del
+  // navegador, data-validar); el servidor sigue decidiendo al enviar.
+  document.addEventListener("change", (evento) => {
+    const campo = evento.target;
+    if (!campo || !campo.getAttribute || campo.getAttribute("aria-invalid") !== "true") {
+      return;
+    }
+    const escrito = valor(campo);
+    const validador = campo.dataset ? VALIDADORES[campo.dataset.validar] : null;
+    if (
+      (campo.required && !escrito) ||
+      (typeof campo.checkValidity === "function" && !campo.checkValidity()) ||
+      (validador && escrito && validador(escrito))
+    ) {
+      return;
+    }
+    campo.removeAttribute("aria-invalid");
+    const destino = document.getElementById("error-" + nombreDeError(campo));
+    if (destino) {
+      destino.textContent = "";
+    }
+  });
 
   // Revisa los campos con data-validar dentro de "zona" (el formulario o un paso).
   // Los vacíos los resuelve "required" o el servidor. Devuelve { mensaje, errores }
@@ -612,6 +681,9 @@ const formulario = (() => {
     guardarDatos,
     recuperar,
     olvidar,
+    guardarTexto,
+    recuperarTexto,
+    formatearRut,
     olvidarTodo,
     traducirNoPermitido,
     botonVolverACargar,

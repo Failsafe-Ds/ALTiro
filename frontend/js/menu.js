@@ -134,7 +134,7 @@
     boton.textContent = "Cerrando sesión…";
     const { estado } = await api.borrar("/api/sesion");
     if (estado === 204 || estado === 401) {
-      if (window.formulario) window.formulario.olvidarTodo();
+      formulario.olvidarTodo();
       // olvidarTodo también borra «altiro.flujo» (prefijo «altiro.»).
       location.replace("index.html?aviso=sesion-cerrada");
       return;

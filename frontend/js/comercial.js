@@ -92,7 +92,7 @@
       avisoPagina,
       "error",
       "Tu sesión terminó. Vuelve a ingresar para seguir con el catálogo.",
-      enlaceBoton("Ingresar de nuevo", "ingresar.html?aviso=sesion&siguiente=comercial")
+      dom.enlaceIngresar("comercial")
     );
   }
 

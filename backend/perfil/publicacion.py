@@ -12,7 +12,8 @@ búsqueda de S4: nadie más decide la visibilidad.
   ``catalogo_inactivo``, ``oficio_no_declarado``, ``modalidad_no_admitida``,
   ``licencia_no_vigente`` y ``maestro_no_elegible``. Lista vacía = visible.
 - ``motivos_no_visible(servicio_maestro, hoy)``: envoltorio que arma el
-  contexto de un servicio con consultas y llama a la regla pura.
+  contexto de un servicio con ``contextos_en_lote`` (un solo camino) y llama
+  a la regla pura.
 - ``contextos_en_lote(maestro_ids)``: contextos de muchos maestros con un
   número constante de consultas (búsqueda, RNF-01).
 - ``visible``: sin motivos.
@@ -25,7 +26,7 @@ búsqueda de S4: nadie más decide la visibilidad.
 un servicio visible": es la lista que ve el maestro en ``GET /api/maestros/perfil``.
 """
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from django.db.models import F
 
@@ -131,27 +132,13 @@ def motivos_no_visible_de(servicio_maestro, ctx, hoy):
 
 
 def _contexto_de(servicio_maestro, elegible):
-    """Contexto mínimo de un solo servicio, con consultas (lo usa el envoltorio)."""
-    servicio = servicio_maestro.servicio
-    oficio = servicio.oficio
+    """Contexto de un solo servicio: el mismo camino que la búsqueda (``contextos_en_lote``).
+
+    Si ``elegible`` viene ya calculado, reemplaza al del lote.
+    """
     maestro_id = servicio_maestro.maestro_id
-    declarados = frozenset(
-        [oficio.pk] if OficioMaestro.objects.filter(maestro_id=maestro_id, oficio=oficio).exists() else []
-    )
-    admitidas = frozenset(
-        [(servicio.pk, servicio_maestro.modalidad)]
-        if ServicioModalidad.objects.filter(servicio=servicio, modalidad=servicio_maestro.modalidad).exists()
-        else []
-    )
-    licencias = {}
-    if oficio.regulado:
-        expediente = Expediente.objects.get(perfil_maestro_id=maestro_id)
-        licencias[oficio.pk] = list(
-            Documento.objects.filter(expediente=expediente, tipo=vigencia.LICENCIA_SEC, oficio=oficio)
-        )
-    if elegible is None:
-        elegible = maestro_elegible(maestro_id)
-    return Contexto(elegible, declarados, admitidas, licencias)
+    ctx = contextos_en_lote([maestro_id], servicio_ids={servicio_maestro.servicio_id})[maestro_id]
+    return ctx if elegible is None else replace(ctx, elegible=elegible)
 
 
 def motivos_no_visible(servicio_maestro, hoy=None, elegible=None):

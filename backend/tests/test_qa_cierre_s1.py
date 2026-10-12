@@ -175,7 +175,9 @@ def test_pi292_con_sesion_no_se_opera_sobre_otra_cuenta_por_id_correo_o_rut(clie
     assert con_correo.status_code == 400
     assert set(con_correo.json()["errores"]) == {"correo"}
     assert con_rut.status_code == 400
-    assert con_rut.json()["errores"]["rut"].startswith("Ese RUT ya tiene una postulación")
+    assert con_rut.json()["errores"]["rut"] == (
+        "Este RUT ya está registrado en otra cuenta. Si es tuyo, ingresa con esa cuenta o escríbenos."
+    )
     for respuesta in (con_id, con_correo, con_rut):
         assert sin_texto_prohibido(respuesta)
     a.refresh_from_db()

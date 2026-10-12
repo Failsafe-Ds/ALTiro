@@ -40,8 +40,7 @@
   // 401: sesión vencida. 403: sin rol o conflicto de interés (mensaje del servidor). 404: no existe o no disponible.
   function tratarError(estado, datos) {
     if (estado === 401) {
-      const enlace = elemento("a", "boton", "Ingresar de nuevo");
-      enlace.href = "ingresar.html?aviso=sesion&siguiente=moderacion";
+      const enlace = dom.enlaceIngresar("moderacion");
       avisar("Tu sesión terminó. Vuelve a ingresar para seguir.", enlace);
       return;
     }

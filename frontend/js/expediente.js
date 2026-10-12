@@ -77,15 +77,6 @@ const expediente = (() => {
     return Number.isNaN(instante) ? "" : FORMATO_FECHA_HORA.format(instante);
   }
 
-  // "12345678K" => "12.345.678-K".
-  function formatearRut(rut) {
-    if (!rut || rut.length < 2) {
-      return rut || "";
-    }
-    const cuerpo = rut.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    return cuerpo + "-" + rut.slice(-1);
-  }
-
   // <span class="estado …"><span aria-hidden="true">⏳</span> En revisión</span>
   function etiquetaEstado(estado, tabla) {
     const datos = tabla[estado] || DESCONOCIDO;
@@ -186,13 +177,7 @@ const expediente = (() => {
   // Aviso de sesión terminada con enlace para volver a ingresar y seguir
   // en la misma página ("siguiente" es una clave de la lista cerrada de ingresar.js).
   function avisarSesionTerminada(aviso, siguiente, textoExtra) {
-    const enlace = document.createElement("a");
-    enlace.className = "boton";
-    enlace.href = `ingresar.html?aviso=sesion&siguiente=${siguiente}`;
-    enlace.textContent = "Ingresar de nuevo";
-    aviso.className = "aviso aviso-error";
-    aviso.replaceChildren(["Tu sesión terminó.", textoExtra, "Vuelve a ingresar para continuar."].filter(Boolean).join(" "), enlace);
-    aviso.focus();
+    dom.sesionTerminada(aviso, siguiente, ["Tu sesión terminó.", textoExtra, "Vuelve a ingresar para continuar."].filter(Boolean).join(" "));
   }
 
   // La cuenta no es de maestro (403 de la API): se explica y se ofrece "Mi cuenta".
@@ -233,7 +218,6 @@ const expediente = (() => {
     nombreDocumento,
     formatearFecha,
     formatearFechaHora,
-    formatearRut,
     etiquetaEstado,
     vigencia,
     pintarAvisos,

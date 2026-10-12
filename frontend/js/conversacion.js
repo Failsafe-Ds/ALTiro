@@ -53,40 +53,10 @@
     return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
   }
 
-  // El borrador vence a las 2 h del último cambio, como el progreso de los
-  // formularios (ADR-002 E-1): en un teléfono compartido no queda indefinidamente.
-  const VIGENCIA_BORRADOR_MS = 2 * 60 * 60 * 1000;
-
-  function leerBorrador() {
-    try {
-      const previo = JSON.parse(window.localStorage.getItem(claveBorrador));
-      const edad = previo && typeof previo.guardado === "number" ? Date.now() - previo.guardado : -1;
-      if (previo && typeof previo.texto === "string" && edad >= 0 && edad <= VIGENCIA_BORRADOR_MS) {
-        return previo.texto;
-      }
-      window.localStorage.removeItem(claveBorrador);
-      return "";
-    } catch (error) {
-      try {
-        window.localStorage.removeItem(claveBorrador);
-      } catch (otro) {
-        // Sin almacenamiento.
-      }
-      return "";
-    }
-  }
-
-  function guardarBorrador(texto) {
-    try {
-      if (texto) {
-        window.localStorage.setItem(claveBorrador, JSON.stringify({ texto, guardado: Date.now() }));
-      } else {
-        window.localStorage.removeItem(claveBorrador);
-      }
-    } catch (error) {
-      // Sin almacenamiento: el texto sigue en el campo.
-    }
-  }
+  // El borrador vive en localStorage y vence a las 2 h del último cambio
+  // (ADR-002 E-1); formulario.js lo guarda, lo vence y lo borra al salir.
+  const leerBorrador = () => formulario.recuperarTexto(claveBorrador);
+  const guardarBorrador = (texto) => formulario.guardarTexto(claveBorrador, texto);
 
   function fechaHora(iso) {
     return new Date(iso).toLocaleString("es-CL", {
@@ -115,8 +85,7 @@
   }
 
   function sesionTerminada() {
-    const enlace = elemento("a", "boton", "Ingresar de nuevo");
-    enlace.href = `ingresar.html?aviso=sesion&siguiente=conversacion&ticket=${encodeURIComponent(refTicket)}`;
+    const enlace = dom.enlaceIngresar("conversacion", refTicket);
     errorPagina("Tu sesión terminó. Lo que escribiste quedó guardado en este teléfono. Vuelve a ingresar y abre de nuevo la conversación.", enlace);
   }
 

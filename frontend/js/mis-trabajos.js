@@ -19,13 +19,7 @@
 (() => {
   const RUTA = "/api/maestros/tickets";
 
-  const cargando = document.getElementById("cargando");
-  const avisoPagina = document.getElementById("aviso-pagina");
   const avisoResultado = document.getElementById("aviso-resultado");
-  const contenido = document.getElementById("contenido");
-
-  const listaAvisos = document.getElementById("lista-avisos");
-  const contadorAvisos = document.getElementById("contador-avisos");
 
   const detalle = document.getElementById("detalle-pedido");
   const confirmarAccion = document.getElementById("confirmar-accion");
@@ -34,55 +28,14 @@
   const botonAceptar = document.getElementById("aceptar-pedido");
   const botonRechazar = document.getElementById("rechazar-pedido");
 
-  const ESTADOS_TAB = { pendiente: "pendiente", aceptado: "aceptado", historial: "historial" };
-  const paginas = { pendiente: 1, aceptado: 1, historial: 1 };
-
   const bloquePrecio = document.getElementById("bloque-precio");
   const formPrecio = document.getElementById("form-precio");
   const campoMonto = document.getElementById("monto-final");
   const avisoPrecio = document.getElementById("aviso-precio");
   let ticketAbierto = null;
-  let tabActual = "pendiente";
-  let refAbierto = null;
   let accionPendiente = null; // "aceptacion" | "rechazo"
 
   const elemento = dom.elemento;
-
-  // --- Sesión y acceso ---
-
-  function sesionTerminada() {
-    contenido.hidden = true;
-    const enlace = elemento("a", "boton", "Ingresar de nuevo");
-    enlace.href = "ingresar.html?aviso=sesion&siguiente=trabajos";
-    avisoPagina.className = "aviso aviso-error";
-    avisoPagina.replaceChildren("Tu sesión terminó. Vuelve a ingresar para ver tus trabajos.", enlace);
-    avisoPagina.focus();
-  }
-
-  function sinAcceso() {
-    contenido.hidden = true;
-    const enlace = elemento("a", "boton", "Ir a mi cuenta");
-    enlace.href = "cuenta.html";
-    avisoPagina.className = "aviso aviso-error";
-    avisoPagina.replaceChildren(
-      "Esta página es para maestros. Si quieres trabajar como maestro, postula desde «Mi cuenta».",
-      enlace
-    );
-    avisoPagina.focus();
-  }
-
-  function errorCarga() {
-    contenido.hidden = true;
-    const boton = elemento("button", "", "Reintentar");
-    boton.type = "button";
-    boton.addEventListener("click", cargar);
-    avisoPagina.className = "aviso aviso-error";
-    avisoPagina.replaceChildren(
-      "No pudimos cargar tus trabajos. Revisa tu señal o tu wifi e inténtalo de nuevo. ",
-      boton
-    );
-    avisoPagina.focus();
-  }
 
   // --- Precio final (texto del servidor: el mismo monto para ambas partes, RF-28) ---
 
@@ -148,18 +101,18 @@
 
   formPrecio.addEventListener("submit", async (evento) => {
     evento.preventDefault();
-    if (!refAbierto) {
+    if (!vista.refAbierto) {
       return;
     }
     const boton = document.getElementById("registrar-precio");
     boton.disabled = true;
     const { estado, datos } = await api.enviar(
-      `/api/tickets/${encodeURIComponent(refAbierto)}/precio-final`,
+      `/api/tickets/${encodeURIComponent(vista.refAbierto)}/precio-final`,
       { monto: formato.leerEntero(campoMonto.value) }
     );
     boton.disabled = false;
     if (estado === 401) {
-      sesionTerminada();
+      vista.sesionTerminada();
       return;
     }
     if (estado === 400) {
@@ -181,17 +134,13 @@
     avisoResultado.textContent = datos.ticket.estado === "finalizado"
       ? "Registraste el precio final. El trabajo quedó terminado."
       : "Registraste el precio final. Le avisamos al cliente para que lo acepte.";
-    guardarDetalleFlotante();
-    refAbierto = null;
-    cargarTab(tabActual);
+    vista.guardarDetalleFlotante();
+    vista.refAbierto = null;
+    vista.recargar();
     avisoResultado.focus();
   });
 
   // --- Tarjeta resumen de un pedido ---
-
-  function lineaFecha(ticket) {
-    return `${formato.fechaConReferencia(ticket.bloque.fecha)}, de ${ticket.bloque.inicio} a ${ticket.bloque.fin}`;
-  }
 
   function tarjeta(ticket) {
     const item = elemento("li", "tarjeta");
@@ -200,7 +149,7 @@
     titulo.tabIndex = -1;
     const info = elemento(
       "dl", "datos",
-      elemento("dt", "", "Cuándo"), elemento("dd", "", lineaFecha(ticket)),
+      elemento("dt", "", "Cuándo"), elemento("dd", "", bandeja.lineaFecha(ticket)),
       elemento("dt", "", "Estado"), elemento("dd", "", estadoPedido.etiqueta(ticket.estado))
     );
     item.append(titulo, info);
@@ -214,7 +163,7 @@
     const boton = elemento("button", "boton-secundario", "Ver detalle");
     boton.type = "button";
     boton.setAttribute("aria-label", `Ver detalle del pedido de ${ticket.servicio.nombre} en ${ticket.comuna.nombre}`);
-    boton.addEventListener("click", () => abrirDetalle(ticket.ref, item));
+    boton.addEventListener("click", () => vista.abrirDetalle(ticket.ref, item));
     const acciones = elemento("div", "acciones", boton);
     // Conversación (HU-07, CA-07.3): solo desde aceptado; en finalizado, para leerla.
     if (ticket.estado === "aceptado" || ticket.estado === "finalizado") {
@@ -240,18 +189,10 @@
 
   // --- Detalle (fresco, GET /api/tickets/<ref>) ---
 
-  function guardarDetalleFlotante() {
-    detalle.hidden = true;
-    bloquePrecio.hidden = true;
-    ticketAbierto = null;
-    confirmarAccion.hidden = true;
-    document.querySelector("main").append(detalle, confirmarAccion);
-  }
-
   function pintarDetalle(ticket) {
     document.getElementById("titulo-detalle").textContent = `${ticket.servicio.nombre} en ${ticket.comuna.nombre}`;
     const filas = [
-      ["Cuándo", lineaFecha(ticket)],
+      ["Cuándo", bandeja.lineaFecha(ticket)],
       ["Comuna", ticket.comuna.nombre],
       ["Qué necesita", ticket.descripcion],
       ["Materiales", ticket.materiales ? "El cliente tiene los materiales" : "Tienes que llevar los materiales"],
@@ -283,32 +224,6 @@
     avisoDetalle.replaceChildren();
     pintarPrecio(ticket);
   }
-
-  async function abrirDetalle(ref, item) {
-    guardarDetalleFlotante();
-    refAbierto = ref;
-    detalle.hidden = false;
-    item.append(detalle);
-    document.getElementById("titulo-detalle").focus();
-    avisoDetalle.className = "aviso";
-    avisoDetalle.replaceChildren("Cargando…");
-    const { estado, datos } = await api.obtener(`/api/tickets/${encodeURIComponent(ref)}`);
-    if (estado === 401) {
-      sesionTerminada();
-      return;
-    }
-    if (estado !== 200) {
-      avisoDetalle.className = "aviso aviso-error";
-      avisoDetalle.textContent = "No pudimos cargar el detalle. Vuelve a intentarlo.";
-      return;
-    }
-    pintarDetalle(datos.ticket);
-  }
-
-  document.getElementById("cerrar-detalle").addEventListener("click", () => {
-    guardarDetalleFlotante();
-    refAbierto = null;
-  });
 
   // --- Aceptar y rechazar (RF-19, RF-20), con confirmación previa ---
 
@@ -351,16 +266,16 @@
   });
 
   document.getElementById("accion-si").addEventListener("click", async () => {
-    if (!refAbierto || !accionPendiente) {
+    if (!vista.refAbierto || !accionPendiente) {
       return;
     }
     const textos = TEXTOS_ACCION[accionPendiente];
     const boton = document.getElementById("accion-si");
     boton.disabled = true;
-    const { estado, datos } = await api.enviar(`/api/tickets/${encodeURIComponent(refAbierto)}/${textos.ruta}`);
+    const { estado, datos } = await api.enviar(`/api/tickets/${encodeURIComponent(vista.refAbierto)}/${textos.ruta}`);
     boton.disabled = false;
     if (estado === 401) {
-      sesionTerminada();
+      vista.sesionTerminada();
       return;
     }
     avisoResultado.className = "aviso";
@@ -372,9 +287,9 @@
       accionPendiente = null;
       avisoResultado.className = "aviso aviso-error";
       avisoResultado.textContent = datos.mensaje;
-      guardarDetalleFlotante();
-      refAbierto = null;
-      cargarTab(tabActual);
+      vista.guardarDetalleFlotante();
+      vista.refAbierto = null;
+      vista.recargar();
       return;
     }
     if (estado !== 200) {
@@ -386,144 +301,29 @@
     accionPendiente = null;
     avisoResultado.className = "aviso aviso-exito";
     avisoResultado.textContent = textos.exito;
-    guardarDetalleFlotante();
-    refAbierto = null;
-    cargarTab(tabActual);
+    vista.guardarDetalleFlotante();
+    vista.refAbierto = null;
+    vista.recargar();
   });
-
-  // --- Listas por pestaña ---
-
-  function pintarLista(estado, tickets, total) {
-    const lista = document.getElementById(`lista-${estado}`);
-    lista.replaceChildren(...tickets.map(tarjeta));
-    document.getElementById(`sin-${estado}`).hidden = tickets.length > 0;
-    const nav = document.getElementById(`paginacion-${estado}`);
-    const paginasTotales = Math.max(1, Math.ceil(total / 20));
-    nav.hidden = paginasTotales <= 1;
-    document.getElementById(`texto-pagina-${estado}`).textContent = `Página ${paginas[estado]} de ${paginasTotales}`;
-    nav.querySelector("[data-anterior]").disabled = paginas[estado] <= 1;
-    nav.querySelector("[data-siguiente]").disabled = paginas[estado] >= paginasTotales;
-  }
-
-  async function cargarListaEstado(estado) {
-    // Historial: sin «estado», el servidor devuelve todos los pedidos (CA-08.1).
-    const filtro = estado === "historial" ? "" : `estado=${estado}&`;
-    const { estado: cod, datos } = await api.obtener(`${RUTA}?${filtro}pagina=${paginas[estado]}`);
-    if (cod === 401) {
-      sesionTerminada();
-      return false;
-    }
-    if (cod === 403) {
-      sinAcceso();
-      return false;
-    }
-    if (cod !== 200) {
-      errorCarga();
-      return false;
-    }
-    guardarDetalleFlotante();
-    refAbierto = null;
-    pintarLista(estado, datos.tickets, datos.total);
-    return true;
-  }
-
-  async function cargarTab(tab) {
-    tabActual = tab;
-    for (const seccion of Object.keys(ESTADOS_TAB)) {
-      document.getElementById(`tab-${seccion}`).classList.toggle("oculto", seccion !== tab);
-    }
-    await cargarListaEstado(ESTADOS_TAB[tab]);
-  }
-
-  document.getElementById("pestanas").addEventListener("click", (evento) => {
-    const boton = evento.target.closest("[data-tab]");
-    if (!boton) {
-      return;
-    }
-    for (const otro of document.querySelectorAll("#pestanas .filtro")) {
-      otro.setAttribute("aria-pressed", String(otro === boton));
-    }
-    cargarTab(boton.dataset.tab);
-  });
-
-  for (const nav of document.querySelectorAll("[id^='paginacion-']")) {
-    const estado = nav.id.replace("paginacion-", "");
-    nav.querySelector("[data-anterior]").addEventListener("click", () => {
-      paginas[estado] = Math.max(1, paginas[estado] - 1);
-      cargarListaEstado(estado);
-    });
-    nav.querySelector("[data-siguiente]").addEventListener("click", () => {
-      paginas[estado] += 1;
-      cargarListaEstado(estado);
-    });
-  }
-
-  // --- Avisos (ADR-024) ---
-
-  function lineaAviso(aviso) {
-    const item = elemento("li", "aviso-vencimiento");
-    const icono = elemento("span", "icono-aviso", "🔔");
-    icono.setAttribute("aria-hidden", "true");
-    // Nunca solo el color: lo no visto lleva además la palabra "Nuevo" (RNF-16).
-    const detalleTexto = elemento("span", "detalle-aviso", aviso.visto ? "" : "Nuevo: ", aviso.texto);
-    // Solo enlaces del mismo origen y de rutas conocidas (hallazgo B-4).
-    const destinoBuscar = dom.enlaceInterno(aviso.enlace, ["/buscar.html"]);
-    if (destinoBuscar) {
-      const enlace = elemento("a", "boton boton-secundario", "Buscar otro maestro");
-      enlace.href = destinoBuscar;
-      detalleTexto.append(" ", enlace);
-    }
-    const destinoConversacion = dom.enlaceInterno(aviso.enlace, ["/conversacion.html"]);
-    if (destinoConversacion) {
-      const enlace = elemento("a", "boton boton-secundario", "Ver conversación");
-      enlace.href = destinoConversacion;
-      detalleTexto.append(" ", enlace);
-    }
-    item.append(icono, detalleTexto);
-    return item;
-  }
-
-  async function cargarAvisos() {
-    const { estado, datos } = await api.obtener("/api/avisos");
-    if (estado === 401) {
-      sesionTerminada();
-      return;
-    }
-    if (estado !== 200) {
-      listaAvisos.replaceChildren();
-      document.getElementById("sin-avisos").hidden = false;
-      document.getElementById("sin-avisos").textContent = "No pudimos cargar tus avisos.";
-      return;
-    }
-    document.getElementById("sin-avisos").hidden = datos.avisos.length > 0;
-    document.getElementById("sin-avisos").textContent = "No tienes avisos.";
-    listaAvisos.replaceChildren(...datos.avisos.map(lineaAviso));
-    contadorAvisos.textContent = datos.sin_ver > 0 ? `(${datos.sin_ver} sin ver)` : "";
-    const sinVer = datos.avisos.filter((a) => !a.visto).map((a) => a.ref);
-    if (sinVer.length > 0) {
-      const marcados = await api.enviar("/api/avisos/vistos", { avisos: sinVer });
-      if (marcados.estado === 200) {
-        contadorAvisos.textContent = marcados.datos.sin_ver > 0 ? `(${marcados.datos.sin_ver} sin ver)` : "";
-      }
-    }
-  }
-
-  document.getElementById("actualizar-avisos").addEventListener("click", cargarAvisos);
 
   // --- Carga inicial ---
 
-  async function cargar() {
-    cargando.hidden = false;
-    avisoPagina.className = "aviso";
-    avisoPagina.replaceChildren();
-    const ok = await cargarListaEstado("pendiente");
-    cargando.hidden = true;
-    if (!ok) {
-      return;
-    }
-    contenido.hidden = false;
-    cargarAvisos();
-  }
+  const vista = bandeja.crear({
+    ruta: RUTA,
+    siguiente: "trabajos",
+    textos: {
+      sesion: "Tu sesión terminó. Vuelve a ingresar para ver tus trabajos.",
+      sinAcceso: "Esta página es para maestros. Si quieres trabajar como maestro, postula desde «Mi cuenta».",
+      errorCarga: "No pudimos cargar tus trabajos. Revisa tu señal o tu wifi e inténtalo de nuevo. ",
+    },
+    tarjeta,
+    pintarDetalle,
+    flotantes: [confirmarAccion],
+    alGuardarDetalle() {
+      bloquePrecio.hidden = true;
+      ticketAbierto = null;
+    },
+  });
 
-  cargar();
+  vista.iniciar();
 })();

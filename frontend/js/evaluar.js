@@ -32,40 +32,10 @@
   const claveNotas = `altiro.evaluar.${refTicket}`;
   const claveMotivo = `altiro.evaluar.${refTicket}.denuncia`;
 
-  // Cada borrador vence a las 2 h del último cambio (ADR-002 E-1): en un
-  // teléfono compartido no queda indefinidamente.
-  const VIGENCIA_BORRADOR_MS = 2 * 60 * 60 * 1000;
-
-  function leerBorrador(clave) {
-    try {
-      const previo = JSON.parse(window.localStorage.getItem(clave));
-      const edad = previo && typeof previo.guardado === "number" ? Date.now() - previo.guardado : -1;
-      if (previo && typeof previo.texto === "string" && edad >= 0 && edad <= VIGENCIA_BORRADOR_MS) {
-        return previo.texto;
-      }
-      window.localStorage.removeItem(clave);
-      return null;
-    } catch (error) {
-      try {
-        window.localStorage.removeItem(clave);
-      } catch (otro) {
-        // Sin almacenamiento.
-      }
-      return null;
-    }
-  }
-
-  function escribirBorrador(clave, valor) {
-    try {
-      if (valor) {
-        window.localStorage.setItem(clave, JSON.stringify({ texto: valor, guardado: Date.now() }));
-      } else {
-        window.localStorage.removeItem(clave);
-      }
-    } catch (error) {
-      // Sin almacenamiento: lo escrito sigue en la pantalla.
-    }
-  }
+  // Cada borrador vive en localStorage y vence a las 2 h del último cambio
+  // (ADR-002 E-1); formulario.js lo guarda, lo vence y lo borra al salir.
+  const leerBorrador = (clave) => formulario.recuperarTexto(clave);
+  const escribirBorrador = (clave, valor) => formulario.guardarTexto(clave, valor);
 
   const cargando = document.getElementById("cargando");
   const avisoPagina = document.getElementById("aviso-pagina");
@@ -90,8 +60,7 @@
   }
 
   function sesionTerminada() {
-    const enlace = elemento("a", "boton", "Ingresar de nuevo");
-    enlace.href = `ingresar.html?aviso=sesion&siguiente=evaluar&ticket=${encodeURIComponent(refTicket)}`;
+    const enlace = dom.enlaceIngresar("evaluar", refTicket);
     errorPagina("Tu sesión terminó. Vuelve a ingresar para seguir.", enlace);
   }
 

@@ -27,6 +27,13 @@ CORREO_CURATORIA = "cura.retencion@example.com"
 
 
 @pytest.fixture(autouse=True)
+def sin_advertencias_previas():
+    retencion._advertido_en.clear()
+    yield
+    retencion._advertido_en.clear()
+
+
+@pytest.fixture(autouse=True)
 def directorio_documentos(settings, tmp_path):
     directorio = tmp_path / "documentos"
     directorio.mkdir(mode=0o700)
@@ -104,6 +111,20 @@ def test_sin_plazo_no_borra_nada_y_registra_una_advertencia(
     assert len(advertencias) == 1
     assert "cedula_identidad" in advertencias[0].getMessage()
     assert str(documento.ref) not in advertencias[0].getMessage()
+
+
+@pytest.mark.django_db
+def test_la_advertencia_sin_plazo_se_registra_una_vez_por_dia(maestro, sin_plazos, caplog):
+    _expediente(maestro, EstadoExpediente.RECHAZADO, hace_dias=3650)
+    _documento(maestro)
+
+    with caplog.at_level(logging.WARNING, logger="expediente.retencion"):
+        for minutos in (0, 5, 10):
+            retencion.aplicar_retencion(AHORA + datetime.timedelta(minutes=minutos))
+        assert len([r for r in caplog.records if r.levelno == logging.WARNING]) == 1
+        retencion.aplicar_retencion(AHORA + datetime.timedelta(days=1))
+
+    assert len([r for r in caplog.records if r.levelno == logging.WARNING]) == 2
 
 
 @pytest.mark.regla("O-02")

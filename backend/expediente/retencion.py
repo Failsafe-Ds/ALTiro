@@ -4,7 +4,8 @@ Tarea del actor Sistema que corre el planificador. Es idempotente y recibe ``aho
 
 - **Plazo por tipo** en ``settings.RETENCION_DIAS`` (variables
   ``RETENCION_DIAS_<TIPO>``). Un tipo sin plazo no se elimina: se registra una
-  advertencia si hay documentos que quedarían sujetos a él (E-9.3, P-30).
+  advertencia si hay documentos que quedarían sujetos a él (E-9.3, P-30),
+  una vez por día y tipo.
 - **A qué aplica:** documentos no eliminados de expedientes ``rechazado`` o
   ``suspendido`` cuyo cambio a ese estado (``estado_cambiado_en``) ocurrió hace
   el plazo o más (E-9.2: "deja de estar activo", supuesto V-04/P-07). Un
@@ -31,6 +32,10 @@ logger = logging.getLogger(__name__)
 
 ACCION = "documento_eliminado_retencion"
 ESTADOS_INACTIVOS = (EstadoExpediente.RECHAZADO, EstadoExpediente.SUSPENDIDO)
+
+# Día de la última advertencia "sin plazo" por tipo, en el proceso del
+# planificador: se avisa una vez por día y no en cada vuelta de 5 minutos.
+_advertido_en = {}
 
 
 def plazo_dias(tipo):
@@ -93,7 +98,8 @@ def aplicar_retencion(ahora):
     for tipo in TipoDocumento.values:
         dias = plazo_dias(tipo)
         if dias is None:
-            if _sujetos(tipo).exists():
+            if _advertido_en.get(tipo) != ahora.date() and _sujetos(tipo).exists():
+                _advertido_en[tipo] = ahora.date()
                 logger.warning(
                     "Retención: el tipo %s no tiene plazo configurado (RETENCION_DIAS_%s); no se elimina ningún documento.",
                     tipo,

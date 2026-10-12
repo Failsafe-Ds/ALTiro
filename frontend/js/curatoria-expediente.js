@@ -145,7 +145,7 @@
     tituloPagina.textContent = `Expediente de ${det.nombre}`;
     document.title = `Expediente de ${det.nombre} — AlTiro`;
     document.getElementById("dato-nombre").textContent = det.nombre;
-    document.getElementById("dato-rut").textContent = expediente.formatearRut(det.rut);
+    document.getElementById("dato-rut").textContent = formulario.formatearRut(det.rut);
     document
       .getElementById("dato-estado")
       .replaceChildren(expediente.etiquetaEstado(det.estado, curatoria.ESTADOS_EXPEDIENTE));

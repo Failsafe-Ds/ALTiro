@@ -11,7 +11,7 @@ falta; 401 sin sesión). Lista explícita de campos; ``Cache-Control: no-store``
 - ``POST /api/maestros/perfil/foto``: multipart con el archivo en ``archivo``.
 - ``GET /api/maestros/perfil``: ref pública, si está publicado, lo que le falta y su «Sobre mí».
 - ``PUT /api/maestros/perfil``: ``{"descripcion": "..."}`` (DA-30), hasta 500 caracteres;
-  vacío o ``null`` la borra. Responde el perfil como el ``GET``.
+  vacío o ``null`` la borra; sin la clave, 400 en ``descripcion``. Responde el perfil como el ``GET``.
 """
 from django.conf import settings
 from django.http import HttpResponse
@@ -172,7 +172,10 @@ def mi_perfil(request):
         datos = leer_json(request, CAMPOS_PERFIL)
 
         def guardar():
-            servicios_perfil.cambiar_descripcion(request.usuario.pk, datos.get("descripcion"))
+            # Clave ausente: 400 en el campo, nunca borrado implícito (ADR-013).
+            if "descripcion" not in datos:
+                raise ErroresValidacion({"descripcion": servicios_perfil.MENSAJE_DESCRIPCION_FALTA})
+            servicios_perfil.cambiar_descripcion(request.usuario.pk, datos["descripcion"])
             return _perfil(request.usuario.pk)
 
         return _con_errores_de_dominio(guardar)

@@ -40,6 +40,7 @@ MENSAJE_DESCRIPCION_LARGA = (
     f"Tu descripción puede tener hasta {DESCRIPCION_LARGO_MAXIMO} caracteres. Acórtala un poco."
 )
 MENSAJE_DESCRIPCION_FORMATO = "Escribe tu descripción como texto."
+MENSAJE_DESCRIPCION_FALTA = "Falta tu descripción. Si quieres borrarla, déjala vacía y guarda."
 
 _TEXTO_MODALIDAD = {Modalidad.POR_TRABAJO: "por trabajo", Modalidad.POR_HORA: "por hora"}
 _MONTO_TEXTO = re.compile(r"[0-9]{1,9}")
