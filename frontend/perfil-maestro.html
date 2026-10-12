@@ -15,7 +15,7 @@
   <script src="js/formulario.js" defer></script>
   <script src="js/menu.js" defer></script>
 </head>
-<body>
+<body class="pagina-ficha">
   <header class="encabezado">
     <a class="marca" href="index.html">AlTiro</a>
   </header>
@@ -24,7 +24,11 @@
     <div id="aviso-pagina" class="aviso" role="alert" tabindex="-1"></div>
 
     <!-- Perfil público (RF-14 y RF-13 parciales; ADR-019, D-12 y D-14). Sin datos de contacto: la API no los entrega. -->
-    <article id="perfil" aria-labelledby="nombre-maestro" hidden>
+    <!-- E-4.3: en pantalla ancha, dos columnas: a la izquierda los datos del
+         maestro; a la derecha, fijo al desplazarse, el panel para pedir un
+         horario. En el celular, una columna: primero los datos, después el panel. -->
+    <article id="perfil" class="ficha" aria-labelledby="nombre-maestro" hidden>
+      <div class="ficha-datos">
       <div class="cabecera-perfil">
         <img id="foto-maestro" class="foto-publica" alt="" width="160" height="160">
         <h1 id="nombre-maestro" tabindex="-1"></h1>
@@ -58,9 +62,17 @@
         <ul id="lista-comunas" class="lista-etiquetas"></ul>
       </section>
 
+      <section aria-labelledby="titulo-horarios">
+        <h2 id="titulo-horarios">Horarios de cada semana</h2>
+        <p id="sin-horarios" hidden>Este maestro todavía no declara sus horarios.</p>
+        <dl id="lista-horarios" class="horarios"></dl>
+      </section>
+      </div>
+
       <!-- RF-14, CA-05.1: bloques de los próximos 14 días, libres u ocupados (con ícono y texto, no solo color). -->
-      <section id="seccion-bloques" aria-labelledby="titulo-bloques">
-        <h2 id="titulo-bloques">Horarios de los próximos 14 días</h2>
+      <section id="seccion-bloques" class="ficha-pedir" aria-labelledby="titulo-bloques">
+        <h2 id="titulo-bloques">Pide un horario</h2>
+        <p class="ficha-subtitulo">Próximos 14 días</p>
         <p id="sin-bloques" hidden>No tiene horarios en los próximos 14 días.</p>
         <div id="con-bloques">
           <fieldset id="elegir-servicio" class="elegir-servicio" aria-describedby="error-servicio">
@@ -68,16 +80,12 @@
             <div id="opciones-servicio" class="lista-oficios"></div>
             <span class="error-campo" id="error-servicio" aria-live="polite"></span>
           </fieldset>
-          <p class="nota-ayuda leyenda-bloques">Elige un horario libre y toca «Pedir este horario». Los horarios ocupados ya los tomó otra persona.</p>
+          <p class="nota-ayuda leyenda-bloques">Elige un horario libre y toca «Pedir». Los horarios ocupados ya los tomó otra persona.</p>
           <ul id="lista-bloques" class="lista-simple lista-dias"></ul>
+          <button type="button" id="mas-dias" class="boton-secundario" aria-controls="lista-bloques" hidden>Ver más días</button>
         </div>
       </section>
 
-      <section aria-labelledby="titulo-horarios">
-        <h2 id="titulo-horarios">Horarios de cada semana</h2>
-        <p id="sin-horarios" hidden>Este maestro todavía no declara sus horarios.</p>
-        <dl id="lista-horarios" class="horarios"></dl>
-      </section>
     </article>
   </main>
   <footer class="pie" role="contentinfo">

@@ -1839,6 +1839,7 @@ details.tarjeta > summary {
 /* Bloques que siguen angostos dentro de una página de grilla (formularios y avisos). */
 .angosto {
   max-width: var(--ancho);
+  margin-inline: auto;
 }
 
 .bajada {
@@ -2490,4 +2491,209 @@ main.ingresar .acciones {
 .contador {
   display: block;
   margin-top: var(--esp-1);
+}
+
+/* ------------------------------------------------------------------------
+   Contenido centrado (ADR-002 E-4.3). Las cajas ya estaban centradas; ahora
+   también lo que hay dentro: títulos, bajadas, pestañas, grupos de botones,
+   mensajes de «no hay…» y cajas de aviso o de siguiente paso. Quedan
+   alineados a la izquierda (skill UI/UX Pro Max: texto largo y formularios se
+   leen mejor así) las etiquetas y campos de los formularios, las listas de
+   datos (pedidos, servicios, comentarios) y la columna de datos de la ficha
+   del maestro.
+   ------------------------------------------------------------------------ */
+main h1,
+main h1 + p,
+main h1 + .bajada,
+.bajada,
+.pagina-grilla main > p,
+main section > h2,
+main .tarjeta > h2,
+.opciones-contenido > h2,
+.opciones-contenido > section > h2 {
+  text-align: center;
+}
+
+.cabecera-perfil h1,
+.ficha-datos h2 {
+  text-align: left;
+}
+
+/* Grupos de botones y pestañas: al centro (en el celular siguen a todo el ancho). */
+.acciones {
+  justify-items: center;
+  justify-content: center;
+}
+
+.filtros {
+  justify-content: center;
+}
+
+/* Mensajes de estado y «no hay…». */
+#cargando,
+.buscando,
+.sin-resultados,
+main [id^="sin-"] {
+  text-align: center;
+}
+
+/* Cajas de avisos y de siguiente paso: todo su contenido al centro. */
+.tarjeta.avisos,
+nav.tarjeta,
+.inicio-cuenta,
+.ingresar-sin-cuenta {
+  text-align: center;
+}
+
+/* En las cajas de avisos, cada ítem (ícono, texto y botón) va centrado como
+   un bloque, no el ícono a la izquierda y el texto al centro. */
+.tarjeta.avisos .aviso-vencimiento {
+  justify-content: center;
+}
+
+.tarjeta.avisos .detalle-aviso {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+/* Línea de estado («Tu postulación: En revisión») y listas cortas dentro de
+   una caja (lo que falta entregar): al centro, con la viñeta junto al texto. */
+.linea-estado {
+  text-align: center;
+}
+
+.tarjeta > ul:not([class]) {
+  padding: 0;
+  list-style-position: inside;
+  text-align: center;
+}
+
+/* «Mi cuenta»: el subtítulo, cada grupo de accesos y sus botones al centro;
+   la tabla de datos (nombre, teléfono…) como bloque centrado, con su texto a
+   la izquierda para que etiqueta y valor queden alineados. */
+.subtitulo,
+.grupo-opciones,
+.grupo-opciones h3 {
+  text-align: center;
+}
+
+#datos .lista-opciones {
+  justify-content: center;
+}
+
+.opciones-contenido .datos {
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+/* ------------------------------------------------------------------------
+   Ficha del maestro (ADR-002 E-4.3): menos alto. Desde 64 rem, dos columnas:
+   datos a la izquierda y, a la derecha, el panel «Pide un horario», fijo al
+   desplazarse y con su propio desplazamiento si no cabe. Los horarios van en
+   una fila cada uno (horario · estado · «Pedir») y se muestran los primeros 7
+   días; el resto con «Ver más días». Solo afecta a .ficha (mi-agenda usa las
+   mismas clases de fila y no cambia).
+   ------------------------------------------------------------------------ */
+.ficha-pedir {
+  margin-top: var(--esp-6);
+  padding: var(--esp-4);
+  background: var(--fondo);
+  border: 2px solid var(--marca);
+  border-radius: var(--radio-foto);
+}
+
+.ficha-pedir > h2 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.ficha-subtitulo {
+  margin: 0 0 var(--esp-3);
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+/* La indicación del panel, como texto simple (no caja): ocupa menos. */
+.ficha .leyenda-bloques {
+  margin: var(--esp-3) 0 0;
+  padding: 0;
+  font-size: 0.9375rem;
+  color: var(--texto-suave);
+  background: none;
+  border: 0;
+}
+
+.ficha-datos [id^="sin-"] {
+  text-align: left;
+}
+
+.ficha .lista-dias {
+  margin: var(--esp-3) 0;
+}
+
+.ficha .dia-ficha {
+  padding: var(--esp-2) 0;
+  border-top: 1px solid var(--linea);
+}
+
+.ficha .dia-ficha h3 {
+  margin: 0 0 var(--esp-1);
+  font-size: 1rem;
+}
+
+/* Una fila por horario: horario · estado · «Pedir», sin saltar de línea. */
+.ficha .linea-bloque {
+  flex-wrap: nowrap;
+  padding: var(--esp-1) 0;
+  border-bottom: 0;
+  gap: var(--esp-2);
+}
+
+.ficha .rango-bloque {
+  white-space: nowrap;
+}
+
+.ficha .linea-bloque .boton-pedir {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 var(--esp-4);
+}
+
+#mas-dias {
+  width: 100%;
+}
+
+@media (min-width: 64rem) {
+  .pagina-ficha main {
+    max-width: 74rem;
+  }
+
+  .ficha:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 26rem;
+    gap: var(--esp-7);
+    align-items: start;
+  }
+
+  .ficha-pedir {
+    position: sticky;
+    top: var(--esp-4);
+    max-height: calc(100vh - 2 * var(--esp-4));
+    margin-top: var(--esp-5);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--esp-5);
+  }
+
+  /* En la columna de datos, servicios y comunas uno al lado del otro no:
+     se leen como lista; solo se acortan los márgenes. */
+  .ficha-datos > section > h2 {
+    margin-top: var(--esp-5);
+  }
 }

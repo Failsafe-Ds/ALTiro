@@ -239,7 +239,8 @@
     );
     if (libre && hayServicios) {
       const cuando = `${formato.fechaLarga(bloque.fecha)} de ${bloque.inicio} a ${bloque.fin}`;
-      const enlace = elemento("a", "boton boton-pedir", "Pedir este horario", elemento("span", "solo-lector", `: ${cuando}`));
+      // «Pedir» en la misma fila del horario (E-4.3); el nombre accesible lleva la fecha y la hora.
+      const enlace = elemento("a", "boton boton-pedir", "Pedir", elemento("span", "solo-lector", ` este horario: ${cuando}`));
       enlace.dataset.bloque = JSON.stringify({ ref: bloque.ref, fecha: bloque.fecha });
       enlace.href = direccionPedido(refMaestro, bloque);
       item.append(enlace);
@@ -258,19 +259,41 @@
       porFecha.get(bloque.fecha).push(bloque);
     }
     const hayServicios = document.querySelectorAll('input[name="servicio-pedido"]').length > 0;
-    document.getElementById("lista-bloques").replaceChildren(
-      ...Array.from(porFecha.entries()).map(([fecha, lista]) =>
-        elemento(
-          "li",
-          "tarjeta dia-agenda",
-          elemento("h3", "", formato.fechaConReferencia(fecha, hoy) || fecha),
-          elemento("ul", "lista-simple", ...lista.map((b) => lineaBloque(refMaestro, b, hayServicios)))
-        )
-      )
-    );
+    const dias = Array.from(porFecha.entries()).map(([fecha, lista], i) => {
+      const dia = elemento(
+        "li",
+        "dia-ficha",
+        elemento("h3", "", formato.fechaConReferencia(fecha, hoy) || fecha),
+        elemento("ul", "lista-simple", ...lista.map((b) => lineaBloque(refMaestro, b, hayServicios)))
+      );
+      // E-4.3: se muestran los primeros DIAS_VISIBLES días; el resto con «Ver más días».
+      dia.hidden = i >= DIAS_VISIBLES;
+      return dia;
+    });
+    document.getElementById("lista-bloques").replaceChildren(...dias);
+    const mas = document.getElementById("mas-dias");
+    const ocultos = dias.length - DIAS_VISIBLES;
+    mas.hidden = ocultos <= 0;
+    mas.textContent = `Ver ${ocultos} ${ocultos === 1 ? "día más" : "días más"}`;
     document.getElementById("sin-bloques").hidden = bloques.length > 0;
     document.getElementById("con-bloques").hidden = bloques.length === 0;
   }
+
+  const DIAS_VISIBLES = 7;
+
+  // Muestra los días que faltaban y lleva el foco al primero de ellos.
+  document.getElementById("mas-dias").addEventListener("click", (evento) => {
+    const ocultos = Array.from(document.querySelectorAll("#lista-bloques > li[hidden]"));
+    ocultos.forEach((dia) => {
+      dia.hidden = false;
+    });
+    evento.currentTarget.hidden = true;
+    if (ocultos.length) {
+      const titulo = ocultos[0].querySelector("h3");
+      titulo.tabIndex = -1;
+      titulo.focus();
+    }
+  });
 
   // Al elegir un servicio se actualizan los enlaces y se quita el aviso.
   document.getElementById("opciones-servicio").addEventListener("change", () => {
