@@ -31,25 +31,17 @@
 
     <!-- Carrusel de oficios en abanico (ADR-002 E-4.1): una tarjeta grande al
          centro y las vecinas más chicas e inclinadas. Avanza solo cada 4 s y se
-         detiene al pasar el mouse, al tocarlo, al enfocarlo o con «Pausar»; sin
-         avance automático ni animación con prefers-reduced-motion. Solo la
-         tarjeta del centro es un enlace enfocable; tocar una lateral la trae al
-         centro. Con el dedo se desliza y con las flechas del teclado se cambia. -->
+         detiene al pasar el mouse, al enfocarlo o al tocarlo; sin avance
+         automático ni animación con prefers-reduced-motion. Sin botones
+         (pedido del usuario): se cambia con los puntos, tocando una tarjeta
+         lateral, deslizando el dedo o con las flechas del teclado. Solo la
+         tarjeta del centro es un enlace enfocable. -->
     <section id="carrusel-categorias" class="abanico" aria-roledescription="carrusel" aria-labelledby="titulo-pagina" hidden>
       <div class="abanico-escena" id="abanico-escena">
         <ul id="lista-categorias" class="abanico-lista"></ul>
       </div>
       <div class="carrusel-controles">
-        <button type="button" class="boton-secundario carrusel-boton" id="carrusel-anterior" aria-controls="lista-categorias">
-          <span aria-hidden="true">←</span> <span class="carrusel-texto">Anterior</span><span class="solo-lector"> oficio</span>
-        </button>
         <div id="carrusel-indicadores" class="carrusel-puntos"></div>
-        <button type="button" class="boton-secundario carrusel-boton" id="carrusel-pausa" aria-pressed="false">
-          <span aria-hidden="true" class="pausa-icono">❚❚</span> <span class="pausa-texto">Pausar</span>
-        </button>
-        <button type="button" class="boton-secundario carrusel-boton" id="carrusel-siguiente" aria-controls="lista-categorias">
-          <span class="carrusel-texto">Siguiente</span><span class="solo-lector"> oficio</span> <span aria-hidden="true">→</span>
-        </button>
       </div>
       <p id="carrusel-estado" class="solo-lector" aria-live="polite"></p>
     </section>

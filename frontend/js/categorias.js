@@ -17,9 +17,6 @@
   const controles = carrusel.querySelector(".carrusel-controles");
   const puntos = document.getElementById("carrusel-indicadores");
   const estadoCarrusel = document.getElementById("carrusel-estado");
-  const anterior = document.getElementById("carrusel-anterior");
-  const siguiente = document.getElementById("carrusel-siguiente");
-  const pausa = document.getElementById("carrusel-pausa");
   const escena = document.getElementById("abanico-escena");
   const elemento = dom.elemento;
 
@@ -76,9 +73,11 @@
   // Cada oficio recibe data-pos = su distancia (circular) a la tarjeta actual:
   // 0 al centro, ±1 y ±2 a los lados (el CSS las achica e inclina) y "fuera"
   // las demás. Solo la del centro es enfocable y la leen los lectores de
-  // pantalla. Avanza solo cada ESPERA ms (WCAG 2.2.2: se puede pausar, y se
-  // detiene mientras la persona lo usa); con prefers-reduced-motion empieza
-  // pausado y sin animación.
+  // pantalla. Avanza solo cada ESPERA ms y se detiene mientras la persona lo
+  // usa (mouse encima o foco dentro) y para siempre al tocarlo con el dedo
+  // (WCAG 2.2.2). Sin botones Anterior/Pausar/Siguiente (pedido del usuario,
+  // ADR-002 E-4.2): los puntos son la alternativa al gesto de deslizar (WCAG
+  // 2.5.1). Con prefers-reduced-motion no avanza solo ni anima.
   const ESPERA = 4000;
   const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)");
   let actual = 0;
@@ -135,12 +134,6 @@
     }, ESPERA);
   }
 
-  function marcarPausa() {
-    pausa.setAttribute("aria-pressed", String(pausadoPorPersona));
-    pausa.querySelector(".pausa-texto").textContent = pausadoPorPersona ? "Reanudar" : "Pausar";
-    pausa.querySelector(".pausa-icono").textContent = pausadoPorPersona ? "▶" : "❚❚";
-  }
-
   function armar(items) {
     total = items.length;
     lista.replaceChildren(...items);
@@ -157,18 +150,9 @@
       })
     );
     controles.hidden = total < 2;
-    marcarPausa();
     mostrar(0, false);
     programar();
   }
-
-  anterior.addEventListener("click", () => mover(-1));
-  siguiente.addEventListener("click", () => mover(1));
-  pausa.addEventListener("click", () => {
-    pausadoPorPersona = !pausadoPorPersona;
-    marcarPausa();
-    programar();
-  });
 
   // Tocar una tarjeta lateral la trae al centro (no abre el enlace).
   lista.addEventListener("click", (evento) => {
@@ -206,14 +190,12 @@
   });
 
   // Deslizar con el dedo: más de 40 px en horizontal cambia de tarjeta. Tocarlo
-  // con el dedo lo deja en pausa (en el celular no hay «mouse encima»); se
-  // reanuda con «Reanudar».
+  // con el dedo lo deja quieto (en el celular no hay «mouse encima»).
   let inicioX = null;
   escena.addEventListener("pointerdown", (evento) => {
     inicioX = evento.clientX;
     if (evento.pointerType !== "mouse" && !pausadoPorPersona) {
       pausadoPorPersona = true;
-      marcarPausa();
       programar();
     }
   });
@@ -229,6 +211,12 @@
   });
   escena.addEventListener("pointercancel", () => {
     inicioX = null;
+  });
+  // Respaldo para navegadores sin overflow: clip: si el foco desplaza la
+  // escena, vuelve a su lugar (la posición la dan las transformaciones).
+  escena.addEventListener("scroll", () => {
+    escena.scrollLeft = 0;
+    escena.scrollTop = 0;
   });
 
   // Con la pestaña oculta no avanza.

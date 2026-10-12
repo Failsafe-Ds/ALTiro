@@ -1861,7 +1861,10 @@ details.tarjeta > summary {
 .abanico-escena {
   position: relative;
   height: 23rem;
+  /* clip: recorta sin dejar desplazar; al enfocar o tocar una tarjeta
+     lateral el navegador no corre la escena. hidden queda de respaldo. */
   overflow: hidden;
+  overflow: clip;
   perspective: 1100px;
   touch-action: pan-y;
 }
@@ -1873,6 +1876,13 @@ details.tarjeta > summary {
   padding: 0;
   list-style: none;
   transform-style: preserve-3d;
+  /* En 3D, la parte de una tarjeta girada que queda «detrás» del plano de la
+     lista no recibiría el toque: la lista no lo toma, solo las tarjetas. */
+  pointer-events: none;
+}
+
+.abanico-item {
+  pointer-events: auto;
 }
 
 .abanico-item {
@@ -2035,13 +2045,6 @@ details.tarjeta > summary {
   display: none;
 }
 
-button.carrusel-boton {
-  gap: var(--esp-1);
-  width: auto;
-  min-width: 44px;
-  min-height: 44px;
-}
-
 /* Puntos: uno por oficio, 44 px de objetivo táctil; el activo es más grande y
    rojo relleno (no solo color). */
 .carrusel-puntos {
@@ -2085,8 +2088,8 @@ button.carrusel-boton {
 }
 
 /* Celular: tarjeta central casi a todo el ancho y solo una vecina asomada por
-   lado; los puntos no caben (9 × 44 px) y sobran con las flechas, así que se
-   ocultan. «Anterior»/«Siguiente» quedan como flechas con texto para lectores. */
+   lado. Los 9 puntos de 44 px no caben: bajan a 32 px (sobre el mínimo de 24
+   px de WCAG 2.5.8) y siguen siendo la alternativa a deslizar. */
 @media (max-width: 39.99rem) {
   .abanico {
     --paso: 0.68;
@@ -2108,21 +2111,11 @@ button.carrusel-boton {
     font-size: 1.15rem;
   }
 
-  .carrusel-puntos {
-    display: none;
-  }
-
-  .carrusel-texto {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
-
-  button.carrusel-boton {
-    padding-inline: var(--esp-3);
+  .carrusel-puntos button.punto {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
   }
 }
 
