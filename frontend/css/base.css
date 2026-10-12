@@ -59,7 +59,10 @@
   --radio-foto: 0.75rem;
   --transicion: 150ms ease;
   /* Ancho del contenido: angosto en formularios, amplio en grillas. */
-  --encabezado-arriba: #FBE4E7;
+  /* Encabezado rojo (E-4.1): degradado de --marca-oscura a --marca; el blanco
+     queda en 7,8:1 y 5,88:1. */
+  --encabezado-arriba: #A50E26;
+  --encabezado-abajo: #C8102E;
   --ancho: 34rem;
   --ancho-amplio: 80rem;
   --margen-lateral: max(var(--esp-4), calc((100% - var(--ancho-amplio)) / 2));
@@ -194,10 +197,10 @@ a:hover {
   justify-content: space-between;
   min-height: 3.5rem;
   padding: var(--esp-2) var(--margen-lateral);
-  border-bottom: 1px solid var(--linea);
-  /* E-3.3: degradado vertical suave; contraste medido sobre --encabezado-arriba
-     (marca 4,86:1, texto 13,6:1, borde 3,75:1). */
-  background: linear-gradient(to bottom, var(--encabezado-arriba), var(--fondo));
+  border-bottom: 0;
+  /* E-4.1: rojo de la marca en degradado; la marca va en blanco (5,88:1 sobre
+     el tono más claro) y los botones, blancos con contorno negro. */
+  background: linear-gradient(to bottom, var(--encabezado-arriba), var(--encabezado-abajo));
   flex-wrap: wrap;
   gap: 0.25rem 0.75rem;
   margin-bottom: var(--esp-2);
@@ -216,6 +219,22 @@ a:hover {
 
 .marca:hover {
   color: var(--marca-oscura);
+}
+
+.encabezado .marca,
+.encabezado .marca:hover {
+  color: var(--blanco);
+}
+
+.encabezado .marca:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* Sobre el rojo, el anillo negro no llega a 3:1: dentro del encabezado es blanco. */
+.encabezado :focus-visible,
+.encabezado .menu-boton:focus-visible {
+  outline-color: var(--blanco);
 }
 
 /* Sin movimiento para quien lo pidió en su sistema. */
@@ -1689,24 +1708,31 @@ button.boton-quitar {
   cursor: pointer;
 }
 
+/* E-4.1: en el encabezado rojo, relleno blanco y contorno negro. */
 .menu-boton {
   width: auto;
+  color: #000;
+  background: var(--blanco);
+  border-color: #000;
 }
 
 /* Sin esto, "button:hover" pinta el fondo de la marca bajo el texto oscuro y
    «Menú» queda ilegible (RNF-17). */
 .menu-boton:hover {
-  color: var(--texto);
+  color: #000;
   background: var(--fondo-suave);
-  border-color: var(--texto);
+  border-color: #000;
 }
 
 /* Abierto: fondo suave de la marca (5,46:1) y el estado en aria-expanded. */
+/* Abierto: sigue blanco con contorno negro, con contorno más grueso y el
+   estado en aria-expanded (no solo color). */
 .menu-boton[aria-expanded="true"],
 .menu-boton[aria-expanded="true"]:hover {
-  color: var(--marca);
-  background: var(--marca-suave);
-  border-color: var(--marca);
+  color: #000;
+  background: var(--fondo-suave);
+  border-color: #000;
+  box-shadow: inset 0 0 0 1px #000;
 }
 
 .menu-lista {
@@ -1821,37 +1847,188 @@ details.tarjeta > summary {
   color: var(--texto-suave);
 }
 
-/* Categorías (MASTER, ADR-002 E-3.3 y E-4): carrusel de Bootstrap con 3
-   oficios por diapositiva, centrado y con un ancho máximo para que las
-   tarjetas no se estiren en pantallas anchas. Debajo, Anterior · puntos ·
-   Siguiente (los controles de Bootstrap van encima de la foto y sobre fondo
-   blanco no se verían). */
-.carrusel {
-  max-width: 54rem;
+/* Categorías en abanico (MASTER, ADR-002 E-4.1): tarjeta grande al centro y
+   las vecinas más chicas, giradas en 3D e inclinadas en diagonal hacia abajo,
+   como cartas en abanico. categorias.js pone data-pos (0, ±1, ±2 o "fuera");
+   aquí cada posición fija desplazamiento, giro, escala y opacidad. */
+.abanico {
+  --ancho-tarjeta: min(17rem, 64vw);
+  --paso: 0.74;
+  max-width: 64rem;
   margin: 0 auto;
 }
 
-.lista-categorias {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--esp-3);
-  margin: 0;
-  padding: var(--esp-1);
-  list-style: none;
+.abanico-escena {
+  position: relative;
+  height: 23rem;
+  overflow: hidden;
+  perspective: 1100px;
+  touch-action: pan-y;
 }
 
-@media (min-width: 40rem) {
-  .lista-categorias {
-    gap: var(--esp-5);
-  }
+.abanico-lista {
+  position: relative;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transform-style: preserve-3d;
+}
+
+.abanico-item {
+  --x: 0;
+  --y: 0;
+  --ry: 0deg;
+  --rz: 0deg;
+  --s: 1;
+  position: absolute;
+  top: var(--esp-4);
+  left: 50%;
+  width: var(--ancho-tarjeta);
+  margin-left: calc(var(--ancho-tarjeta) / -2);
+  transform: translateX(calc(var(--ancho-tarjeta) * var(--x))) translateY(var(--y)) rotateY(var(--ry)) rotateZ(var(--rz)) scale(var(--s));
+  transition: transform 550ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 550ms ease;
+  z-index: 1;
+}
+
+.abanico-item[data-pos="0"] {
+  z-index: 5;
+}
+
+.abanico-item[data-pos="1"],
+.abanico-item[data-pos="-1"] {
+  --y: 1.5rem;
+  --s: 0.8;
+  z-index: 4;
+  cursor: pointer;
+}
+
+.abanico-item[data-pos="1"] {
+  --x: var(--paso);
+  --ry: -35deg;
+  --rz: 6deg;
+}
+
+.abanico-item[data-pos="-1"] {
+  --x: calc(-1 * var(--paso));
+  --ry: 35deg;
+  --rz: -6deg;
+}
+
+.abanico-item[data-pos="2"],
+.abanico-item[data-pos="-2"] {
+  --y: 3.25rem;
+  --s: 0.62;
+  opacity: 0.75;
+  z-index: 3;
+  cursor: pointer;
+}
+
+.abanico-item[data-pos="2"] {
+  --x: calc(2 * var(--paso) - 0.1);
+  --ry: -48deg;
+  --rz: 11deg;
+}
+
+.abanico-item[data-pos="-2"] {
+  --x: calc(-2 * var(--paso) + 0.1);
+  --ry: 48deg;
+  --rz: -11deg;
+}
+
+.abanico-item[data-pos="fuera"] {
+  --s: 0.4;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Tarjeta de oficio: grande, todo centrado. La del centro, blanca con borde de
+   la marca y sombra; las laterales, en el gris suave. */
+.enlace-categoria {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--esp-4);
+  min-height: 18rem;
+  padding: var(--esp-6) var(--esp-4);
+  color: var(--texto);
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-decoration: none;
+  background: var(--fondo-suave);
+  border: 2px solid var(--linea);
+  border-radius: var(--radio-foto);
+  transition: background-color var(--transicion), border-color var(--transicion), box-shadow var(--transicion);
+}
+
+.abanico-item[data-pos="0"] .enlace-categoria {
+  background: var(--fondo);
+  border-color: var(--marca);
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 18%);
+}
+
+.enlace-categoria:hover {
+  color: var(--texto);
+}
+
+.abanico-item[data-pos="0"] .enlace-categoria:hover .nombre-categoria {
+  text-decoration: underline;
+}
+
+.enlace-categoria:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 4px;
+}
+
+.icono-categoria {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  height: 6rem;
+  color: var(--marca);
+  background: var(--marca-suave);
+  border-radius: 50%;
+}
+
+.icono-categoria .icono-svg {
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
+.nombre-categoria {
+  overflow-wrap: break-word;
+  line-height: 1.25;
+}
+
+/* «Ver maestros» con forma de botón principal: es la acción de la tarjeta. */
+.ver-maestros {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--esp-5);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--blanco);
+  background: var(--marca);
+  border-radius: var(--radio);
+}
+
+.abanico-item:not([data-pos="0"]) .ver-maestros {
+  color: var(--texto);
+  background: var(--linea);
 }
 
 .carrusel-controles {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: var(--esp-3);
-  margin-top: var(--esp-4);
+  gap: var(--esp-2);
+  margin-top: var(--esp-2);
 }
 
 .carrusel-controles[hidden] {
@@ -1865,31 +2042,29 @@ button.carrusel-boton {
   min-height: 44px;
 }
 
-/* Puntos de posición: los de Bootstrap son barras blancas absolutas; aquí van
-   en la fila de controles, con 44 px de objetivo táctil y un punto visible. */
-.carousel-indicators.carrusel-puntos {
-  position: static;
-  margin: 0;
-  padding: 0;
-  gap: var(--esp-1);
-}
-
-.carousel-indicators.carrusel-puntos [data-bs-target] {
-  box-sizing: border-box;
-  width: 44px;
-  height: 44px;
-  margin: 0;
-  padding: 0;
-  text-indent: 0;
-  background: transparent;
-  border: 0;
-  opacity: 1;
-  display: inline-flex;
-  align-items: center;
+/* Puntos: uno por oficio, 44 px de objetivo táctil; el activo es más grande y
+   rojo relleno (no solo color). */
+.carrusel-puntos {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
 }
 
-.carousel-indicators.carrusel-puntos [data-bs-target]::before {
+.carrusel-puntos button.punto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.carrusel-puntos button.punto::before {
   content: "";
   width: 0.75rem;
   height: 0.75rem;
@@ -1898,94 +2073,43 @@ button.carrusel-boton {
   background: var(--fondo);
 }
 
-/* La activa se distingue por color y por tamaño (no solo por color). */
-.carousel-indicators.carrusel-puntos .active::before {
+.carrusel-puntos button.punto.activo::before {
   width: 1rem;
   height: 1rem;
   border-color: var(--marca);
   background: var(--marca);
 }
 
-.enlace-categoria {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: var(--esp-3);
-  height: 100%;
-  min-height: 9.5rem;
-  padding: var(--esp-4) var(--esp-2);
-  color: var(--texto);
-  font-weight: 600;
-  text-decoration: none;
-  background: var(--fondo-suave);
-  border: 1px solid var(--linea);
-  border-radius: var(--radio-foto);
-  transition: background-color var(--transicion), border-color var(--transicion);
+.carrusel-puntos button.punto:hover {
+  background: transparent;
 }
 
-.enlace-categoria:hover {
-  color: var(--texto);
-  background: var(--marca-suave);
-  border-color: var(--marca);
-}
+/* Celular: tarjeta central casi a todo el ancho y solo una vecina asomada por
+   lado; los puntos no caben (9 × 44 px) y sobran con las flechas, así que se
+   ocultan. «Anterior»/«Siguiente» quedan como flechas con texto para lectores. */
+@media (max-width: 39.99rem) {
+  .abanico {
+    --paso: 0.68;
+  }
 
-.enlace-categoria:hover .nombre-categoria {
-  text-decoration: underline;
-}
+  .abanico-escena {
+    height: 21rem;
+  }
 
-.icono-categoria {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  color: var(--marca);
-  background: var(--fondo);
-  border-radius: 50%;
-}
+  .abanico-item[data-pos="2"],
+  .abanico-item[data-pos="-2"] {
+    opacity: 0;
+    visibility: hidden;
+  }
 
-.icono-categoria .icono-svg {
-  width: 1.75rem;
-  height: 1.75rem;
-}
-
-.ver-maestros {
-  font-size: 0.875rem;
-  font-weight: 400;
-  color: var(--texto-suave);
-}
-
-@media (min-width: 40rem) {
   .enlace-categoria {
-    min-height: 13rem;
-    padding: var(--esp-5) var(--esp-4);
+    min-height: 16.5rem;
+    padding: var(--esp-5) var(--esp-3);
     font-size: 1.15rem;
   }
 
-  .icono-categoria {
-    width: 4.5rem;
-    height: 4.5rem;
-  }
-
-  .icono-categoria .icono-svg {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-}
-
-.nombre-categoria {
-  overflow-wrap: break-word;
-  hyphens: auto;
-  line-height: 1.3;
-}
-
-/* En el celular no cabe la fila completa: quedan las flechas (44 px) y el
-   texto «Anterior»/«Siguiente» sigue para los lectores de pantalla. */
-@media (max-width: 39.99rem) {
-  .carrusel-controles {
-    gap: var(--esp-2);
+  .carrusel-puntos {
+    display: none;
   }
 
   .carrusel-texto {
@@ -2000,14 +2124,11 @@ button.carrusel-boton {
   button.carrusel-boton {
     padding-inline: var(--esp-3);
   }
+}
 
-  .enlace-categoria {
-    padding: var(--esp-3) var(--esp-1);
-    font-size: 0.9375rem;
-  }
-
-  .nombre-categoria {
-    hyphens: manual;
+@media (prefers-reduced-motion: reduce) {
+  .abanico-item {
+    transition: none;
   }
 }
 
