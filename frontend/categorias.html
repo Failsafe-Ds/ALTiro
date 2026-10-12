@@ -4,11 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>¿Qué necesitas hoy? — AlTiro</title>
+  <link rel="stylesheet" href="vendor/bootstrap-5.3.8/bootstrap.min.css">
   <link rel="stylesheet" href="css/base.css">
   <script src="js/api.js" defer></script>
   <script src="js/dom.js" defer></script>
   <script src="js/iconos.js" defer></script>
   <script src="js/formulario.js" defer></script>
+  <script src="vendor/bootstrap-5.3.8/bootstrap.bundle.min.js" defer></script>
   <script src="js/categorias.js" defer></script>
   <script src="js/version.js" defer></script>
   <script src="js/pie.js" defer></script>
@@ -22,29 +24,31 @@
     <!-- Inicio del cliente (ADR-002 E-3, punto 7): entrada a la búsqueda por
          oficio (HU-02, RF-09), con los oficios del catálogo público (GET /api/oficios).
          Pública: un visitante también puede verla. -->
-    <h1 id="titulo-pagina" tabindex="-1">¿Qué necesitas hoy?</h1>
-    <p class="bajada">Elige el oficio y te mostramos maestros verificados cerca de ti.</p>
+    <h1 id="titulo-pagina" class="text-center" tabindex="-1">¿Qué necesitas hoy?</h1>
+    <p class="bajada text-center">Elige el oficio y te mostramos maestros verificados cerca de ti.</p>
 
     <p id="cargando-categorias" class="buscando" role="status" aria-live="polite">Cargando oficios…</p>
     <div id="aviso-categorias" class="aviso angosto" role="alert" tabindex="-1"></div>
 
-    <!-- Carrusel de oficios (ADR-002 E-3.3): scroll-snap nativo, con el dedo,
-         con Tab (el foco deja la tarjeta a la vista) o con los botones. Sin avance
-         automático. Los botones se ocultan si caben todos los oficios. -->
-    <section id="carrusel-categorias" class="carrusel" aria-roledescription="carrusel" aria-labelledby="titulo-pagina" hidden>
-      <ul id="lista-categorias" class="lista-categorias"></ul>
-      <div class="carrusel-controles" id="carrusel-controles">
-        <button type="button" class="boton-secundario carrusel-boton" id="carrusel-anterior" aria-controls="lista-categorias">
-          <span aria-hidden="true">←</span> Anterior<span class="solo-lector"> oficios</span>
+    <!-- Carrusel de oficios (ADR-002 E-3.3 y E-4): carrusel de Bootstrap, de a
+         3 oficios por diapositiva en toda pantalla. Se pasa con los botones, con
+         los puntos o deslizando el dedo. Sin avance automático; da la vuelta al
+         llegar al final. Las diapositivas ocultas no reciben el foco. -->
+    <section id="carrusel-categorias" class="carousel slide carrusel" aria-roledescription="carrusel" aria-labelledby="titulo-pagina" hidden>
+      <div id="lista-categorias" class="carousel-inner"></div>
+      <div class="carrusel-controles">
+        <button type="button" class="boton-secundario carrusel-boton" data-bs-target="#carrusel-categorias" data-bs-slide="prev" aria-controls="lista-categorias">
+          <span aria-hidden="true">←</span> <span class="carrusel-texto">Anterior</span><span class="solo-lector"> oficios</span>
         </button>
-        <button type="button" class="boton-secundario carrusel-boton" id="carrusel-siguiente" aria-controls="lista-categorias">
-          Siguiente<span class="solo-lector"> oficios</span> <span aria-hidden="true">→</span>
+        <div id="carrusel-indicadores" class="carousel-indicators carrusel-puntos"></div>
+        <button type="button" class="boton-secundario carrusel-boton" data-bs-target="#carrusel-categorias" data-bs-slide="next" aria-controls="lista-categorias">
+          <span class="carrusel-texto">Siguiente</span><span class="solo-lector"> oficios</span> <span aria-hidden="true">→</span>
         </button>
       </div>
       <p id="carrusel-estado" class="solo-lector" aria-live="polite"></p>
     </section>
 
-    <p class="otra-busqueda"><a class="enlace-ayuda" href="buscar.html">Buscar con más filtros (comuna, día y horario)</a></p>
+    <p class="otra-busqueda text-center"><a class="enlace-ayuda" href="buscar.html">Buscar con más filtros (comuna, día y horario)</a></p>
   </main>
   <footer class="pie" role="contentinfo">
     <p>AlTiro <span id="pie-version"></span> · © 2026 Equipo AlTiro.</p>

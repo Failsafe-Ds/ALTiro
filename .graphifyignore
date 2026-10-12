@@ -1,0 +1,2 @@
+# Bibliotecas de terceros minificadas (ADR-002 E-4): no aportan al grafo del código propio.
+frontend/vendor/

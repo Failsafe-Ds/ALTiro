@@ -63,6 +63,62 @@
   --ancho: 34rem;
   --ancho-amplio: 80rem;
   --margen-lateral: max(var(--esp-4), calc((100% - var(--ancho-amplio)) / 2));
+
+  /* Bootstrap 5.3 (ADR-002 E-4): se carga antes de este archivo y toma los
+     valores de MASTER, para que sus componentes salgan en rojo AlTiro. */
+  --bs-primary: var(--marca);
+  --bs-primary-rgb: 200, 16, 46;
+  --bs-body-font-family: var(--fuente);
+  --bs-body-font-size: 1.0625rem;
+  --bs-body-line-height: 1.5;
+  --bs-body-color: var(--texto);
+  --bs-body-bg: var(--fondo);
+  --bs-secondary-color: var(--texto-suave);
+  --bs-border-color: var(--linea);
+  --bs-border-radius: var(--radio);
+  --bs-link-color: var(--marca);
+  --bs-link-color-rgb: 200, 16, 46;
+  --bs-link-hover-color: var(--marca-oscura);
+  --bs-link-hover-color-rgb: 165, 14, 38;
+  --bs-focus-ring-color: rgba(0, 0, 0, 0.6);
+}
+
+/* Lo que el reinicio de Bootstrap cambia y MASTER no quiere. */
+legend {
+  float: none;
+  width: auto;
+}
+
+h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem;
+}
+
+h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+}
+
+/* El reinicio de Bootstrap quita el margen superior de párrafos y listas; las
+   pantallas se diseñaron con el del navegador (1em arriba y abajo). */
+p,
+ul,
+ol,
+dl {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+li > ul,
+li > ol {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+caption {
+  caption-side: top;
 }
 
 *,
@@ -238,6 +294,7 @@ button,
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
   width: 100%;
   min-height: 48px;
   padding: 0.6rem 1rem;
@@ -1210,6 +1267,11 @@ button.boton-quitar {
   border: 0;
 }
 
+/* Contenido centrado dentro de la tarjeta del resumen (E-4). */
+.resumen-busqueda {
+  text-align: center;
+}
+
 .resumen-busqueda .texto-resumen {
   margin-top: 0;
   font-weight: 600;
@@ -1286,6 +1348,8 @@ button.boton-quitar {
 .enlace-maestro {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: var(--esp-1);
   min-height: 44px;
   color: var(--texto);
@@ -1323,6 +1387,7 @@ button.boton-quitar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: var(--esp-1) var(--esp-2);
 }
 
@@ -1756,46 +1821,37 @@ details.tarjeta > summary {
   color: var(--texto-suave);
 }
 
-/* Categorías (MASTER, ADR-002 E-3.3): carrusel horizontal de oficios con
-   scroll-snap nativo. En el celular se ve la tarjeta siguiente asomada; en
-   pantalla ancha, si caben todos, ocupan el ancho y categorias.js oculta los
-   botones. El relleno deja ver el anillo de foco dentro del desplazamiento. */
+/* Categorías (MASTER, ADR-002 E-3.3 y E-4): carrusel de Bootstrap con 3
+   oficios por diapositiva, centrado y con un ancho máximo para que las
+   tarjetas no se estiren en pantallas anchas. Debajo, Anterior · puntos ·
+   Siguiente (los controles de Bootstrap van encima de la foto y sobre fondo
+   blanco no se verían). */
+.carrusel {
+  max-width: 54rem;
+  margin: 0 auto;
+}
+
 .lista-categorias {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 42%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--esp-3);
-  margin: 0 calc(-1 * var(--esp-1));
-  padding: var(--esp-1) var(--esp-1) var(--esp-3);
+  margin: 0;
+  padding: var(--esp-1);
   list-style: none;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: var(--esp-1);
-}
-
-.lista-categorias > li {
-  scroll-snap-align: start;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .lista-categorias {
-    scroll-behavior: smooth;
-  }
 }
 
 @media (min-width: 40rem) {
   .lista-categorias {
-    grid-auto-columns: minmax(8rem, 1fr);
+    gap: var(--esp-5);
   }
 }
 
 .carrusel-controles {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--esp-2);
-  margin-top: var(--esp-2);
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-3);
+  margin-top: var(--esp-4);
 }
 
 .carrusel-controles[hidden] {
@@ -1809,22 +1865,56 @@ button.carrusel-boton {
   min-height: 44px;
 }
 
-/* En el extremo: sigue enfocable (no se pierde el foco) y se ve atenuado. */
-button.carrusel-boton[aria-disabled="true"] {
-  opacity: 0.6;
-  border-style: dashed;
-  cursor: not-allowed;
+/* Puntos de posición: los de Bootstrap son barras blancas absolutas; aquí van
+   en la fila de controles, con 44 px de objetivo táctil y un punto visible. */
+.carousel-indicators.carrusel-puntos {
+  position: static;
+  margin: 0;
+  padding: 0;
+  gap: var(--esp-1);
+}
+
+.carousel-indicators.carrusel-puntos [data-bs-target] {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  text-indent: 0;
+  background: transparent;
+  border: 0;
+  opacity: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-indicators.carrusel-puntos [data-bs-target]::before {
+  content: "";
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--borde);
+  border-radius: 50%;
+  background: var(--fondo);
+}
+
+/* La activa se distingue por color y por tamaño (no solo por color). */
+.carousel-indicators.carrusel-puntos .active::before {
+  width: 1rem;
+  height: 1rem;
+  border-color: var(--marca);
+  background: var(--marca);
 }
 
 .enlace-categoria {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   text-align: center;
-  gap: var(--esp-4);
+  gap: var(--esp-3);
   height: 100%;
-  min-height: 7.5rem;
+  min-height: 9.5rem;
   padding: var(--esp-4) var(--esp-2);
   color: var(--texto);
   font-weight: 600;
@@ -1861,10 +1951,64 @@ button.carrusel-boton[aria-disabled="true"] {
   height: 1.75rem;
 }
 
+.ver-maestros {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--texto-suave);
+}
+
+@media (min-width: 40rem) {
+  .enlace-categoria {
+    min-height: 13rem;
+    padding: var(--esp-5) var(--esp-4);
+    font-size: 1.15rem;
+  }
+
+  .icono-categoria {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+
+  .icono-categoria .icono-svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
 .nombre-categoria {
   overflow-wrap: break-word;
   hyphens: auto;
   line-height: 1.3;
+}
+
+/* En el celular no cabe la fila completa: quedan las flechas (44 px) y el
+   texto «Anterior»/«Siguiente» sigue para los lectores de pantalla. */
+@media (max-width: 39.99rem) {
+  .carrusel-controles {
+    gap: var(--esp-2);
+  }
+
+  .carrusel-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  button.carrusel-boton {
+    padding-inline: var(--esp-3);
+  }
+
+  .enlace-categoria {
+    padding: var(--esp-3) var(--esp-1);
+    font-size: 0.9375rem;
+  }
+
+  .nombre-categoria {
+    hyphens: manual;
+  }
 }
 
 .otra-busqueda {
@@ -1886,6 +2030,22 @@ button.carrusel-boton[aria-disabled="true"] {
   margin-top: var(--esp-5);
 }
 
+/* Contenido centrado dentro de la portada y de «Tu cuenta» (E-4): el título,
+   la bajada y los botones, no solo la caja. */
+.pagina-inicio main {
+  max-width: 56rem;
+}
+
+.portada,
+.inicio-cuenta {
+  text-align: center;
+}
+
+.portada .bajada {
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
 @media (min-width: 40rem) {
   .portada {
     margin: var(--esp-5) 0 0;
@@ -1893,9 +2053,19 @@ button.carrusel-boton[aria-disabled="true"] {
     border-radius: var(--radio-foto);
   }
 
-  .portada .acciones,
+  .portada .acciones {
+    grid-template-columns: repeat(2, minmax(12rem, 16rem));
+    justify-content: center;
+  }
+
+  /* Los 3 accesos de «Tu cuenta» en una sola fila, del mismo ancho. */
   .inicio-cuenta .acciones {
-    grid-template-columns: repeat(auto-fit, minmax(14rem, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    justify-content: center;
+  }
+
+  #con-sesion .acciones {
+    grid-template-columns: minmax(12rem, 16rem);
   }
 }
 
@@ -1917,6 +2087,7 @@ button.carrusel-boton[aria-disabled="true"] {
   padding: var(--esp-4);
   border: 1px solid var(--linea);
   border-radius: var(--radio-foto);
+  margin-top: var(--esp-5);
   margin-bottom: var(--esp-5);
 }
 

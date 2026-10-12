@@ -53,17 +53,11 @@ Usa:
 
 - HTML;
 - CSS;
-- JavaScript nativo.
+- JavaScript nativo;
+- Bootstrap 5.3.8, alojado en `frontend/vendor/bootstrap-5.3.8/` (ADR-002 E-4): su CSS va en todas las páginas antes de `css/base.css`; su JS solo en las páginas que usan un componente con JS. Nunca desde CDN ni editando sus archivos. Los colores salen de las variables `--bs-*` que fija `base.css` (MASTER); no se usan los colores propios de Bootstrap;
+- React solo según ADR-002 E-4: con paso de compilación, sin CDN ni Babel en el navegador, y registrando la enmienda antes de la primera pantalla.
 
-No incorporar:
-- React;
-- Vue;
-- Angular;
-- Bootstrap;
-- Tailwind;
-- librerías de componentes;
-
-salvo decisión arquitectónica explícita.
+No incorporar Vue, Angular, Tailwind, shadcn ni otras librerías de componentes salvo decisión arquitectónica explícita.
 
 Diseño visual: sigue ADR-002 E-3 (referencia Fiverr, tonos rojos, inicio por rol, sin «Volver»). Del plugin UI/UX Pro Max se usan **solo** `ui-ux-pro-max:ui-ux-pro-max` (siempre con la pila `html-css`, nunca `html-tailwind`) y `ui-ux-pro-max:design-system` (tokens como variables CSS en `frontend/css/`). **No** se usan `ui-styling` (shadcn y Tailwind) ni la generación de imágenes, logos o íconos de `design`, `brand` y `banner-design`, porque envían datos a servicios externos (Gemini y otros) no aprobados (CLAUDE.md §13).
 

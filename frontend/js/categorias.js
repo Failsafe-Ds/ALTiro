@@ -14,9 +14,8 @@
   const aviso = document.getElementById("aviso-categorias");
   const lista = document.getElementById("lista-categorias");
   const carrusel = document.getElementById("carrusel-categorias");
-  const controles = document.getElementById("carrusel-controles");
-  const anterior = document.getElementById("carrusel-anterior");
-  const siguiente = document.getElementById("carrusel-siguiente");
+  const controles = carrusel.querySelector(".carrusel-controles");
+  const puntos = document.getElementById("carrusel-indicadores");
   const estadoCarrusel = document.getElementById("carrusel-estado");
   const elemento = dom.elemento;
 
@@ -41,6 +40,7 @@
       elemento("span", "nombre-categoria", oficio.nombre)
     );
     enlace.href = `buscar.html?oficio=${encodeURIComponent(oficio.codigo)}`;
+    enlace.append(" ", elemento("span", "ver-maestros", "Ver maestros"));
     return elemento("li", "", enlace);
   }
 
@@ -64,72 +64,54 @@
       aviso.textContent = "Por ahora no hay oficios disponibles. Vuelve a intentarlo más tarde.";
       return;
     }
-    lista.replaceChildren(...oficios.map(categoria));
+    const total = armar(oficios.map(categoria));
     carrusel.hidden = false;
-    actualizar();
+    const instancia = bootstrap.Carousel.getOrCreateInstance(carrusel, { interval: false, ride: false, touch: true, wrap: true, keyboard: true });
+    instancia.to(0);
+    carrusel.addEventListener("slid.bs.carousel", (evento) => anunciar(evento.to, total));
   }
 
-  // --- Carrusel (ADR-002 E-3.3) ---
-  // En los extremos el botón queda con aria-disabled (sigue enfocable, para no
-  // perder el foco) y el aviso lo dice. Con prefers-reduced-motion, sin animación.
-  const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)");
-  let anunciar = false;
+  // --- Carrusel (ADR-002 E-3.3 y E-4) ---
+  // Carrusel de Bootstrap: diapositivas de a POR_DIAPOSITIVA oficios (3: los 9
+  // del catálogo quedan en 3 diapositivas parejas, en celular y en PC). Sin
+  // avance automático (interval: false); con el dedo (touch) y dando la vuelta
+  // al final (wrap). Bootstrap oculta las diapositivas inactivas, así que Tab
+  // solo recorre los oficios a la vista. El aviso para lectores dice cuáles son.
+  const POR_DIAPOSITIVA = 3;
 
-  function visibles() {
-    const caja = lista.getBoundingClientRect();
-    const items = Array.from(lista.children);
-    const dentro = items
-      .map((item, i) => [i, item.getBoundingClientRect()])
-      .filter(([, r]) => r.left >= caja.left - 2 && r.right <= caja.right + 2)
-      .map(([i]) => i);
-    return { primero: dentro.length ? dentro[0] + 1 : 1, ultimo: dentro.length ? dentro[dentro.length - 1] + 1 : 1, total: items.length };
-  }
-
-  function actualizar() {
-    const sobra = lista.scrollWidth - lista.clientWidth;
-    controles.hidden = sobra <= 1;
-    const alInicio = lista.scrollLeft <= 1;
-    const alFinal = lista.scrollLeft >= sobra - 1;
-    anterior.setAttribute("aria-disabled", String(alInicio));
-    siguiente.setAttribute("aria-disabled", String(alFinal));
-    if (anunciar) {
-      anunciar = false;
-      const { primero, ultimo, total } = visibles();
-      const extremo = alInicio ? " Estás al inicio de la lista." : alFinal ? " Llegaste al final de la lista." : "";
-      estadoCarrusel.textContent = `Oficios ${primero} a ${ultimo} de ${total}.${extremo}`;
+  function armar(items) {
+    const diapositivas = [];
+    for (let i = 0; i < items.length; i += POR_DIAPOSITIVA) {
+      const grupo = items.slice(i, i + POR_DIAPOSITIVA);
+      const ul = elemento("ul", "lista-categorias", ...grupo);
+      const diapositiva = elemento("div", i === 0 ? "carousel-item active" : "carousel-item", ul);
+      diapositiva.setAttribute("role", "group");
+      diapositiva.setAttribute("aria-roledescription", "diapositiva");
+      diapositiva.setAttribute("aria-label", `${diapositivas.length + 1} de ${Math.ceil(items.length / POR_DIAPOSITIVA)}`);
+      diapositivas.push(diapositiva);
     }
+    lista.replaceChildren(...diapositivas);
+    puntos.replaceChildren(
+      ...diapositivas.map((_, i) => {
+        const punto = elemento("button", i === 0 ? "active" : "");
+        punto.type = "button";
+        punto.dataset.bsTarget = "#carrusel-categorias";
+        punto.dataset.bsSlideTo = String(i);
+        punto.setAttribute("aria-label", `Ver oficios, parte ${i + 1} de ${diapositivas.length}`);
+        if (i === 0) punto.setAttribute("aria-current", "true");
+        return punto;
+      })
+    );
+    // Con una sola diapositiva no hay nada que pasar: se ocultan los controles.
+    controles.hidden = diapositivas.length < 2;
+    return items.length;
   }
 
-  function mover(direccion) {
-    const sobra = lista.scrollWidth - lista.clientWidth;
-    const limite = direccion < 0 ? lista.scrollLeft <= 1 : lista.scrollLeft >= sobra - 1;
-    anunciar = true;
-    if (limite) {
-      actualizar();
-      return;
-    }
-    lista.scrollBy({ left: direccion * lista.clientWidth * 0.8, behavior: sinMovimiento.matches ? "auto" : "smooth" });
+  function anunciar(indice, total) {
+    const primero = indice * POR_DIAPOSITIVA + 1;
+    const ultimo = Math.min(total, primero + POR_DIAPOSITIVA - 1);
+    estadoCarrusel.textContent = `Oficios ${primero} a ${ultimo} de ${total}.`;
   }
-
-  let espera = null;
-  lista.addEventListener("scroll", () => {
-    clearTimeout(espera);
-    espera = setTimeout(actualizar, 120);
-  });
-  // Con Tab, la tarjeta enfocada se alinea a un punto de ajuste (inicio) para
-  // que el scroll-snap no la deje cortada.
-  lista.addEventListener("focusin", (evento) => {
-    const item = evento.target.closest("li");
-    if (item && lista.scrollWidth > lista.clientWidth + 1) {
-      item.scrollIntoView({ block: "nearest", inline: "start", behavior: sinMovimiento.matches ? "auto" : "smooth" });
-    }
-  });
-  anterior.addEventListener("click", () => mover(-1));
-  siguiente.addEventListener("click", () => mover(1));
-  window.addEventListener("resize", () => {
-    clearTimeout(espera);
-    espera = setTimeout(actualizar, 120);
-  });
 
   cargar();
 })();
