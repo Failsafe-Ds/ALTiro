@@ -237,14 +237,13 @@ a:hover {
   outline-color: var(--blanco);
 }
 
-/* Sin movimiento para quien lo pidió en su sistema. */
+/* Sin movimiento para quien lo pidió en su sistema (E-4.4): ya no hay un
+   «!important» global. Todo movimiento nuevo (elevaciones, brillo de carga,
+   desplazamiento suave) vive dentro de «prefers-reduced-motion: no-preference»;
+   los cambios de color siguen siendo instantáneos y útiles. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition: none !important;
-    animation: none !important;
-    scroll-behavior: auto !important;
+  html {
+    scroll-behavior: auto;
   }
 }
 
@@ -639,7 +638,7 @@ h2:focus {
 
 .motivo {
   padding: 0.75rem 1rem;
-  border-left: 6px solid var(--advertencia);
+  border-left: 4px solid var(--advertencia);
   background: var(--advertencia-fondo);
   color: var(--texto);
   font-weight: 600;
@@ -944,7 +943,7 @@ button.boton-peligro[disabled]:hover {
    en cada aviso. Texto 16:1 e ícono 6,3:1 sobre #fff4e5
    (docs/testing/rnf-16-contrastes.md). */
 .avisos {
-  border-left: 6px solid var(--advertencia);
+  border-left: 4px solid var(--advertencia);
   background: var(--advertencia-fondo);
 }
 
@@ -999,7 +998,7 @@ button.boton-peligro[disabled]:hover {
 .resultado-documento {
   margin: 0.75rem 0 0;
   padding: 0.5rem 0.75rem;
-  border-left: 6px solid var(--exito);
+  border-left: 4px solid var(--exito);
   color: var(--exito);
   background: var(--exito-fondo);
   font-weight: 600;
@@ -1031,7 +1030,7 @@ button.boton-peligro[disabled]:hover {
 .tarjeta .motivos-servicio {
   margin: 0.5rem 0;
   padding: 0.25rem 0.75rem;
-  border-left: 6px solid var(--advertencia);
+  border-left: 4px solid var(--advertencia);
   background: var(--advertencia-fondo);
   border-radius: var(--radio);
 }
@@ -1089,7 +1088,7 @@ button.boton-peligro[disabled]:hover {
 /* Ayuda destacada (texto 16:1 sobre #f3f4f6; el borde no transmite estado). */
 .nota-ayuda {
   padding: 0.75rem 1rem;
-  border-left: 6px solid var(--borde);
+  border-left: 4px solid var(--borde);
   background: var(--fondo-suave);
   border-radius: var(--radio);
 }
@@ -1173,7 +1172,7 @@ button.boton-quitar {
 
 /* Estado de publicación: con ícono y texto; el borde lo refuerza (RNF-16). */
 .estado-publicado {
-  border-left: 6px solid var(--exito);
+  border-left: 4px solid var(--exito);
   background: var(--exito-fondo);
 }
 
@@ -1313,7 +1312,7 @@ button.boton-quitar {
 
 .sin-resultados {
   padding: 0.75rem 1rem;
-  border-left: 6px solid var(--borde);
+  border-left: 4px solid var(--borde);
   background: var(--fondo-suave);
   border-radius: var(--radio);
   font-weight: 600;
@@ -1549,7 +1548,7 @@ button.boton-quitar {
 
 .elegir-servicio.con-error .lista-oficios {
   padding-left: 0.5rem;
-  border-left: 6px solid var(--error);
+  border-left: 4px solid var(--error);
 }
 
 .leyenda-bloques {
@@ -1629,7 +1628,7 @@ button.boton-quitar {
 }
 
 .nota-palabra {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .nota:has(input:checked) {
@@ -1711,17 +1710,17 @@ button.boton-quitar {
 /* E-4.1: en el encabezado rojo, relleno blanco y contorno negro. */
 .menu-boton {
   width: auto;
-  color: #000;
+  color: var(--foco);
   background: var(--blanco);
-  border-color: #000;
+  border-color: var(--foco);
 }
 
 /* Sin esto, "button:hover" pinta el fondo de la marca bajo el texto oscuro y
    «Menú» queda ilegible (RNF-17). */
 .menu-boton:hover {
-  color: #000;
+  color: var(--foco);
   background: var(--fondo-suave);
-  border-color: #000;
+  border-color: var(--foco);
 }
 
 /* Abierto: fondo suave de la marca (5,46:1) y el estado en aria-expanded. */
@@ -1729,10 +1728,10 @@ button.boton-quitar {
    estado en aria-expanded (no solo color). */
 .menu-boton[aria-expanded="true"],
 .menu-boton[aria-expanded="true"]:hover {
-  color: #000;
+  color: var(--foco);
   background: var(--fondo-suave);
-  border-color: #000;
-  box-shadow: inset 0 0 0 1px #000;
+  border-color: var(--foco);
+  box-shadow: inset 0 0 0 1px var(--foco);
 }
 
 .menu-lista {
@@ -2089,8 +2088,8 @@ details.tarjeta > summary {
 }
 
 /* Celular: tarjeta central casi a todo el ancho y solo una vecina asomada por
-   lado. Los 9 puntos de 44 px no caben: bajan a 32 px (sobre el mínimo de 24
-   px de WCAG 2.5.8) y siguen siendo la alternativa a deslizar. */
+   lado. Los puntos mantienen 44 px de objetivo táctil (E-4.4): si no caben
+   en una fila, pasan a una segunda. */
 @media (max-width: 39.99rem) {
   .abanico {
     --paso: 0.68;
@@ -2112,12 +2111,6 @@ details.tarjeta > summary {
     font-size: 1.15rem;
   }
 
-  .carrusel-puntos button.punto {
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    min-height: 32px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2695,5 +2688,369 @@ nav.tarjeta,
      se leen como lista; solo se acortan los márgenes. */
   .ficha-datos > section > h2 {
     margin-top: var(--esp-5);
+  }
+}
+
+/* =========================================================================
+   Pulido visual moderno (ADR-002 E-4.4, v0.6.9)
+   Refinamiento sobre la identidad E-3/E-4: mismo rojo, misma fuente propia,
+   mismos contrastes. Cambian la jerarquía tipográfica, las superficies
+   (radios y sombras suaves con desplazamiento), los estados de los botones,
+   la portada y los estados de carga. Todo con tokens; el movimiento solo
+   con prefers-reduced-motion: no-preference.
+   ------------------------------------------------------------------------- */
+:root {
+  --radio-lg: 1rem;
+  --radio-control: 0.625rem;
+  /* Sombras con desplazamiento y desenfoque (nunca halos sin desplazamiento). */
+  --sombra-1: 0 1px 2px rgb(31 31 31 / 6%), 0 1px 1px rgb(31 31 31 / 4%);
+  --sombra-2: 0 2px 4px rgb(31 31 31 / 6%), 0 8px 20px rgb(31 31 31 / 8%);
+  --sombra-3: 0 4px 8px rgb(31 31 31 / 8%), 0 18px 40px rgb(31 31 31 / 14%);
+  --sombra-marca: 0 1px 2px rgb(31 31 31 / 22%), 0 4px 10px rgb(31 31 31 / 16%);
+  --salida: cubic-bezier(0.22, 1, 0.36, 1);
+  --marca-tenue: #ffe3e6;
+}
+
+/* Navegador: selección, cursor y controles nativos con la paleta. */
+::selection {
+  color: var(--texto);
+  background: #f9c9cf;
+}
+
+input,
+textarea,
+select {
+  caret-color: var(--marca);
+  accent-color: var(--marca);
+}
+
+html {
+  scrollbar-color: var(--borde) var(--fondo-suave);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Saltar al contenido (WCAG 2.4.1): aparece solo al enfocarlo con teclado. */
+.saltar {
+  position: absolute;
+  top: 0;
+  left: var(--esp-2);
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--esp-4);
+  color: var(--texto);
+  font-weight: 700;
+  background: var(--blanco);
+  border: 2px solid var(--foco);
+  border-radius: 0 0 var(--radio) var(--radio);
+  transform: translateY(-120%);
+}
+
+.saltar:focus {
+  transform: translateY(0);
+  color: var(--texto);
+}
+
+main:focus {
+  outline: none;
+}
+
+/* Tipografía: escala más clara (títulos en 800, balanceados, tracking ajustado). */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  font-size: clamp(1.75rem, 1.4rem + 1.6vw, 2.5rem);
+  margin: var(--esp-6) 0 var(--esp-3);
+}
+
+h2 {
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  font-size: clamp(1.3rem, 1.15rem + 0.7vw, 1.65rem);
+  margin: var(--esp-6) 0 var(--esp-3);
+}
+
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+
+.bajada {
+  font-size: 1.125rem;
+  line-height: 1.55;
+  color: var(--texto-suave);
+}
+
+/* Encabezado: sombra suave que lo separa del contenido. */
+.encabezado {
+  position: relative;
+  margin-bottom: var(--esp-3);
+  box-shadow: 0 2px 6px rgb(31 31 31 / 18%);
+}
+
+.marca {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+/* Campos: radio mayor, borde que reacciona y anillo suave al enfocar. */
+input,
+textarea,
+select {
+  border-radius: var(--radio-control);
+  transition: border-color var(--transicion), box-shadow var(--transicion), background-color var(--transicion);
+}
+
+input:hover:not([disabled]):not([aria-invalid="true"]),
+textarea:hover:not([disabled]):not([aria-invalid="true"]),
+select:hover:not([disabled]):not([aria-invalid="true"]) {
+  border-color: var(--texto);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--texto);
+  box-shadow: 0 0 0 4px var(--marca-suave);
+}
+
+input[disabled],
+textarea[disabled],
+select[disabled] {
+  color: var(--texto-suave);
+  background: var(--fondo-suave);
+  cursor: not-allowed;
+}
+
+/* Botones: radio mayor, sombra de marca en el principal y estado presionado. */
+button,
+.boton {
+  border-radius: var(--radio-control);
+  font-weight: 700;
+  box-shadow: var(--sombra-marca);
+}
+
+button:active:not([disabled]),
+.boton:active {
+  background: var(--marca-oscura);
+  box-shadow: none;
+}
+
+.boton-secundario,
+button.boton-secundario {
+  box-shadow: var(--sombra-1);
+}
+
+button.boton-secundario:active:not([disabled]),
+.boton-secundario:active {
+  background: var(--linea);
+  box-shadow: none;
+}
+
+button[disabled] {
+  box-shadow: none;
+}
+
+.boton-peligro,
+button.boton-peligro {
+  box-shadow: var(--sombra-1);
+}
+
+/* Botón de pausa del carrusel (WCAG 2.2.2): compacto, bajo los puntos. */
+button.boton-pausa {
+  width: auto;
+  min-height: 44px;
+  padding: 0.4rem 1rem;
+  font-size: 0.95rem;
+}
+
+.carrusel-controles {
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+/* Superficies: tarjetas con sombra suave y radio mayor. */
+.tarjeta {
+  background: var(--blanco);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-2);
+}
+
+.aviso,
+.sin-resultados {
+  border-radius: var(--radio-control);
+}
+
+/* Portada: gradiente tenue de la marca, borde y sombra; título más grande. */
+.portada {
+  background:
+    linear-gradient(to bottom, var(--marca-suave), var(--blanco));
+  border-bottom: 1px solid var(--linea);
+}
+
+.portada h1 {
+  font-size: clamp(2rem, 1.4rem + 3vw, 3.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+@media (min-width: 40rem) {
+  .portada {
+    padding: var(--esp-7) var(--esp-6);
+    border: 1px solid var(--linea);
+    box-shadow: var(--sombra-2);
+  }
+}
+
+/* Carrusel: icono con degradado tenue y tarjeta central con sombra de profundidad. */
+.icono-categoria {
+  background: linear-gradient(145deg, var(--marca-suave), var(--marca-tenue));
+}
+
+.abanico-item[data-pos="0"] .enlace-categoria {
+  box-shadow: var(--sombra-3);
+}
+
+.ver-maestros {
+  font-weight: 700;
+  border-radius: var(--radio-control);
+}
+
+/* Fotos de maestros con radio y sombra. */
+.foto-publica {
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-2);
+}
+
+/* Foto en carga: marcador gris (con brillo si hay movimiento) (M-09). */
+.cargando-foto {
+  background: linear-gradient(100deg, var(--fondo-suave) 30%, var(--linea) 50%, var(--fondo-suave) 70%);
+  background-size: 200% 100%;
+}
+
+/* Estados vacío y de carga: más aire y marca visual que no depende del color. */
+.sin-resultados {
+  padding: var(--esp-4);
+  box-shadow: var(--sombra-1);
+}
+
+.buscando:not(:empty) {
+  padding: var(--esp-3) var(--esp-4);
+  color: var(--texto-suave);
+  background: var(--fondo-suave);
+  border-radius: var(--radio-control);
+}
+
+.buscando:not(:empty)::before {
+  content: "";
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.5em;
+  vertical-align: -0.1em;
+  border: 2px solid var(--borde);
+  border-top-color: var(--marca);
+  border-radius: 50%;
+}
+
+/* Movimiento discreto: solo si la persona no pidió reducirlo. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .saltar {
+    transition: transform 150ms var(--salida);
+  }
+
+  button,
+  .boton,
+  .enlace-categoria {
+    transition-property: background-color, color, border-color, box-shadow, transform;
+    transition-duration: 150ms;
+    transition-timing-function: var(--salida);
+  }
+
+  button:hover:not([disabled]),
+  .boton:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--sombra-marca), var(--sombra-1);
+  }
+
+  button:active:not([disabled]),
+  .boton:active {
+    transform: translateY(0);
+  }
+
+  .cargando-foto {
+    animation: brillo 1.4s linear infinite;
+  }
+
+  .buscando:not(:empty)::before {
+    animation: girar 0.8s linear infinite;
+  }
+
+  .aviso:not(:empty) {
+    animation: aparecer 220ms var(--salida);
+  }
+
+  @keyframes brillo {
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  @keyframes girar {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+}
+
+/* Los puntos del carrusel no son botones de acción: sin sombra, radio ni elevación. */
+.carrusel-puntos button.punto,
+.carrusel-puntos button.punto:hover,
+.carrusel-puntos button.punto:active {
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Portada en el celular: los dos accesos del mismo ancho. */
+.portada .acciones .boton {
+  width: 100%;
+  max-width: 20rem;
+}
+
+/* Pestañas por estado en el celular: las tres en una sola fila (M-02). */
+@media (max-width: 30rem) {
+  .filtros {
+    flex-wrap: nowrap;
+    gap: var(--esp-2);
+  }
+
+  .filtros .filtro {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: var(--esp-2);
   }
 }

@@ -57,6 +57,7 @@ Preparado por Claude con la skill UI/UX Pro Max (pila `html-css`). La skill sugi
 - **Mensajes:** caja con ícono, borde izquierdo de 4 px, título breve y la acción a seguir; `role="alert"` para errores y `role="status"` para éxitos.
 
 ## Prohibido
+- **Pulido moderno (E-4.4, v0.6.9):** tokens `--radio-lg` 1 rem, `--radio-control` 0,625 rem, `--sombra-1/2/3` (siempre con desplazamiento), `--sombra-marca`, `--salida` (ease-out exponencial); títulos en 800 con escala fluida; movimiento solo con `prefers-reduced-motion: no-preference`; «Ir al contenido» y «Pausar movimiento» en el carrusel; objetivos de 44 px en los puntos.
 - Tailwind, shadcn u otra biblioteca de componentes que no sea Bootstrap 5.3 (ADR-002 E-4). Bootstrap toma los colores de este archivo mediante las variables `--bs-*` de `base.css`; sus colores propios (azul `primary`, etc.) no se usan.
 - Estilos o scripts en línea (CSP); fuentes, imágenes o íconos desde otros dominios.
 - Emoji como ícono, estados comunicados solo con color, texto gris claro sobre blanco con menos de 4,5:1.

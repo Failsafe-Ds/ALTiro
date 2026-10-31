@@ -52,12 +52,50 @@ El costo de un agente crece con **lo que lee × los pasos que da**. Todo lo de a
     - el historial de una conversación larga se vuelve a enviar en cada turno del coordinador.
 12. **Agrupar incrementos** que tocan los mismos archivos y ADR en un solo encargo (por ejemplo, los incrementos 5 y 6 del S4).
 
+## ▶ Sesión nueva — empezar aquí (dejado el 2026-10-31)
+La sesión anterior (2026-10-30/31) quedó larga y se cortó a pedido del usuario. **Nada de lo siguiente tiene commit todavía.** Leer solo este archivo y `docs/estado-actual.md`, y seguir este orden:
+
+1. **Revisar el trabajo sin commit** (`git status`):
+   - skills nuevas `.claude/skills/security-audit/` (Cloudflare) y `.claude/skills/impeccable/`; `ui-ux-pro-max` ya se desinstaló; `.claude/agents/frontend.md` ya apunta a `impeccable`;
+   - `.gitignore`: se agregó `docs/testing/security-audit/`;
+   - informes `docs/testing/qa-recorrido-chrome-2026-10-30.md` (DEF-CHR-01..06) y `docs/testing/auditoria-diseno-impeccable-2026-10-30.md` (M-01..M-15);
+   - **v0.6.9 (ADR-002 E-4.4)**: pulido visual moderno, sobre todo en `frontend/css/base.css`, «Ir al contenido» en las 27 páginas (`<main id="principal">`), botón «Pausar movimiento» del carrusel, puntos de 44 px y DEF-CHR-01 corregido en `frontend/js/mis-trabajos.js:255`;
+   - `Glosario-terminos-Informe2.pdf` e `Informe2ALTiroDanielSebastianLuciano-v5.docx` en la raíz son del equipo: **no tocarlos ni agregarlos sin preguntar**.
+2. **QA de v0.6.9 antes del commit** (agente `qa`, encargo acotado):
+   - correr la suite completa una vez con el montaje `-v "$(pwd -W)/frontend:/frontend:ro"`. Hasta ahora solo pasó `tests/test_frontend_pie_volver.py` (62 pruebas);
+   - DEF-CHR-01 de punta a punta: crear un pedido nuevo para el maestro demo, aceptarlo y rechazar otro desde «Mis trabajos». Solo se probó que la confirmación aparece; el POST real no se probó;
+   - revisión visual a 390 y 1280 px de las pantallas que no se miraron y heredan los estilos: ficha del maestro, curatoría, comercial, agenda, cobertura, documentos, moderación e indicadores. Usar `scripts/qa-pulido/capturas.py` (la extensión de Chrome no conectaba);
+   - contraste con axe o una medición equivalente, y el peso de la portada (RNF-02).
+3. **Commit** de todo lo anterior (v0.6.9), si el usuario lo pide o según el modo de operación.
+4. **Corregir los 2 hallazgos confirmados (baja) de la auditoría de seguridad** (agente `backend`, un solo encargo con pruebas de regresión). Los detalles están en `docs/testing/security-audit/run-1/REPORT.md` y `findings.json`. La carpeta está fuera de git; si el equipo quiere versionar el resumen, copiarlo a `docs/testing/`.
+   - **Primer correo sin reautenticación:** al agregar el primer correo por la rama de sesión de `POST /api/clientes` (`identidad/vistas.py:338` → `servicios.py:300-304`) no se pide la contraseña (RNF-09). Ese correo pasa a servir para recuperar la cuenta. Hay que exigir `_reautenticar` y enmendar ADR-013 p7 y ADR-027 p2.
+   - **`POST /api/cuenta/correo` revela si un correo tiene cuenta**, y no tiene límite (`vistas.py:264-273`). Hay que agregarle un límite de frecuencia por cuenta y por origen, y sumar la ruta a la zona Nginx `altiro_estricta`.
+   - **Pistas `needs_validation`, para el equipo, no para código:**
+     - se confía en X-Real-IP / X-Forwarded-Proto de cualquier contenedor de la red `interna`;
+     - la conversación se devuelve sin paginar;
+     - `restaurar.sh` acepta un `base.dump` en texto plano sin comprobar su integridad.
+5. **Pendientes de diseño** (agente `frontend` con `impeccable`; el carrusel se mantiene):
+   - **M-02:** jerarquía de «Mis trabajos». Ojo: `bandeja.js` marca los avisos como vistos.
+   - **M-03:** ayuda contextual para el maestro.
+   - **M-06:** formularios por pasos (DEF-CHR-03/04).
+   - **M-07:** peso y preload de la fuente.
+   - **M-08:** pedir de nuevo al mismo maestro. Revisar primero que tenga respaldo en una HU o RF.
+   - **M-10:** textos de error que vienen del servidor (DEF-CHR-05/06).
+   - **M-11:** títulos h1→h3 en `comercial.html`.
+   - **Marcador de la foto mientras carga:** también en `mi-perfil`, `mis-documentos` y `curatoria-expediente`.
+   - M-05 (`aria-current`) ya estaba hecho.
+6. **Documentación:**
+   - registrar el cambio de skills (de `ui-ux-pro-max` a `impeccable` y la nueva `security-audit`) en un ADR o enmienda (CLAUDE.md §15);
+   - agregar a `docs/estado-actual.md` una línea por paso cerrado.
+
+**Cuentas demo:** las contraseñas de la sesión anterior estaban en su scratchpad. Si no están disponibles, regenerarlas con `cargar_datos_demo --con-cuentas --restablecer-contrasenas` en altiro-dev, que las muestra una sola vez. **Nunca copiarlas al repo ni a informes.** `altiro-dev` corre en https://localhost:8443.
+
 ## Siguiente trabajo — pulido post-S5 (2026-10-11, fuera de sprint) — **CERRADO en v0.6.2**
 Pedido del usuario: "dejar todo lindo y funcional, sobre todo con las validaciones mínimas". No pertenece a ningún sprint; el equipo lo ubicará después en el backlog (CLAUDE.md §11). Se trabaja en modo continuo (reglas de arriba), con versiones 0.6.x. Orden:
 1. **Commit** de la documentación del 2026-10-11 (validaciones mínimas, ADR-002 E-3, skills). ✔ al cerrar el paso.
 2. **Auditoría del backend** con la skill `ponytail-audit` (informe en `docs/testing/auditoria-backend-ponytail.md`), y corrección de lo que haya que corregir (agente `backend`).
 3. **Validaciones mínimas** (CLAUDE.md §8-§9) en todas las pantallas y en la API: inventario, corrección y QA con la lista de `qa.md`.
-4. **Rediseño visual** (ADR-002 E-3), por partes: base visual (tokens rojos, encabezado en dos versiones, pie, sin «Volver», inicio por rol) → categorías y búsqueda (estilo Fiverr) → páginas de opciones con menú lateral → resto. Skill `ui-ux-pro-max` con pila `html-css`.
+4. **Rediseño visual** (ADR-002 E-3), por partes: base visual (tokens rojos, encabezado en dos versiones, pie, sin «Volver», inicio por rol) → categorías y búsqueda (estilo Fiverr) → páginas de opciones con menú lateral → resto. Skill `ui-ux-pro-max` con pila `html-css` (retirada el 2026-10-30; hoy se usa `impeccable`, ver `.claude/agents/frontend.md`).
 5. QA final del pulido y `docs/estado-actual.md` al día.
 
 Resultado: pasos 1 a 5 hechos (commits del 2026-10-11, v0.6.0 a v0.6.2), más DA-29 (precio en resultados). Pendiente del equipo: ubicar este trabajo en el backlog, confirmar las decisiones PROVISIONAL de ADR-002 E-3/E-3.1 y DA-29 con el representante, y mencionarlo en el próximo informe.
@@ -76,6 +114,7 @@ Pedidos del usuario, uno por versión (detalle en ADR-002 E-4 a E-4.3):
 - v0.6.6 (E-4.1): carrusel de oficios en abanico, dinámico (avanza solo); encabezado rojo con botones blancos de contorno negro.
 - v0.6.7 (E-4.2): carrusel sin botones (solo puntos, toque, deslizar y teclado).
 - v0.6.8 (E-4.3): contenido centrado en todas las páginas; ficha del maestro en dos columnas con panel «Pide un horario».
+- v0.6.9 (E-4.4, 2026-10-31, sin subir): pulido visual moderno (tipografía, sombras, botones, portada, estados de carga), «Ir al contenido», botón «Pausar movimiento» del carrusel, puntos de 44 px, `!important` global de reduced-motion eliminado y DEF-CHR-01 corregido (`mis-trabajos.js`). Pendientes de la auditoría de diseño: M-02, M-03, M-05, M-06, M-07, M-08, M-10, M-11.
 
 **Para retomar:**
 - Ver el diseño: `scripts/qa-pulido/capturas.py` (instrucciones dentro; capturas con Playwright en la red `altiro-dev_frontal`, sin cuentas). Las capturas de la extensión de Chrome se congelaban.

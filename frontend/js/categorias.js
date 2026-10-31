@@ -85,6 +85,19 @@
   let reloj = null;
   let pausadoPorPersona = sinMovimiento.matches;
   let detenidoPorUso = false;
+  const botonPausa = document.getElementById("carrusel-pausa");
+
+  // Botón «Pausar movimiento» (WCAG 2.2.2): texto visible y estado en aria-pressed.
+  function pintarPausa() {
+    botonPausa.setAttribute("aria-pressed", String(pausadoPorPersona));
+    botonPausa.textContent = pausadoPorPersona ? "Reanudar movimiento" : "Pausar movimiento";
+  }
+  botonPausa.addEventListener("click", () => {
+    pausadoPorPersona = !pausadoPorPersona;
+    pintarPausa();
+    programar();
+  });
+  pintarPausa();
 
   function mostrar(indice, anunciar) {
     actual = (indice + total) % total;
@@ -196,6 +209,7 @@
     inicioX = evento.clientX;
     if (evento.pointerType !== "mouse" && !pausadoPorPersona) {
       pausadoPorPersona = true;
+      pintarPausa();
       programar();
     }
   });

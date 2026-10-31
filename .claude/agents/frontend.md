@@ -59,7 +59,7 @@ Usa:
 
 No incorporar Vue, Angular, Tailwind, shadcn ni otras librerías de componentes salvo decisión arquitectónica explícita.
 
-Diseño visual: sigue ADR-002 E-3 (referencia Fiverr, tonos rojos, inicio por rol, sin «Volver»). Del plugin UI/UX Pro Max se usan **solo** `ui-ux-pro-max:ui-ux-pro-max` (siempre con la pila `html-css`, nunca `html-tailwind`) y `ui-ux-pro-max:design-system` (tokens como variables CSS en `frontend/css/`). **No** se usan `ui-styling` (shadcn y Tailwind) ni la generación de imágenes, logos o íconos de `design`, `brand` y `banner-design`, porque envían datos a servicios externos (Gemini y otros) no aprobados (CLAUDE.md §13).
+Diseño visual: sigue ADR-002 E-3 (referencia Fiverr, tonos rojos, inicio por rol, sin «Volver»). Skill de diseño: `impeccable` (`.claude/skills/impeccable`; reemplaza al plugin UI/UX Pro Max, retirado el 2026-10-30), en modo *Operate* y como **refinamiento**: conserva la identidad de ADR-002 E-3 y los valores de `design-system/altiro/MASTER.md`, sin rediseñar por cuenta propia. Sin Tailwind ni librerías de componentes. **No** se usan sus comandos `visualize`, `live` ni `generate` ni sus hooks, ni se generan imágenes con servicios externos no aprobados (CLAUDE.md §13).
 
 ## Responsabilidades
 

@@ -16,10 +16,11 @@
   <script src="js/menu.js" defer></script>
 </head>
 <body class="pagina-grilla">
+  <a class="saltar" href="#principal">Ir al contenido</a>
   <header class="encabezado">
     <a class="marca" href="index.html">AlTiro</a>
   </header>
-  <main>
+  <main id="principal" tabindex="-1">
     <!-- Inicio del cliente (ADR-002 E-3, punto 7): entrada a la búsqueda por
          oficio (HU-02, RF-09), con los oficios del catálogo público (GET /api/oficios).
          Pública: un visitante también puede verla. -->
@@ -42,6 +43,7 @@
       </div>
       <div class="carrusel-controles">
         <div id="carrusel-indicadores" class="carrusel-puntos"></div>
+        <button type="button" id="carrusel-pausa" class="boton-secundario boton-pausa" aria-pressed="false">Pausar movimiento</button>
       </div>
       <p id="carrusel-estado" class="solo-lector" aria-live="polite"></p>
     </section>

@@ -127,6 +127,11 @@
     }
     const url = fotos["160"] || fotos["480"] || "";
     if (url) {
+      // Estado de carga (M-09): marcador gris con brillo suave hasta que llega la foto;
+      // si falla, se oculta y quedan el nombre y el resto de la ficha.
+      imagen.classList.add("cargando-foto");
+      imagen.addEventListener("load", () => imagen.classList.remove("cargando-foto"), { once: true });
+      imagen.addEventListener("error", () => { imagen.classList.remove("cargando-foto"); imagen.hidden = true; }, { once: true });
       imagen.src = url;
       imagen.alt = `Foto de ${maestro.nombre}`;
     }

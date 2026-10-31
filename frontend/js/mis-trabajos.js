@@ -252,7 +252,7 @@
     document.getElementById("accion-si").textContent = textos.boton;
     avisoAccion.className = "aviso";
     avisoAccion.replaceChildren();
-    detalle.querySelector(".acciones").after(confirmarAccion);
+    botonAceptar.closest(".acciones").after(confirmarAccion);
     confirmarAccion.hidden = false;
     document.getElementById("titulo-confirmar-accion").focus();
   }

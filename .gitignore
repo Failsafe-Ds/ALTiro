@@ -39,3 +39,6 @@ Thumbs.db
 
 # Grafo de graphify, se regenera en cada equipo (ADR-025)
 graphify-out/
+
+# Auditoría de seguridad (skill security-audit): artefactos de trabajo, no versionados
+docs/testing/security-audit/
