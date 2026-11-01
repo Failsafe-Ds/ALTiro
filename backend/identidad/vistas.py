@@ -5,6 +5,7 @@ completo (base de RNF-08). Ningún registro inicia sesión (ADR-013, E-8).
 """
 import logging
 
+from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 
@@ -44,7 +45,7 @@ MENSAJE_CREDENCIALES = (
 
 # Campos permitidos por endpoint y contexto (propuesta del S1, §4; E-2).
 CAMPOS_CLIENTE_SIN_SESION = {"nombre", "telefono", "correo", "contrasena", "comuna"}
-CAMPOS_CLIENTE_CON_SESION = {"comuna", "correo", "telefono"}
+CAMPOS_CLIENTE_CON_SESION = {"comuna", "correo", "telefono", "contrasena"}
 CAMPOS_MAESTRO_SIN_SESION = {"nombre", "telefono", "rut", "contrasena", "correo"}
 CAMPOS_MAESTRO_CON_SESION = {"rut", "telefono"}
 CAMPOS_SESION = {"identificador", "contrasena"}
@@ -55,6 +56,16 @@ CAMPOS_RECUPERACION = {"identificador"}
 CAMPOS_RESTABLECER = {"token", "contrasena_nueva"}
 
 MENSAJE_CONTRASENA_ACTUAL = "La contraseña actual no es correcta. Revísala e inténtalo de nuevo."
+# Primer correo con el perfil de cliente (ADR-013, punto 7, E-10; ADR-027, E-2).
+MENSAJE_CONTRASENA_PRIMER_CORREO = (
+    "Escribe tu contraseña actual. La pedimos para guardar tu correo, porque con él se puede recuperar tu cuenta."
+)
+MENSAJE_CONTRASENA_NO_VA = (
+    "Tu cuenta ya tiene correo, así que aquí no pedimos tu contraseña. Déjala en blanco y vuelve a enviar."
+)
+MENSAJE_CORREOS_SEGUIDOS = (
+    "Intentaste guardar un correo varias veces seguidas. Por seguridad, espera {} e inténtalo de nuevo."
+)
 # ADR-027, punto 3: la misma respuesta exista o no la cuenta.
 MENSAJE_RECUPERACION = (
     "Si los datos corresponden a una cuenta con correo, te enviamos un enlace para crear una contraseña nueva. "
@@ -109,6 +120,24 @@ def _limitar_registro(request):
     if espera is None:
         return None
     return _respuesta_espera(frecuencia.minutos(espera), MENSAJE_REGISTROS_SEGUIDOS)
+
+
+def _limitar_correo(request):
+    """Tope de intentos de guardar un correo con sesión, por cuenta y por origen (ADR-027, E-2).
+
+    Cuenta cada intento que pasa el formato y la reautenticación, termine
+    guardando el correo o en "ya registrado": acota la consulta de qué correos
+    tienen cuenta igual que el registro (ADR-007, E-1). Un 429 no cuenta: si
+    una de las dos claves no tiene cupo, no se registra ninguna.
+    """
+    with transaction.atomic():
+        espera = frecuencia.consumir(
+            "correo", f"cuenta:{request.usuario.pk}", frecuencia.REGLAS_CORREO
+        ) or frecuencia.consumir("correo", f"origen:{limitador.origen_de(request)}", frecuencia.REGLAS_CORREO)
+        if espera is None:
+            return None
+        transaction.set_rollback(True)
+    return _respuesta_espera(frecuencia.minutos(espera), MENSAJE_CORREOS_SEGUIDOS)
 
 
 def datos_cuenta(usuario):
@@ -266,6 +295,10 @@ def cuenta_correo(request):
     bloqueo = _reautenticar(request, datos.get("contrasena"))
     if bloqueo:
         return bloqueo
+    _ejecutar(normalizar_correo, datos.get("correo"))
+    bloqueo = _limitar_correo(request)
+    if bloqueo:
+        return bloqueo
     usuario, anterior = _ejecutar(servicios.cambiar_correo, request.usuario, datos.get("correo"))
     if anterior is not None:
         recuperacion.avisar_correo_cambiado(anterior)
@@ -303,6 +336,28 @@ def recuperacion_contrasena(request):
 # --- Registro de cliente (RF-01, HU-01) ---
 
 
+def _reautenticar_primer_correo(request, datos):
+    """Primer correo con el perfil de cliente: exige la contraseña actual (RNF-09; ADR-013, E-10).
+
+    El correo pasa a servir para recuperar la cuenta (ADR-027, punto 3), así
+    que se pide la contraseña con el mismo limitador que ``/api/cuenta/correo``.
+    Formato de correo y contraseña se revisan juntos (RNF-15); después, la
+    reautenticación y el tope de intentos. Devuelve un 429 o ``None``.
+    """
+    contrasena = datos.get("contrasena")
+    errores = {}
+    try:
+        servicios.revisar_primer_correo(request.usuario, _opcional(datos, "correo"))
+    except ErrorValidacion as error:
+        errores[error.campo] = error.mensaje
+    if not isinstance(contrasena, str) or contrasena == "":
+        errores["contrasena"] = MENSAJE_CONTRASENA_PRIMER_CORREO
+    if errores:
+        raise ErroresDeCampo(errores)
+    return _reautenticar(request, contrasena) or _limitar_correo(request)
+
+
+
 @publica
 @metodos("POST")
 @manejar_errores
@@ -336,6 +391,12 @@ def clientes(request):
         )
 
     datos = leer_json(request, CAMPOS_CLIENTE_CON_SESION)
+    if request.usuario.correo is None:
+        bloqueo = _reautenticar_primer_correo(request, datos)
+        if bloqueo:
+            return bloqueo
+    elif "contrasena" in datos:
+        raise ErroresDeCampo({"contrasena": MENSAJE_CONTRASENA_NO_VA})
     usuario = _ejecutar(
         servicios.agregar_perfil_cliente,
         request.usuario,

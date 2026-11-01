@@ -399,7 +399,9 @@ def test_pi092_maestro_sin_correo_agrega_perfil_de_cliente_con_su_primer_correo(
     maestro = crear_maestro()
     _con_sesion(client, "11.111.111-1")
 
-    respuesta = post_json(client, URL_CLIENTES, {"comuna": "8101", "correo": " Nuevo@Example.com "})
+    respuesta = post_json(
+        client, URL_CLIENTES, {"comuna": "8101", "correo": " Nuevo@Example.com ", "contrasena": CONTRASENA}
+    )
 
     assert respuesta.status_code == 201
     maestro.refresh_from_db()
@@ -414,7 +416,7 @@ def test_pi093_maestro_sin_correo_que_no_envia_correo_recibe_400(client):
     maestro = crear_maestro()
     _con_sesion(client, "11.111.111-1")
 
-    respuesta = post_json(client, URL_CLIENTES, {"comuna": "8101"})
+    respuesta = post_json(client, URL_CLIENTES, {"comuna": "8101", "contrasena": CONTRASENA})
 
     assert respuesta.status_code == 400
     assert set(respuesta.json()["errores"]) == {"correo"}

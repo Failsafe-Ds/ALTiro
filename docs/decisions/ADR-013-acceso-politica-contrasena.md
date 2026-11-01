@@ -100,7 +100,7 @@ Todas las decisiones de este ADR son **decisiones del equipo**, no reglas textua
 - La creación de `perfil_cliente`, la asignación del rol `cliente` y la actualización del correo en `usuario` forman **una sola operación atómica** (una transacción).
 - Si la cuenta ya tiene correo, esta operación no lo lee ni lo modifica. (Ver Enmienda E-2.)
 - No se crea un endpoint separado para "agregar correo" ni una función genérica de editar la cuenta. *(Enmendado por ADR-027, punto 2: `POST /api/cuenta/correo`, con reautenticación, cambia el correo o agrega el primero.)*
-- **Interpretación de RNF-09:** agregar el primer correo a una cuenta con correo `NULL` **no es "cambiar correo"** y no exige reautenticación. Cambiar un correo ya existente es una operación distinta.
+- **Interpretación de RNF-09:** agregar el primer correo a una cuenta con correo `NULL` **no es "cambiar correo"** y no exige reautenticación. Cambiar un correo ya existente es una operación distinta. *(Reemplazado por la Enmienda E-10: ahora exige la contraseña actual.)*
 - Ninguna HU ni RF pide cambiar el correo ni la contraseña. **Ambas funciones quedan fuera del alcance actual** y no se diseñan endpoints para ellas. La evidencia de la segunda mitad de RNF-09 sigue dependiendo de la pregunta de alcance de la propuesta del S1 (§2.1).
 
 ## 8. Cuentas administrativas
@@ -154,7 +154,7 @@ Cómo se garantizan:
 
 ## Dependencias
 - **ADR-004** (Borrador): algoritmo y parámetros del hash (Argon2id, benchmark en el equipo de referencia). La política del punto 3 no depende de ellos. Una alternativa con límite de bytes (bcrypt, 72 bytes) no cubre 128 caracteres sin recorte.
-- **ADR-005** (Borrador): sesiones. Agregar el primer correo no exige reautenticación (punto 7). El registro no inicia sesión (ver Enmienda E-8).
+- **ADR-005** (Borrador): sesiones. Agregar el primer correo no exige reautenticación (punto 7). *(Reemplazado por la Enmienda E-10.)* El registro no inicia sesión (ver Enmienda E-8).
 - **ADR-007** (Borrador, no se cierra aquí): el limitador debe incluir en su clave el origen exigido por M-07 y RNF-10, y **no debe guardar el correo ni el RUT en claro**. La clave exacta, la ventana, la duración del bloqueo, el reinicio del contador y el tratamiento de los 400 y 401 se deciden en ADR-007.
 - **Propuesta del S1, §2.1**: evidencia de la segunda mitad de RNF-09.
 - **S2**: postulación (CA-11.1, el maestro debe volver a entrar), incluida la de un usuario ya autenticado como cliente (punto 2), y regla de no autoaprobación (CA-19.4).
@@ -297,3 +297,15 @@ Origen común: huecos señalados por QA en `docs/testing/plan-identidad-sprint-1
   - Se prohíbe con un CHECK `cliente_id <> perfil_maestro_id` en `ticket`, y la creación responde 400 con el mensaje "No puedes pedirte un trabajo a ti mismo".
   - Si cliente y maestro son la misma persona, RF-17 pierde sentido, se contamina la medición de NTI-10 y se abriría la autoevaluación (NTI-06).
 - **Aprobación:** equipo de desarrollo (provisional), 2026-09-29.
+
+### E-10 — El primer correo con el perfil de cliente exige la contraseña actual
+- **Fecha:** 2026-10-31.
+- **Motivo:** auditoría de seguridad `docs/testing/security-audit/run-1`, hallazgo 3.1 (severidad baja). Desde ADR-027 el correo sirve para recuperar la contraseña, así que agregar el primer correo ya no es un dato de contacto más: con solo una sesión prestada se podía fijar un correo ajeno, pedir el enlace por RUT y quedarse con la cuenta. La interpretación de RNF-09 del punto 7 es anterior a ADR-027.
+- **Cambio (punto 7):**
+  - si la cuenta no tiene correo, `POST /api/clientes` con sesión recibe también `contrasena` (la actual, sin recortar) y la verifica con la misma reautenticación y el mismo limitador que `POST /api/cuenta/correo` (RNF-09, RNF-10; ADR-027, punto 2);
+  - correo y contraseña faltantes o mal formados se marcan juntos (RNF-15); una contraseña equivocada da 400 en `contrasena` y no se guarda nada; tras 5 fallos, 429;
+  - cada intento que pasa el formato y la reautenticación cuenta en el tope de intentos de guardar un correo (ADR-027, E-2);
+  - si la cuenta ya tiene correo, `contrasena` no debe venir: 400 en ese campo (E-2).
+- **Se reemplaza:** la «Interpretación de RNF-09» del punto 7 (agregar el primer correo no exigía reautenticación) y la dependencia con ADR-005 que la repetía.
+- **Pantalla:** «Mi cuenta», formulario para agregar el perfil de cliente: campo «Contraseña actual» junto al correo, visible solo cuando la cuenta no tiene correo; se vacía tras cada envío.
+- **Aprobación:** corrección pedida a partir de la auditoría (2026-10-31); pendiente de ratificación del equipo de desarrollo.

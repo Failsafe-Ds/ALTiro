@@ -193,6 +193,13 @@ server {
         error_page 413 @api_413;
         include /etc/nginx/conf.d/altiro-api.inc;
     }
+    # Cambio de correo (ADR-027, E-2): revela si un correo tiene cuenta, como el registro.
+    location = /api/cuenta/correo {
+        limit_req zone=altiro_general burst=200 nodelay;
+        limit_req zone=altiro_estricta burst=30 nodelay;
+        error_page 413 @api_413;
+        include /etc/nginx/conf.d/altiro-api.inc;
+    }
 
     # API JSON (ADR-002).
     # Paso a la app, cabeceras y errores 429/50x en JSON: altiro-api.inc.

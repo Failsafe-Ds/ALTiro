@@ -29,7 +29,7 @@ RNF-09 fija "Reautenticación al cambiar contraseña o correo", pero ninguna HU 
 - **Enmienda a ADR-013, punto 7:**
   - también sirve para agregar el primer correo a una cuenta de maestro que no tenía, ahora con reautenticación, para poder recuperar la contraseña por correo;
   - quitar el correo no es posible (los invariantes de ADR-013, punto 9, se verifican igual);
-  - la regla de `POST /api/clientes` (el correo entra con el perfil de cliente, sin reautenticación) no cambia.
+  - la regla de `POST /api/clientes` (el correo entra con el perfil de cliente, sin reautenticación) no cambia. *(Reemplazado por la Enmienda E-2: también exige la contraseña actual.)*
 - Si había un correo anterior, se le envía un aviso de cambio. La sesión sigue válida: el hash de sesión no depende del correo.
 - No se verifica la propiedad del correo nuevo. Sigue fuera de alcance (ADR-013, punto 10), con riesgo aceptado.
 
@@ -93,3 +93,16 @@ RNF-09 fija "Reautenticación al cambiar contraseña o correo", pero ninguna HU 
 - **Cambio B2:** el correo del enlace se escribe en un hilo aparte, después de confirmar la transacción; la respuesta 202 no espera la escritura del archivo (ni, en el futuro, la de un SMTP). Las pruebas lo ejecutan en línea (`ALTIRO_CORREO_EN_SEGUNDO_PLANO=False` en `settings_pruebas`) para leer el buzón, y una prueba verifica el hilo.
 - **Riesgo residual:** la cuenta existente con correo hace todavía algunas consultas más (bloqueo de la fila, anulación y creación del token), del orden de un milisegundo en la red interna, por debajo de la variación normal de una red móvil. Se acepta en la prueba de concepto. Un hilo que falla al escribir solo registra el error sin datos (punto 4).
 - **Aprobación:** pendiente de ratificación del equipo de desarrollo; implementado a pedido del usuario el 2026-10-01.
+
+### E-2 — Primer correo con reautenticación y tope de intentos de guardar un correo
+- **Fecha:** 2026-10-31.
+- **Motivo:** auditoría de seguridad `docs/testing/security-audit/run-1`, hallazgos 3.1 y 3.2 (severidad baja).
+- **Cambio al punto 2 (primer correo):** se reemplaza la viñeta «la regla de `POST /api/clientes` (el correo entra con el perfil de cliente, sin reautenticación) no cambia». Ahora el primer correo que entra con el perfil de cliente también exige la contraseña actual, con la misma reautenticación y el mismo limitador (ADR-013, E-10).
+- **Cambio al punto 2 (tope):** `POST /api/cuenta/correo` revela si un correo ya tiene cuenta («Este correo ya está registrado…»), como el registro (ADR-013, Riesgos aceptados 4), pero sin el tope de registros de ADR-007, E-1. Se agrega el ámbito `correo` de `identidad/frecuencia.py`:
+  - claves por cuenta (`cuenta:<id>`) y por origen (`origen:<ip>`), 20 intentos por hora cada una, igual que el registro;
+  - cuenta cada intento que pasa el formato del correo y la reautenticación, termine guardando o no; un 429 no cuenta en ninguna de las dos claves;
+  - lo consumen `POST /api/cuenta/correo` y el primer correo de `POST /api/clientes`;
+  - al superarlo: 429 con `Retry-After` y el mensaje «Intentaste guardar un correo varias veces seguidas…», sin decir si el correo tiene cuenta.
+- **Proxy:** `/api/cuenta/correo` entra a la zona `altiro_estricta` (POST, 20/min por origen, ráfaga 30) en `infra/proxy/templates/default.conf.template`. La tabla de ADR-029, punto 2, no lo nombra todavía; ADR-029 sigue en Borrador.
+- **Enumeración no eliminada:** responder igual exista o no la cuenta haría creer a la persona que su correo cambió cuando no cambió (RNF-15) y no cerraría la fuga, porque el registro ya la revela (CA-11.3; ADR-013, Riesgos aceptados 4). Queda acotada por el tope.
+- **Aprobación:** corrección pedida a partir de la auditoría (2026-10-31); pendiente de ratificación del equipo de desarrollo.

@@ -14,7 +14,7 @@ from django.test import Client
 from django.utils import timezone
 
 from identidad import recuperacion
-from identidad.models import SolicitudRecuperacion, Usuario
+from identidad.models import Rol, SolicitudRecuperacion, Usuario, UsuarioRol
 from tests.ayudas import (
     CONTRASENA,
     URL_CUENTA,
@@ -170,6 +170,142 @@ def test_un_maestro_sin_correo_puede_agregarlo_con_su_contrasena(client, mailout
     assert respuesta.status_code == 200
     assert respuesta.json()["cuenta"]["correo"] == "maestro@example.com"
     assert mailoutbox == []  # no había correo anterior que avisar
+
+
+# --- Primer correo con el perfil de cliente (RNF-09; ADR-013, E-10; auditoría de seguridad run-1, 3.1) ---
+
+URL_CLIENTES = "/api/clientes"
+
+
+def _maestro_sin_correo_con_sesion(client):
+    maestro = crear_maestro(rut=RUT_MAESTRO)
+    assert iniciar_sesion(client, RUT_MAESTRO).status_code == 200
+    return maestro
+
+
+@pytest.mark.regla("A-26")
+def test_primer_correo_con_perfil_de_cliente_sin_contrasena_da_400_y_no_guarda(client):
+    maestro = _maestro_sin_correo_con_sesion(client)
+
+    respuesta = post_json(client, URL_CLIENTES, {"comuna": "8101", "correo": "ajeno@example.com"})
+
+    assert respuesta.status_code == 400
+    assert set(respuesta.json()["errores"]) == {"contrasena"}
+    assert "contraseña actual" in respuesta.json()["errores"]["contrasena"]
+    assert sin_texto_prohibido(respuesta)
+    maestro.refresh_from_db()
+    assert maestro.correo is None
+    assert not UsuarioRol.objects.filter(usuario=maestro, rol=Rol.CLIENTE).exists()
+
+
+@pytest.mark.regla("A-26")
+def test_primer_correo_con_contrasena_equivocada_da_400_y_no_guarda(client):
+    maestro = _maestro_sin_correo_con_sesion(client)
+
+    respuesta = post_json(
+        client, URL_CLIENTES, {"comuna": "8101", "correo": "ajeno@example.com", "contrasena": "equivocada pero larga"}
+    )
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["errores"] == {"contrasena": "La contraseña actual no es correcta. Revísala e inténtalo de nuevo."}
+    maestro.refresh_from_db()
+    assert maestro.correo is None
+
+
+def test_primer_correo_sin_correo_ni_contrasena_marca_los_dos_campos(client):
+    _maestro_sin_correo_con_sesion(client)
+
+    respuesta = post_json(client, URL_CLIENTES, {"comuna": "8101"})
+
+    assert respuesta.status_code == 400
+    assert set(respuesta.json()["errores"]) == {"correo", "contrasena"}
+
+
+@pytest.mark.regla("A-27")
+def test_primer_correo_comparte_el_limitador_de_reautenticacion(client):
+    maestro = _maestro_sin_correo_con_sesion(client)
+    for _ in range(5):
+        cuerpo = {"comuna": "8101", "correo": "ajeno@example.com", "contrasena": "equivocada pero larga"}
+        assert post_json(client, URL_CLIENTES, cuerpo).status_code == 400
+
+    # El bloqueo alcanza también a /api/cuenta/correo: es la misma cuenta.
+    respuesta = post_json(client, URL_CORREO, {"contrasena": CONTRASENA, "correo": "ajeno@example.com"})
+    con_perfil = post_json(client, URL_CLIENTES, {"comuna": "8101", "correo": "ajeno@example.com", "contrasena": CONTRASENA})
+
+    assert respuesta.status_code == 429 and con_perfil.status_code == 429
+    maestro.refresh_from_db()
+    assert maestro.correo is None
+
+
+def test_primer_correo_con_la_contrasena_lo_guarda_y_sirve_para_recuperar(client, mailoutbox):
+    _maestro_sin_correo_con_sesion(client)
+
+    respuesta = post_json(client, URL_CLIENTES, {"comuna": "8101", "correo": "maestro@example.com", "contrasena": CONTRASENA})
+
+    assert respuesta.status_code == 201
+    assert respuesta.json()["cuenta"]["correo"] == "maestro@example.com"
+    assert "cliente" in respuesta.json()["cuenta"]["roles"]
+    assert _pedir_enlace(Client(), RUT_MAESTRO).status_code == 202
+    assert [m.to for m in mailoutbox] == [["maestro@example.com"]]
+
+
+def test_con_correo_la_contrasena_no_va_en_el_perfil_de_cliente(client):
+    crear_maestro(rut=RUT_MAESTRO, correo="mae@example.com")
+    iniciar_sesion(client, "mae@example.com")
+
+    respuesta = post_json(client, URL_CLIENTES, {"comuna": "8101", "contrasena": CONTRASENA})
+    sin_ella = post_json(client, URL_CLIENTES, {"comuna": "8101"})
+
+    assert respuesta.status_code == 400 and set(respuesta.json()["errores"]) == {"contrasena"}
+    assert sin_ella.status_code == 201
+
+
+# --- Tope de intentos de guardar un correo (ADR-027, E-2; auditoría de seguridad run-1, 3.2) ---
+
+
+@pytest.mark.regla("A-27")
+def test_cambiar_correo_tiene_tope_por_cuenta(con_sesion):
+    crear_cliente(correo="ocupado@example.com", telefono="+56 9 1000 0002")
+    for _ in range(20):
+        sonda = post_json(con_sesion, URL_CORREO, {"contrasena": CONTRASENA, "correo": "ocupado@example.com"})
+        assert sonda.status_code == 400
+
+    respuesta = post_json(con_sesion, URL_CORREO, {"contrasena": CONTRASENA, "correo": "ocupado@example.com"})
+
+    assert respuesta.status_code == 429
+    assert respuesta["Retry-After"] == "3600"
+    assert "varias veces seguidas" in respuesta.json()["mensaje"]
+    assert "registrado" not in respuesta.content.decode()
+    assert sin_texto_prohibido(respuesta)
+
+
+@pytest.mark.regla("A-27")
+def test_cambiar_correo_tiene_tope_por_origen_aunque_cambie_la_cuenta(client, cliente):
+    crear_cliente(correo="ocupado@example.com", telefono="+56 9 1000 0002")
+    for indice in range(4):
+        crear_cliente(correo=f"c{indice}@example.com", telefono=f"+56 9 1000 001{indice}")
+    sesiones = []
+    for indice in range(4):
+        navegador = Client()
+        assert iniciar_sesion(navegador, f"c{indice}@example.com").status_code == 200
+        sesiones.append(navegador)
+    for indice in range(20):
+        sonda = post_json(sesiones[indice % 4], URL_CORREO, {"contrasena": CONTRASENA, "correo": "ocupado@example.com"})
+        assert sonda.status_code == 400
+
+    iniciar_sesion(client, CORREO_CLIENTE)
+    respuesta = post_json(client, URL_CORREO, {"contrasena": CONTRASENA, "correo": "ocupado@example.com"})
+
+    assert respuesta.status_code == 429
+
+
+def test_un_correo_mal_escrito_no_gasta_el_tope_de_correo(con_sesion):
+    for _ in range(25):
+        assert post_json(con_sesion, URL_CORREO, {"contrasena": CONTRASENA, "correo": "sin-arroba"}).status_code == 400
+
+    respuesta = post_json(con_sesion, URL_CORREO, {"contrasena": CONTRASENA, "correo": "nuevo@example.com"})
+
+    assert respuesta.status_code == 200
 
 
 # --- Recuperación por correo (ADR-027, punto 3) ---

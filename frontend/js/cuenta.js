@@ -245,6 +245,10 @@
       }
       formulario.ocupado(form, true);
       const { estado, datos } = await api.enviar(ruta, formulario.leer(form));
+      // Nunca se conserva una contraseña escrita (ADR-002; primer correo, ADR-013 E-10).
+      for (const campo of form.querySelectorAll('input[type="password"]')) {
+        campo.value = "";
+      }
       if (estado === 201) {
         if (destino) {
           location.assign(destino);
@@ -307,6 +311,15 @@
             if (errores[id] && elemento && elemento.closest(".oculto")) {
               delete errores[id];
               yaTiene.push(nombre);
+            }
+          }
+          // La contraseña solo se pide con el primer correo: si la cuenta ya lo tiene, sobra.
+          const idContrasena = idsDeError.contrasena || "contrasena";
+          const contrasena = campoDe(form, idContrasena);
+          if (errores[idContrasena] && contrasena && contrasena.closest(".oculto")) {
+            delete errores[idContrasena];
+            if (!yaTiene.includes(NOMBRES_DATO.correo)) {
+              yaTiene.push(NOMBRES_DATO.correo);
             }
           }
           if (yaTiene.length) {
@@ -458,7 +471,9 @@
     formCliente.comuna,
     pendiente && pendiente.form === formCliente.id ? pendiente.valores : {}
   );
-  conectarFormulario(formCliente, "/api/clientes", "Listo: ya puedes pedir trabajos con tu cuenta.");
+  conectarFormulario(formCliente, "/api/clientes", "Listo: ya puedes pedir trabajos con tu cuenta.", {
+    contrasena: "contrasena-cliente",
+  });
   conectarFormulario(
     document.getElementById("agregar-maestro"),
     "/api/maestros/postulaciones",

@@ -9,6 +9,9 @@ filas por clave nunca pasan del límite de cada ventana.
 Ámbitos en uso:
 
 - ``registro``: registros sin sesión (cliente y postulación de maestro) por origen.
+- ``correo``: intentos de guardar un correo con sesión (``/api/cuenta/correo`` y
+  el primer correo de ``/api/clientes``), con claves ``cuenta:<id>`` y
+  ``origen:<ip>`` (ADR-027, E-2).
 - ``denegado``: accesos denegados o referencias inexistentes de un usuario autenticado.
 
 Los mensajes del chat no usan esta tabla: se cuentan desde ``mensaje`` mismo
@@ -29,6 +32,7 @@ RETENCION = timedelta(hours=24)
 
 # (límite, ventana): con ``límite`` eventos dentro de ``ventana`` se espera.
 REGLAS_REGISTRO = ((20, timedelta(hours=1)),)
+REGLAS_CORREO = REGLAS_REGISTRO  # no más laxa que la del registro (ADR-027, E-2)
 REGLAS_DENEGADO = ((20, timedelta(minutes=10)),)
 
 

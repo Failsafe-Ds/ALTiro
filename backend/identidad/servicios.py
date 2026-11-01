@@ -183,6 +183,14 @@ def _dato_faltante(usuario, campo, valor, normalizar, para):
     return AUSENTE
 
 
+def revisar_primer_correo(usuario, correo):
+    """Revisa el primer correo de ``agregar_perfil_cliente`` antes de reautenticar (ADR-013, E-10).
+
+    Mismas reglas y mensajes que el servicio; no guarda nada.
+    """
+    return _dato_faltante(usuario, "correo", correo, normalizar_correo, PARA_CLIENTE)
+
+
 def _completar_usuario(usuario, **datos):
     """Guarda en una sola escritura los datos de contacto que faltaban."""
     campos = [campo for campo, valor in datos.items() if valor is not AUSENTE]
