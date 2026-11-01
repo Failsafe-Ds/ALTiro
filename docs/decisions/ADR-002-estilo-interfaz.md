@@ -161,3 +161,8 @@ Con frontend estático, el HTML de una página privada puede descargarse sin ses
 - **Jerarquía (M-11):** `comercial.html` pasa «Agregar un oficio/servicio» de h3 a h2 (mismo tamaño visual).
 - **Fuente (M-07):** `<link rel="preload" as="font" crossorigin>` del woff2 propio en las 27 páginas, antes de las hojas de estilo; `font-display: swap` se mantiene. Sin fuentes nuevas ni recursos externos. El peso del CSS de Bootstrap (232 KB) sigue sin reducirse.
 - **Foto (M-09):** el marcador gris de carga también en «Mi perfil» y en el visor de «Mis documentos» y «Expediente» (se oculta si falla).
+
+### E-4.6 — Pendientes de diseño, tanda 2 (2026-10-31, v0.6.12)
+- **«Mis trabajos» (M-02):** el pedido nuevo va primero y destacado (borde rojo grueso, «Vence en … responde antes de las HH:MM» calculado en pantalla desde `vence_en` del servidor, botón principal «Ver el pedido y responder» de 48 px); el estado sigue en texto con ícono. Los avisos pasan debajo de los pedidos en un `<details>` que queda abierto si hay avisos sin ver (se marcan vistos igual que antes, al mostrarse) y se pliega solo si no hay nada sin ver. Aceptar y rechazar siguen en el detalle fresco con confirmación; sin datos del cliente mientras está pendiente (lo controla el servidor).
+- **Ayuda contextual (M-03):** `<details class="ayuda-desplegable">` «¿Qué es esto?» en `mis-servicios`, `mis-documentos` y `mi-cobertura`, y «¿Cómo funciona un pedido nuevo?» en `mis-trabajos`; solo describe lo que el sistema ya hace (24 h / 4 h, datos del cliente al aceptar, aviso de vencimiento 30 días antes, licencia SEC vigente, comuna principal obligatoria).
+- **No cambia:** API, backend ni reglas de negocio. Solo CSS propio (~1 KB) y JS mínimo en `mis-trabajos.js` y `bandeja.js`.

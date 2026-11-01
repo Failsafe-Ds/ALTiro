@@ -195,6 +195,14 @@ const bandeja = (() => {
       return item;
     }
 
+    // Panel plegable de avisos (solo en «Mis trabajos»; «Mis pedidos» no lo tiene).
+    function abrirAvisos(abrir) {
+      const panel = document.getElementById("detalles-avisos");
+      if (panel) {
+        panel.open = abrir;
+      }
+    }
+
     async function cargarAvisos() {
       const { estado, datos } = await api.obtener("/api/avisos");
       if (estado === 401) {
@@ -206,12 +214,16 @@ const bandeja = (() => {
         listaAvisos.replaceChildren();
         sinAvisos.hidden = false;
         sinAvisos.textContent = "No pudimos cargar tus avisos.";
+        abrirAvisos(true);
         return;
       }
       sinAvisos.hidden = datos.avisos.length > 0;
       sinAvisos.textContent = "No tienes avisos.";
       listaAvisos.replaceChildren(...datos.avisos.map(lineaAviso));
       contadorAvisos.textContent = datos.sin_ver > 0 ? `(${datos.sin_ver} sin ver)` : "";
+      // M-02: el panel se pliega solo si no hay nada sin ver; si lo hay, queda abierto
+      // y los avisos se marcan vistos igual que antes (apenas se muestran).
+      abrirAvisos(datos.sin_ver > 0 || datos.avisos.length === 0);
       // Se marcan vistos apenas se muestran (D-16): no hace falta repintar la
       // lista, el contador es lo único que cambia con la confirmación del servidor.
       const sinVer = datos.avisos.filter((a) => !a.visto).map((a) => a.ref);

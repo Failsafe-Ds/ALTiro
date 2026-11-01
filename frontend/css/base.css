@@ -3064,3 +3064,66 @@ button.boton-pausa {
     padding-inline: var(--esp-2);
   }
 }
+
+/* --- v0.6.12 (ADR-002 E-4.6): jerarquía de «Mis trabajos» (M-02) y ayuda desplegable (M-03) --- */
+
+/* Pedido nuevo: lo que el maestro responde primero. El texto «Vence en…» y el
+   estado «Pendiente de respuesta» lo dicen; el borde solo refuerza. */
+.pedido-nuevo {
+  border: 2px solid var(--marca);
+  border-left-width: 8px;
+  background: var(--marca-suave);
+}
+
+.plazo-respuesta {
+  margin: 0 0 var(--esp-3);
+  font-weight: 700;
+  color: var(--error);
+}
+
+.pedido-nuevo .acciones .boton,
+.pedido-nuevo .acciones button {
+  min-height: 48px;
+}
+
+/* Avisos plegables: el título (h2) va dentro del <summary>. */
+.avisos summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.avisos summary h2 {
+  margin: 0;
+}
+
+/* Ayuda desplegable (<details>): lenguaje del oficio, 1 a 4 frases. */
+.ayuda-desplegable {
+  margin: 0 0 var(--esp-4);
+  padding: 0 var(--esp-3);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-foto);
+  background: var(--fondo-suave);
+}
+
+.ayuda-desplegable summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ayuda-desplegable ul {
+  margin: 0 0 var(--esp-3);
+  padding-left: 1.25rem;
+}
+
+.ayuda-desplegable li + li {
+  margin-top: var(--esp-2);
+}
+
+.ayuda-desplegable p {
+  margin: 0 0 var(--esp-3);
+}

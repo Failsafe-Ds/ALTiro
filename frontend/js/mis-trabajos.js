@@ -140,10 +140,32 @@
     avisoResultado.focus();
   });
 
+  // --- Plazo de respuesta de un pedido nuevo (M-02) ---
+  // Solo presentación: el servidor entrega «vence_en» y es quien cierra el pedido.
+
+  function textoPlazo(ticket) {
+    const vence = ticket.vence_en ? new Date(ticket.vence_en) : null;
+    if (!vence || Number.isNaN(vence.getTime())) {
+      return "";
+    }
+    const minutos = Math.floor((vence.getTime() - Date.now()) / 60000);
+    if (minutos <= 0) {
+      return "El plazo para responder ya terminó. El pedido se cerrará solo.";
+    }
+    const horas = Math.floor(minutos / 60);
+    const resto = minutos % 60;
+    const cuanto = horas > 0 ? `${horas} h${resto ? ` ${resto} min` : ""}` : `${minutos} min`;
+    const dia = ticket.vence_en.slice(0, 10);
+    const hoy = formato.hoyEnChile();
+    const cuando = dia === hoy ? "hoy" : dia === formato.sumarDias(hoy, 1) ? "mañana" : formato.fechaLarga(dia);
+    return `Vence en ${cuanto}: responde antes de las ${ticket.vence_en.slice(11, 16)} (${cuando}).`;
+  }
+
   // --- Tarjeta resumen de un pedido ---
 
   function tarjeta(ticket) {
-    const item = elemento("li", "tarjeta");
+    const esNuevo = ticket.estado === "pendiente";
+    const item = elemento("li", esNuevo ? "tarjeta pedido-nuevo" : "tarjeta");
     item.dataset.ref = ticket.ref;
     const titulo = elemento("h3", "", `${ticket.servicio.nombre} en ${ticket.comuna.nombre}`);
     titulo.tabIndex = -1;
@@ -152,7 +174,12 @@
       elemento("dt", "", "Cuándo"), elemento("dd", "", bandeja.lineaFecha(ticket)),
       elemento("dt", "", "Estado"), elemento("dd", "", estadoPedido.etiqueta(ticket.estado))
     );
-    item.append(titulo, info);
+    item.append(titulo);
+    const plazo = esNuevo ? textoPlazo(ticket) : "";
+    if (plazo) {
+      item.append(elemento("p", "plazo-respuesta", plazo));
+    }
+    item.append(info);
     const precio = textoPrecio(ticket);
     if (precio) {
       item.append(elemento("p", "", precio));
@@ -160,9 +187,9 @@
     if (ticket.motivo_cierre_texto) {
       item.append(elemento("p", "", `Se cerró: ${ticket.motivo_cierre_texto}.`));
     }
-    const boton = elemento("button", "boton-secundario", "Ver detalle");
+    const boton = elemento("button", esNuevo ? "" : "boton-secundario", esNuevo ? "Ver el pedido y responder" : "Ver detalle");
     boton.type = "button";
-    boton.setAttribute("aria-label", `Ver detalle del pedido de ${ticket.servicio.nombre} en ${ticket.comuna.nombre}`);
+    boton.setAttribute("aria-label", `${esNuevo ? "Ver y responder" : "Ver detalle"} del pedido de ${ticket.servicio.nombre} en ${ticket.comuna.nombre}`);
     boton.addEventListener("click", () => vista.abrirDetalle(ticket.ref, item));
     const acciones = elemento("div", "acciones", boton);
     // Conversación (HU-07, CA-07.3): solo desde aceptado; en finalizado, para leerla.

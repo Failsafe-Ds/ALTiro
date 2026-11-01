@@ -30,16 +30,6 @@
     <div id="aviso-resultado" class="aviso" role="status" aria-live="polite" tabindex="-1"></div>
 
     <div id="contenido" hidden>
-      <!-- Avisos de mis trabajos (ADR-024): sin consultas periódicas, botón «Actualizar». -->
-      <section class="tarjeta avisos" aria-labelledby="titulo-avisos">
-        <h2 id="titulo-avisos">Avisos <span id="contador-avisos" class="cuenta-pendiente"></span></h2>
-        <ul id="lista-avisos" class="lista-avisos"></ul>
-        <p id="sin-avisos" hidden>No tienes avisos.</p>
-        <div class="acciones">
-          <button type="button" id="actualizar-avisos" class="boton-secundario">Actualizar avisos</button>
-        </div>
-      </section>
-
       <!-- Pestañas por estado (CA-15.1) e historial completo con el estado en texto (HU-08, CA-08.1, CA-08.2). -->
       <div class="filtros" role="group" aria-label="Filtrar por estado" id="pestanas">
         <button type="button" class="filtro" data-tab="pendiente" aria-pressed="true">Nuevos</button>
@@ -48,7 +38,16 @@
       </div>
 
       <section id="tab-pendiente" aria-labelledby="titulo-pendiente">
-        <h2 id="titulo-pendiente">Nuevos</h2>
+        <h2 id="titulo-pendiente">Nuevos: responde primero</h2>
+        <details class="ayuda-desplegable">
+          <summary>¿Cómo funciona un pedido nuevo?</summary>
+          <ul>
+            <li>Del cliente solo ves la comuna. Su dirección y su teléfono aparecen cuando aceptas.</li>
+            <li>Tienes 24 horas para responder, o hasta 4 horas antes del horario si eso llega antes.</li>
+            <li>Si no respondes a tiempo, el pedido se cierra solo y el cliente es avisado.</li>
+            <li>Si aceptas, ese horario queda ocupado. Si rechazas, queda libre otra vez.</li>
+          </ul>
+        </details>
         <p id="sin-pendiente" hidden>No tienes pedidos nuevos.</p>
         <ul id="lista-pendiente" class="lista-simple lista-pedidos"></ul>
         <div class="acciones" id="paginacion-pendiente" hidden>
@@ -79,6 +78,18 @@
           <span id="texto-pagina-historial"></span>
           <button type="button" class="boton-secundario" data-siguiente>Página siguiente</button>
         </div>
+      </section>
+      <!-- Avisos (ADR-024): van después de los pedidos, que son lo primero que se responde (M-02).
+           Sin consultas periódicas, botón «Actualizar». Se abre solo si hay avisos sin ver. -->
+      <section class="tarjeta avisos" aria-labelledby="titulo-avisos">
+        <details id="detalles-avisos" open>
+          <summary><h2 id="titulo-avisos">Avisos <span id="contador-avisos" class="cuenta-pendiente"></span></h2></summary>
+          <ul id="lista-avisos" class="lista-avisos"></ul>
+          <p id="sin-avisos" hidden>No tienes avisos.</p>
+          <div class="acciones">
+            <button type="button" id="actualizar-avisos" class="boton-secundario">Actualizar avisos</button>
+          </div>
+        </details>
       </section>
     </div>
 
