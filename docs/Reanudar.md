@@ -52,43 +52,49 @@ El costo de un agente crece con **lo que lee × los pasos que da**. Todo lo de a
     - el historial de una conversación larga se vuelve a enviar en cada turno del coordinador.
 12. **Agrupar incrementos** que tocan los mismos archivos y ADR en un solo encargo (por ejemplo, los incrementos 5 y 6 del S4).
 
-## ▶ Sesión nueva — empezar aquí (dejado el 2026-10-31)
-La sesión anterior (2026-10-30/31) quedó larga y se cortó a pedido del usuario. **Nada de lo siguiente tiene commit todavía.** Leer solo este archivo y `docs/estado-actual.md`, y seguir este orden:
+## ▶ Sesión nueva — empezar aquí (dejado el 2026-11-01)
+Todo está commiteado y subido a `origin/main` (v0.6.16). Leer solo este archivo y `docs/estado-actual.md`.
 
-1. **Revisar el trabajo sin commit** (`git status`):
-   - skills nuevas `.claude/skills/security-audit/` (Cloudflare) y `.claude/skills/impeccable/`; `ui-ux-pro-max` ya se desinstaló; `.claude/agents/frontend.md` ya apunta a `impeccable`;
-   - `.gitignore`: se agregó `docs/testing/security-audit/`;
-   - informes `docs/testing/qa-recorrido-chrome-2026-10-30.md` (DEF-CHR-01..06) y `docs/testing/auditoria-diseno-impeccable-2026-10-30.md` (M-01..M-15);
-   - **v0.6.9 (ADR-002 E-4.4)**: pulido visual moderno, sobre todo en `frontend/css/base.css`, «Ir al contenido» en las 27 páginas (`<main id="principal">`), botón «Pausar movimiento» del carrusel, puntos de 44 px y DEF-CHR-01 corregido en `frontend/js/mis-trabajos.js:255`;
-   - `Glosario-terminos-Informe2.pdf` e `Informe2ALTiroDanielSebastianLuciano-v5.docx` en la raíz son del equipo: **no tocarlos ni agregarlos sin preguntar**.
-2. **QA de v0.6.9 antes del commit** (agente `qa`, encargo acotado):
-   - correr la suite completa una vez con el montaje `-v "$(pwd -W)/frontend:/frontend:ro"`. Hasta ahora solo pasó `tests/test_frontend_pie_volver.py` (62 pruebas);
-   - DEF-CHR-01 de punta a punta: crear un pedido nuevo para el maestro demo, aceptarlo y rechazar otro desde «Mis trabajos». Solo se probó que la confirmación aparece; el POST real no se probó;
-   - revisión visual a 390 y 1280 px de las pantallas que no se miraron y heredan los estilos: ficha del maestro, curatoría, comercial, agenda, cobertura, documentos, moderación e indicadores. Usar `scripts/qa-pulido/capturas.py` (la extensión de Chrome no conectaba);
-   - contraste con axe o una medición equivalente, y el peso de la portada (RNF-02).
-3. **Commit** de todo lo anterior (v0.6.9), si el usuario lo pide o según el modo de operación.
-4. **Corregir los 2 hallazgos confirmados (baja) de la auditoría de seguridad** (agente `backend`, un solo encargo con pruebas de regresión). Los detalles están en `docs/testing/security-audit/run-1/REPORT.md` y `findings.json`. La carpeta está fuera de git; si el equipo quiere versionar el resumen, copiarlo a `docs/testing/`.
-   - **Primer correo sin reautenticación:** al agregar el primer correo por la rama de sesión de `POST /api/clientes` (`identidad/vistas.py:338` → `servicios.py:300-304`) no se pide la contraseña (RNF-09). Ese correo pasa a servir para recuperar la cuenta. Hay que exigir `_reautenticar` y enmendar ADR-013 p7 y ADR-027 p2.
-   - **`POST /api/cuenta/correo` revela si un correo tiene cuenta**, y no tiene límite (`vistas.py:264-273`). Hay que agregarle un límite de frecuencia por cuenta y por origen, y sumar la ruta a la zona Nginx `altiro_estricta`.
-   - **Pistas `needs_validation`, para el equipo, no para código:**
-     - se confía en X-Real-IP / X-Forwarded-Proto de cualquier contenedor de la red `interna`;
-     - la conversación se devuelve sin paginar;
-     - `restaurar.sh` acepta un `base.dump` en texto plano sin comprobar su integridad.
-5. **Pendientes de diseño** (agente `frontend` con `impeccable`; el carrusel se mantiene):
-   - **M-02:** jerarquía de «Mis trabajos». Ojo: `bandeja.js` marca los avisos como vistos.
-   - **M-03:** ayuda contextual para el maestro.
-   - **M-06:** formularios por pasos (DEF-CHR-03/04).
-   - **M-07:** peso y preload de la fuente.
-   - **M-08:** pedir de nuevo al mismo maestro. Revisar primero que tenga respaldo en una HU o RF.
-   - **M-10:** textos de error que vienen del servidor (DEF-CHR-05/06).
-   - **M-11:** títulos h1→h3 en `comercial.html`.
-   - **Marcador de la foto mientras carga:** también en `mi-perfil`, `mis-documentos` y `curatoria-expediente`.
-   - M-05 (`aria-current`) ya estaba hecho.
-6. **Documentación:**
-   - registrar el cambio de skills (de `ui-ux-pro-max` a `impeccable` y la nueva `security-audit`) en un ADR o enmienda (CLAUDE.md §15);
-   - agregar a `docs/estado-actual.md` una línea por paso cerrado.
+**Hecho en las sesiones del 2026-10-31 y 2026-11-01:**
+- v0.6.9: pulido visual, «Ir al contenido», pausa del carrusel, DEF-CHR-01. QA en `docs/testing/qa-v0.6.9-2026-10-31.md`. ADR-033 (skills `impeccable` y `security-audit`, Propuesta).
+- v0.6.10: los 2 hallazgos de la auditoría de seguridad run-1 (primer correo con contraseña, ADR-013 E-10; tope en `/api/cuenta/correo` y zona Nginx, ADR-027 E-2).
+- v0.6.11 y v0.6.12: pendientes de diseño M-02, M-03, M-06, M-07, M-10, M-11 y el marcador de foto. QA en `docs/testing/qa-pendientes-v0.6.12-2026-10-31.md`.
+- v0.6.13 a v0.6.16 (ADR-002 E-4.7 a E-4.10), a pedido del usuario:
+  - rojo más suave (#B3353A);
+  - portada rehecha: foto arriba con «Buscar un maestro» y «Crear mi cuenta», carrusel grande de oficios, franja «¿Eres maestro?», «Cómo funciona» plegado al fondo;
+  - foto de Wikimedia (CC BY-SA 4.0, `docs/creditos-imagenes.md`) en la portada y en el ingreso, con fondo de respaldo;
+  - búsqueda en dos columnas en escritorio.
+- Suite completa: **2139 passed** (con el montaje de `frontend/`).
 
-**Cuentas demo:** las contraseñas de la sesión anterior estaban en su scratchpad. Si no están disponibles, regenerarlas con `cargar_datos_demo --con-cuentas --restablecer-contrasenas` en altiro-dev, que las muestra una sola vez. **Nunca copiarlas al repo ni a informes.** `altiro-dev` corre en https://localhost:8443.
+**Lecciones de diseño de esta ronda (el usuario las pidió explícitamente):**
+- Menos piezas y una jerarquía clara. La portada de v0.6.13 («cosas y cosas») se rechazó.
+- Registrarse y buscar deben verse sin desplazarse. Lo informativo va al fondo, plegado.
+- El carrusel debe moverse solo. Con `prefers-reduced-motion` no se mueve y no muestra el botón de pausa. Si el usuario dice que no se mueve, revisar «Efectos de animación» de Windows.
+- Revisar siempre las capturas a 390 y 1280 px antes de entregar (`scripts/qa-pulido/capturas.py`, o un script de Playwright en la red `altiro-dev_frontal`).
+
+**Pendientes para retomar:**
+1. **El usuario dijo «después trabajamos más»:** preguntar qué quiere seguir mejorando de la interfaz antes de proponer.
+2. **M-08** («Pedir de nuevo a este maestro»): no tiene respaldo en ninguna HU ni RF. Decide el equipo: backlog (CLAUDE.md §11) o solo un enlace al perfil.
+3. **RNF-02 en la página de resultados** con red emulada a 4 Mbps (solo se midió la portada: 0,55 s).
+4. **Recortar el CSS de Bootstrap** (232 KB).
+5. **Pistas de seguridad `needs_validation`, para el equipo:**
+   - se confía en X-Real-IP / X-Forwarded-Proto entre contenedores;
+   - la conversación se entrega sin paginar;
+   - `restaurar.sh` no comprueba la integridad del respaldo.
+6. **Ratificar las decisiones en Propuesta:** ADR-033, ADR-013 E-10, ADR-027 E-2 y ADR-002 E-4.7 a E-4.10 (incluida la desviación de 44 px de los puntos del carrusel en el celular, E-4.9).
+7. **Tema para el equipo:** la calificación es una sola por maestro aunque tenga varios oficios (RF-30). Calificar por oficio sería un cambio de alcance.
+
+**Antes de cada push** (pedido del usuario):
+- correr la suite completa;
+- revisar `git diff origin/main..HEAD` buscando secretos, `.env`, respaldos, contraseñas demo, datos personales reales, rutas personales y EXIF en imágenes.
+
+`Glosario-terminos-Informe2.pdf` e `Informe2ALTiroDanielSebastianLuciano-v5.docx` (en la raíz) son del equipo: no agregarlos sin preguntar.
+
+**Entorno:**
+- `altiro-dev` corre en https://localhost:8443. Docker Desktop puede tardar en arrancar.
+- Contraseñas demo: regenerarlas con `cargar_datos_demo --con-cuentas --restablecer-contrasenas`, que las muestra una sola vez. Nunca copiarlas al repo.
+- En altiro-dev quedaron pedidos de prueba del QA («QA ACEPTAR», «QA RECHAZAR», «QA aviso v0.6.12 prueba»).
+- La copia de demostración (clon de GitHub, `altiro`, puerto 443) necesita `git pull` y `docker compose up -d --build`. Incluye un cambio en la plantilla del proxy.
 
 ## Siguiente trabajo — pulido post-S5 (2026-10-11, fuera de sprint) — **CERRADO en v0.6.2**
 Pedido del usuario: "dejar todo lindo y funcional, sobre todo con las validaciones mínimas". No pertenece a ningún sprint; el equipo lo ubicará después en el backlog (CLAUDE.md §11). Se trabaja en modo continuo (reglas de arriba), con versiones 0.6.x. Orden:
