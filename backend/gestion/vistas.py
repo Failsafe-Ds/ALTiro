@@ -35,6 +35,7 @@ MENSAJE_RANGO = (
     f"El período debe tener entre {MESES_MINIMO} y {MESES_MAXIMO} meses, contando ambos. "
     "Cambia el mes de término."
 )
+MENSAJE_RANGO_INVERTIDO = "«Hasta» debe ser igual o posterior a «Desde». Cambia el mes de término."
 MENSAJE_MES_ABIERTO = "Elige un mes que ya terminó: el mes en curso todavía no se puede consultar."
 ACCION_EXPORTACION = "exportacion_agregada"
 _MES = re.compile(r"\d{4}-\d{2}")
@@ -64,7 +65,10 @@ def leer_periodo(parametros):
     errores = {campo: MENSAJE_MES[campo] for campo, mes in meses.items() if mes is None}
     if not errores:
         desde, hasta = meses["desde"], meses["hasta"]
-        if not MESES_MINIMO <= (hasta.year - desde.year) * 12 + hasta.month - desde.month + 1 <= MESES_MAXIMO:
+        cuenta = (hasta.year - desde.year) * 12 + hasta.month - desde.month + 1
+        if cuenta < MESES_MINIMO:
+            errores["hasta"] = MENSAJE_RANGO_INVERTIDO
+        elif cuenta > MESES_MAXIMO:
             errores["hasta"] = MENSAJE_RANGO
         elif hasta >= hoy_negocio().replace(day=1):
             errores["hasta"] = MENSAJE_MES_ABIERTO

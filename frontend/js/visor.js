@@ -88,6 +88,7 @@ const visorFotos = (() => {
       const dosCaras = tieneReverso(documento);
       tituloVisor.textContent = dosCaras ? `${nombre}: ${textoCara(cara)}` : nombre;
       imagenVisor.hidden = true;
+      imagenVisor.classList.remove("cargando-foto");
       imagenVisor.removeAttribute("src");
       ocultarReintentar();
       estadoVisor.textContent = "Cargando la foto…";
@@ -119,10 +120,14 @@ const visorFotos = (() => {
         return;
       }
       imagenVisor.alt = `Foto de ${nombre}${dosCaras ? `, ${textoCara(cara)}` : ""}`;
+      // Marcador gris mientras llega la foto (M-09); el texto «Cargando la foto…» sigue visible.
+      imagenVisor.classList.add("cargando-foto");
+      imagenVisor.hidden = false;
       imagenVisor.src = resultado.url;
     }
 
     imagenVisor.addEventListener("load", () => {
+      imagenVisor.classList.remove("cargando-foto");
       estadoVisor.textContent = "";
       imagenVisor.hidden = false;
     });
@@ -146,6 +151,8 @@ const visorFotos = (() => {
     // Enlace caducado o conexión cortada: se pide un enlace nuevo una sola vez.
     imagenVisor.addEventListener("error", async () => {
       const url = imagenVisor.getAttribute("src");
+      imagenVisor.classList.remove("cargando-foto");
+      imagenVisor.hidden = true;
       if (!fotoAbierta || !url) {
         return;
       }

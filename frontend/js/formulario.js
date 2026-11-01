@@ -391,8 +391,14 @@ const formulario = (() => {
       }
       guardar(form, clave, actual);
       if (enfocar) {
+        // E-4.5: el paso nuevo empieza limpio y con el foco en su primer campo.
+        const primero = Array.from(pasos[indice].querySelectorAll("input, select, textarea")).find(
+          (c) => c.type !== "hidden" && !c.disabled
+        );
         const titulo = pasos[indice].querySelector("legend");
-        if (titulo) {
+        if (primero) {
+          primero.focus();
+        } else if (titulo) {
           titulo.setAttribute("tabindex", "-1");
           titulo.focus();
         }
@@ -403,6 +409,37 @@ const formulario = (() => {
       return pasos.findIndex((paso) => paso.contains(campo));
     }
 
+    // Revisa lo faltante y lo mal escrito del paso actual en una sola pasada
+    // (DEF-CHR-04) y avanza solo si no hay nada que corregir.
+    function avanzar() {
+      const errores = {};
+      for (const c of pasos[actual].querySelectorAll("[required]")) {
+        if (!valor(c)) {
+          errores[nombreDeError(c)] = "Completa este dato.";
+        }
+      }
+      const revision = revisar(form, pasos[actual]);
+      if (revision) {
+        for (const [nombre, texto] of Object.entries(revision.errores)) {
+          errores[nombre] = errores[nombre] || texto;
+        }
+      }
+      if (Object.keys(errores).length) {
+        const campo = mostrarErrores(form, {
+          mensaje: "Completa los datos marcados para continuar.",
+          errores,
+        });
+        if (campo) {
+          campo.focus();
+        }
+        return;
+      }
+      limpiarErrores(form);
+      // Cada paso deja una entrada en el historial: Atrás retrocede un paso.
+      history.pushState({ altiroPaso: "paso", numero: actual + 1 }, "", location.href);
+      mostrar(actual + 1);
+    }
+
     form.addEventListener("click", (evento) => {
       const boton = evento.target.closest("[data-paso]");
       if (!boton) {
@@ -410,34 +447,25 @@ const formulario = (() => {
       }
       evento.preventDefault();
       if (boton.dataset.paso === "siguiente") {
-        const faltantes = Array.from(pasos[actual].querySelectorAll("[required]")).filter((c) => !valor(c));
-        if (faltantes.length) {
-          mostrarErrores(form, {
-            mensaje: "Completa los datos marcados para continuar.",
-            errores: Object.fromEntries(faltantes.map((c) => [c.name, "Completa este dato."])),
-          });
-          faltantes[0].focus();
-          return;
-        }
-        const revision = revisar(form, pasos[actual]);
-        if (revision) {
-          const campo = mostrarErrores(form, revision);
-          if (campo) {
-            campo.focus();
-          }
-          return;
-        }
-        limpiarErrores(form);
-        // Cada paso deja una entrada en el historial: Atrás retrocede un paso.
-        history.pushState({ altiroPaso: "paso", numero: actual + 1 }, "", location.href);
-        mostrar(actual + 1);
+        avanzar();
+        return;
+      }
+      limpiarErrores(form);
+      if (history.state && history.state.altiroPaso === "paso") {
+        history.back();
       } else {
-        limpiarErrores(form);
-        if (history.state && history.state.altiroPaso === "paso") {
-          history.back();
-        } else {
-          mostrar(actual - 1);
-        }
+        mostrar(actual - 1);
+      }
+    });
+
+    // DEF-CHR-03: Enter antes del último paso equivale a «Continuar»; no envía
+    // el formulario ni muestra errores de pasos que la persona no ha visto.
+    // Se registra antes que el envío de la página, así que llega primero.
+    form.addEventListener("submit", (evento) => {
+      if (actual < pasos.length - 1) {
+        evento.preventDefault();
+        evento.stopImmediatePropagation();
+        avanzar();
       }
     });
 
@@ -614,6 +642,13 @@ const formulario = (() => {
     const destino = document.getElementById("error-" + nombreDeError(campo));
     if (destino) {
       destino.textContent = "";
+    }
+    // DEF-CHR-04: al corregir el último campo marcado, el resumen de arriba se retira.
+    const formu = campo.form;
+    const resumen = formu && formu.querySelector(".aviso.aviso-error");
+    if (resumen && !formu.querySelector('[aria-invalid="true"]') && !resumen.querySelector("button")) {
+      resumen.textContent = "";
+      resumen.className = "aviso";
     }
   });
 

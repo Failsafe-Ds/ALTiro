@@ -146,10 +146,22 @@
       );
     }
     if (perfil.publicado && perfil.tiene_foto) {
+      // Marcador mientras carga (M-09); si falla, se oculta y queda el texto de arriba.
+      fotoActual.classList.add("cargando-foto");
+      fotoActual.addEventListener("load", () => fotoActual.classList.remove("cargando-foto"), { once: true });
+      fotoActual.addEventListener(
+        "error",
+        () => {
+          fotoActual.classList.remove("cargando-foto");
+          fotoActual.hidden = true;
+        },
+        { once: true }
+      );
       fotoActual.src = `/api/maestros/publicos/${encodeURIComponent(perfil.ref)}/foto?tam=160`;
       fotoActual.alt = "Tu foto de perfil, tal como la ven los clientes";
       fotoActual.hidden = false;
     } else {
+      fotoActual.classList.remove("cargando-foto");
       fotoActual.removeAttribute("src");
       fotoActual.alt = "";
       fotoActual.hidden = true;

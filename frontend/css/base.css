@@ -12,7 +12,7 @@
   font-family: "Plus Jakarta Sans";
   font-style: normal;
   font-weight: 200 800;
-  font-display: swap;
+  font-display: swap; /* con preload en cada página (M-07): el texto se ve de inmediato y cambia sin salto grande */
   src: url("../fuentes/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2-variations"),
     url("../fuentes/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
@@ -703,6 +703,14 @@ h2:focus {
   margin: 0 auto;
 }
 
+/* Mientras llega la foto: caja con el marcador gris y sin texto alternativo a la vista. */
+.visor img.cargando-foto {
+  width: 100%;
+  min-height: 12rem;
+  color: transparent;
+  border-radius: var(--radio-lg);
+}
+
 /* --- Curatoría (HU-19; propuesta del S2, §5) ---
    Pensada para notebook, pero construida desde el teléfono hacia arriba:
    una columna por defecto y dos desde 60rem. */
@@ -1039,8 +1047,10 @@ button.boton-peligro[disabled]:hover {
   margin-top: 1rem;
 }
 
+.edicion h2,
 .edicion h3 {
   margin-top: 0;
+  font-size: 1.1rem;
 }
 
 .estados-oficio,

@@ -502,3 +502,11 @@ def test_un_mes_pequeno_suprime_todo_el_periodo(sesion_gestion, catalogo):
     assert ambos["suprimido"] is True and ambos["enviados"] is None and ambos["concretados"] is None
     assert septiembre["suprimido"] is True and septiembre["porcentaje"] is None
     assert (julio["suprimido"], julio["enviados"]) == (False, 0)  # el cero no se suprime
+
+
+@pytest.mark.regla("I-04")
+def test_periodo_al_reves_dice_que_hasta_no_puede_ser_anterior(sesion_gestion):
+    respuesta = sesion_gestion.get(URL_IND, {"desde": "2026-09", "hasta": "2026-08"})
+
+    assert respuesta.status_code == 400
+    assert "igual o posterior" in respuesta.json()["errores"]["hasta"]

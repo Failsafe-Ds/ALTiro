@@ -26,7 +26,7 @@ MENSAJE_NO_TERMINADO = (
     "Podrás evaluar cuando el trabajo termine y tenga su precio final. Revisa el estado en tu historial."
 )
 MENSAJE_CERRADO = "Este pedido se cerró sin realizarse, así que no se puede evaluar."
-MENSAJE_YA_EVALUASTE = "Ya evaluaste este trabajo"
+MENSAJE_YA_EVALUASTE = "Ya evaluaste este trabajo. Puedes ver tu evaluación en esta pantalla."
 MENSAJE_SIN_EVALUACION = "Todavía no recibiste una evaluación de este trabajo, así que no hay nada que denunciar."
 MENSAJE_RETIRADA = "Esta evaluación ya fue retirada por moderación."
 MENSAJE_YA_DENUNCIASTE = "Ya denunciaste esta evaluación. Moderación la revisa y te avisará por este medio."

@@ -154,3 +154,10 @@ Con frontend estático, el HTML de una página privada puede descargarse sin ses
 - **Pestañas por estado** de «Mis trabajos»: las tres en una fila en el celular.
 - **No cambia:** reglas de negocio, contratos de API, backend, textos funcionales ni validaciones de formularios. Peso: solo CSS propio (unos 4 KB sin comprimir) y 1 botón; sin imágenes ni fuentes nuevas.
 - **Pendiente de la auditoría:** M-02 (jerarquía de «Mis trabajos»: avisos colapsados), M-03 (ayuda contextual), M-05 (agrupar el menú), M-06 (progreso en formularios por pasos), M-07 (peso/preload), M-08, M-10 (textos de error que vienen del servidor) y M-11 (h1 a h3 en `comercial.html`).
+
+### E-4.5 — Pendientes de diseño, tanda 1 (2026-10-31, v0.6.11)
+- **Formularios por pasos (M-06, DEF-CHR-03/04):** Enter antes del último paso equivale a «Continuar» (no envía ni muestra errores de pasos no vistos); el paso nuevo empieza limpio y con el foco en su primer campo; «Continuar» marca juntos los datos faltantes y los mal escritos del paso (el RUT inválido ya se marca al primer intento); el resumen de arriba se retira al corregir el último campo marcado. Código en `js/formulario.js`.
+- **Textos del servidor (M-10, DEF-CHR-05/06):** `gestion/vistas.py` distingue «Hasta» anterior a «Desde» («“Hasta” debe ser igual o posterior a “Desde”. Cambia el mes de término.») del período de más de 12 meses; `evaluaciones/servicios.py` agrega «Puedes ver tu evaluación en esta pantalla.» al 409. Solo cadenas.
+- **Jerarquía (M-11):** `comercial.html` pasa «Agregar un oficio/servicio» de h3 a h2 (mismo tamaño visual).
+- **Fuente (M-07):** `<link rel="preload" as="font" crossorigin>` del woff2 propio en las 27 páginas, antes de las hojas de estilo; `font-display: swap` se mantiene. Sin fuentes nuevas ni recursos externos. El peso del CSS de Bootstrap (232 KB) sigue sin reducirse.
+- **Foto (M-09):** el marcador gris de carga también en «Mi perfil» y en el visor de «Mis documentos» y «Expediente» (se oculta si falla).
