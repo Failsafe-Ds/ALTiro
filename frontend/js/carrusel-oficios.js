@@ -1,6 +1,6 @@
-// Categorías (oficios): inicio del cliente al estilo Fiverr (ADR-002 E-3,
-// punto 7; MASTER, «Categorías»). Es la entrada a la búsqueda (HU-02, RF-09),
-// no una funcionalidad nueva.
+// Carrusel de oficios, compartido por index.html (portada) y categorias.html
+// (ADR-002 E-3, punto 7; E-4.8; MASTER, «Categorías»). Es la entrada a la
+// búsqueda (HU-02, RF-09), no una funcionalidad nueva.
 // - GET /api/oficios (pública): { oficios: [{ codigo, nombre, regulado }] }.
 // - Cada oficio enlaza a buscar.html?oficio=<código>; buscar.js lo deja
 //   elegido solo si está en la lista del catálogo y pide la comuna.
@@ -75,9 +75,10 @@
   // las demás. Solo la del centro es enfocable y la leen los lectores de
   // pantalla. Avanza solo cada ESPERA ms y se detiene mientras la persona lo
   // usa (mouse encima o foco dentro) y para siempre al tocarlo con el dedo
-  // (WCAG 2.2.2). Sin botones Anterior/Pausar/Siguiente (pedido del usuario,
-  // ADR-002 E-4.2): los puntos son la alternativa al gesto de deslizar (WCAG
-  // 2.5.1). Con prefers-reduced-motion no avanza solo ni anima.
+  // (WCAG 2.2.2). Sin botones Anterior/Siguiente (ADR-002 E-4.2): los puntos
+  // son la alternativa al gesto de deslizar (WCAG 2.5.1). Con
+  // prefers-reduced-motion no avanza solo ni anima y el botón de pausa se
+  // oculta (no hay movimiento que pausar; E-4.8).
   const ESPERA = 4000;
   const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)");
   let actual = 0;
@@ -89,6 +90,7 @@
 
   // Botón «Pausar movimiento» (WCAG 2.2.2): texto visible y estado en aria-pressed.
   function pintarPausa() {
+    botonPausa.hidden = sinMovimiento.matches;
     botonPausa.setAttribute("aria-pressed", String(pausadoPorPersona));
     botonPausa.textContent = pausadoPorPersona ? "Reanudar movimiento" : "Pausar movimiento";
   }
@@ -98,6 +100,12 @@
     programar();
   });
   pintarPausa();
+  // Si la persona cambia la preferencia con la página abierta.
+  sinMovimiento.addEventListener("change", () => {
+    pausadoPorPersona = sinMovimiento.matches;
+    pintarPausa();
+    programar();
+  });
 
   function mostrar(indice, anunciar) {
     actual = (indice + total) % total;

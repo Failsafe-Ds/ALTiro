@@ -12,19 +12,19 @@ Preparado por Claude con la skill UI/UX Pro Max (pila `html-css`). La skill sugi
 ## Color (variables CSS en `frontend/css/base.css`, `:root`)
 | Variable | Valor | Uso | Contraste |
 |---|---|---|---|
-| `--marca` | `#C8102E` | botón principal, marca, enlace activo, acentos | blanco sobre él 5,88:1; él sobre blanco 5,88:1 |
-| `--marca-oscura` | `#A50E26` | botón principal al pasar el cursor o presionado | blanco 7,8:1 |
-| `--marca-suave` | `#FFF4F4` | fondo de sección destacada, ítem activo del menú lateral | `--marca` sobre él 5,46:1 |
+| `--marca` | `#B3353A` | botón principal, marca, enlace activo, acentos | blanco sobre él 6,02:1; él sobre blanco 6,02:1 |
+| `--marca-oscura` | `#8F2A2F` | botón principal al pasar el cursor o presionado | blanco 8,27:1 |
+| `--marca-suave` | `#FBF1EF` | fondo de sección destacada, ítem activo del menú lateral | `--marca` sobre él 5,43:1 |
 | `--texto` | `#1F1F1F` | texto principal | 16,5:1 |
 | `--texto-suave` | `#5A5A5A` | texto secundario (comuna, cantidad de evaluaciones) | 6,9:1 (6,4:1 sobre `--marca-suave`) |
 | `--fondo` | `#FFFFFF` | fondo general | — |
-| `--fondo-suave` | `#F6F6F6` | bandas, pie, fondo del menú lateral | `--marca` sobre él 5,44:1 |
+| `--fondo-suave` | `#F6F6F6` | bandas, pie, fondo del menú lateral | `--marca` sobre él 5,57:1 |
 | `--borde` | `#767676` | bordes de campos y controles (≥ 3:1) | 4,54:1 |
 | `--linea` | `#E4E4E4` | separadores decorativos (no son límites de control) | decorativo |
 | `--estrella` | `#8A4B00` | ícono de estrella y nota | 6,8:1 |
 | `--error` / `--error-fondo` | `#7A0A1C` / `#FDECEE` | mensajes de error, siempre con ícono y la palabra «Error» o el texto del problema | 9,75:1 |
 | `--exito` / `--exito-fondo` | `#1B6E20` / `#E8F5E9` | mensajes de éxito, con ícono | 5,66:1 |
-| `--foco` | `#000000` | anillo de foco de 2 px con separación de 2 px | 3,57:1 contra `--marca`; 21:1 contra blanco |
+| `--foco` | `#000000` | anillo de foco de 2 px con separación de 2 px | 3,49:1 contra `--marca`; 21:1 contra blanco |
 
 - El error usa un rojo vino distinto de la marca **y** siempre lleva ícono y texto: nunca se distingue solo por el color (RNF-16).
 - Nada de hex sueltos en las reglas: todo pasa por estas variables.
@@ -45,7 +45,7 @@ Preparado por Claude con la skill UI/UX Pro Max (pila `html-css`). La skill sugi
 ## Componentes
 - **Encabezado sin sesión:** solo la marca «AlTiro» (700, en blanco sobre el rojo del encabezado), enlace a `index.html`. Nada más.
 - **Encabezado con sesión:** marca a la izquierda (lleva al inicio del flujo, E-3.2) y botón «Menú» a la derecha (E-2).
-- **Fondo del encabezado (ambas versiones, E-4.1):** degradado vertical de `--encabezado-arriba` (`#A50E26`) a `--encabezado-abajo` (`#C8102E`), sin línea inferior. Marca en blanco (5,88:1 o más). Botones del encabezado con relleno blanco, texto y contorno negros de 2 px. Anillo de foco blanco dentro del encabezado (el negro no llega a 3:1 sobre el rojo oscuro).
+- **Fondo del encabezado (ambas versiones, E-4.1):** degradado vertical de `--encabezado-arriba` (`#8F2A2F`) a `--encabezado-abajo` (`#B3353A`), sin línea inferior. Marca en blanco (6,02:1 o más). Botones del encabezado con relleno blanco, texto y contorno negros de 2 px. Anillo de foco blanco dentro del encabezado (el negro no llega a 3:1 sobre el rojo oscuro).
 - **Pie:** fondo `--fondo-suave`, texto `--texto-suave`, «© 2026 AlTiro» + aviso de prueba de concepto + versión.
 - **Maestro en resultados (estilo Fiverr, sin tarjeta):** foto 4:3 con radio 0,75 rem arriba; debajo, nombre (600) con la insignia «Verificado» (ícono + texto); oficio; fila de estrellas (`--estrella`) con nota y cantidad entre paréntesis (`4,8 (23)`), o «Sin evaluaciones aún»; «Atiende en: …» en `--texto-suave`; precio «Desde $X» en 600. Todo el bloque es un solo enlace al perfil (un solo destino de tabulación). Grilla: 1 columna en 360 px, 2 en ≥ 560 px, 3 en ≥ 900 px y 4 en ≥ 1200 px.
 - **Categorías (inicio del cliente), E-4.1:** carrusel en abanico (solo en esta página): tarjeta grande al centro (17 rem; ícono de 6 rem, nombre 700 y «Ver maestros» como botón principal), blanca con borde `--marca` y sombra; a los lados, dos más chicas (escala 0,8 y 0,62), giradas en 3D e inclinadas en diagonal, en `--fondo-suave` (en el celular, una por lado). Avanza solo cada 4 s y se detiene con mouse encima, foco o toque. Sin botones (E-4.2): debajo, solo un punto por oficio (44 px en PC, 32 px en el celular).
@@ -61,3 +61,6 @@ Preparado por Claude con la skill UI/UX Pro Max (pila `html-css`). La skill sugi
 - Tailwind, shadcn u otra biblioteca de componentes que no sea Bootstrap 5.3 (ADR-002 E-4). Bootstrap toma los colores de este archivo mediante las variables `--bs-*` de `base.css`; sus colores propios (azul `primary`, etc.) no se usan.
 - Estilos o scripts en línea (CSP); fuentes, imágenes o íconos desde otros dominios.
 - Emoji como ícono, estados comunicados solo con color, texto gris claro sobre blanco con menos de 4,5:1.
+
+- **Rojo más suave (E-4.7, v0.6.13):** `--marca` #B3353A, `--marca-oscura` #8F2A2F (también arriba del degradado del encabezado), `--marca-suave` #FBF1EF, `--marca-tenue` #F6DEDB. Contrastes: blanco sobre marca 6,02:1; sobre marca-oscura 8,27:1; marca sobre blanco 6,02:1, sobre marca-suave 5,43:1, sobre marca-tenue 4,70:1. El error (#7A0A1C) sigue con ícono y texto.
+- **Portada (E-4.7):** bandas a todo el ancho, una sola acción principal, oficios reales del catálogo, «Cómo funciona», «Qué revisamos», franja oscura aparte para el maestro. «Ingresar» en el encabezado. **Ingresar:** foto decorativa (alt vacío), franja de 6,5 rem en el celular y panel de la mitad en ≥ 56 rem con capa oscura bajo el texto.

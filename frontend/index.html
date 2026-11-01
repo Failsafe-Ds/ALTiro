@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="vendor/bootstrap-5.3.8/bootstrap.min.css">
   <link rel="stylesheet" href="css/base.css">
   <script src="js/api.js" defer></script>
+  <script src="js/dom.js" defer></script>
+  <script src="js/iconos.js" defer></script>
+  <script src="js/carrusel-oficios.js" defer></script>
   <script src="js/inicio.js" defer></script>
   <script src="js/version.js" defer></script>
   <script src="js/pie.js" defer></script>
@@ -16,34 +19,86 @@
 </head>
 <body class="pagina-inicio">
   <a class="saltar" href="#principal">Ir al contenido</a>
-  <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
+  <header class="encabezado">
+    <a class="marca" href="index.html">AlTiro</a>
+    <a id="encabezado-ingresar" class="encabezado-ingresar" href="ingresar.html">Ingresar</a>
+  </header>
   <main id="principal" tabindex="-1">
     <div id="aviso-inicio" class="aviso" role="status" tabindex="-1"></div>
-    <section class="portada" aria-labelledby="titulo-inicio">
-      <h1 id="titulo-inicio">Maestros verificados para tu hogar</h1>
-      <p class="bajada">Gasfitería, electricidad, pintura y más: elige el oficio, mira su calificación y pide el trabajo en el horario que te acomode.</p>
-      <!-- Búsqueda pública (HU-02; RF-09): no requiere sesión. -->
-      <div class="acciones">
-        <a class="boton" href="categorias.html">Ver oficios</a>
-        <a class="boton boton-secundario" href="buscar.html">Buscar un maestro</a>
+
+    <!-- Héroe (E-4.8): foto de fondo con capa oscura, dos acciones y el crédito de la foto.
+         Búsqueda pública (HU-02; RF-09): no requiere sesión. Con sesión, «Crear mi cuenta» se
+         cambia por «Ir a mi inicio» (inicio.js). Sin imagen, queda el fondo oscuro de respaldo. -->
+    <section class="heroe" aria-labelledby="titulo-inicio">
+      <picture class="heroe-foto">
+        <source media="(min-width: 40rem)" type="image/webp" sizes="100vw"
+                srcset="img/portada-concepcion-800.webp 800w, img/portada-concepcion-1600.webp 1600w">
+        <source media="(min-width: 40rem)" type="image/jpeg" sizes="100vw"
+                srcset="img/portada-concepcion-800.jpg 800w, img/portada-concepcion-1600.jpg 1600w">
+        <source type="image/webp" sizes="100vw"
+                srcset="img/vertical-concepcion-480.webp 480w, img/vertical-concepcion-800.webp 800w">
+        <img src="img/vertical-concepcion-800.jpg" alt="" width="800" height="999" sizes="100vw"
+             srcset="img/vertical-concepcion-480.jpg 480w, img/vertical-concepcion-800.jpg 800w"
+             fetchpriority="high" decoding="async">
+      </picture>
+      <div class="heroe-contenido">
+        <h1 id="titulo-inicio">Maestros verificados para tu hogar</h1>
+        <p class="heroe-bajada">Elige el oficio y pide el trabajo en el horario que te acomode.</p>
+        <div class="heroe-acciones">
+          <a class="boton" href="buscar.html">Buscar un maestro</a>
+          <a id="sin-sesion" class="boton boton-sobre-foto" href="registro-cliente.html">Crear mi cuenta</a>
+          <a id="con-sesion" class="boton boton-sobre-foto oculto" href="cuenta.html">Ir a mi inicio</a>
+        </div>
       </div>
+      <p class="credito-foto">Foto:
+        <a href="https://commons.wikimedia.org/wiki/File:EFE_CM-112_Juan_Pablo_II_-_Concepci%C3%B3n.jpg" rel="noopener noreferrer">Kabelleger / David Gubler</a>,
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener noreferrer">CC BY-SA 4.0</a>,
+        vía <a href="https://commons.wikimedia.org/wiki/File:EFE_CM-112_Juan_Pablo_II_-_Concepci%C3%B3n.jpg" rel="noopener noreferrer">Wikimedia Commons</a></p>
     </section>
 
-    <!-- E-3: con sesión, el acceso a su inicio; sin sesión, Ingresar, Crear cuenta y Postular (no van en el encabezado). -->
-    <section id="con-sesion" class="inicio-cuenta oculto" aria-labelledby="titulo-con-sesion">
-      <h2 id="titulo-con-sesion">Ya ingresaste</h2>
-      <div class="acciones">
-        <a id="ir-inicio" class="boton boton-secundario" href="cuenta.html">Ir a mi inicio</a>
-      </div>
+    <!-- Oficios (E-4.8): el mismo carrusel de categorias.html (js/carrusel-oficios.js), más grande.
+         Cada tarjeta lleva a buscar.html?oficio=<código> (GET /api/oficios, pública). -->
+    <section class="inicio-banda inicio-oficios" aria-labelledby="titulo-oficios">
+      <h2 id="titulo-oficios">Elige un oficio</h2>
+      <p id="cargando-categorias" class="buscando" role="status" aria-live="polite">Cargando oficios…</p>
+      <div id="aviso-categorias" class="aviso angosto" role="alert" tabindex="-1"></div>
+      <section id="carrusel-categorias" class="abanico" aria-roledescription="carrusel" aria-labelledby="titulo-oficios" hidden>
+        <div class="abanico-escena" id="abanico-escena">
+          <ul id="lista-categorias" class="abanico-lista"></ul>
+        </div>
+        <div class="carrusel-controles">
+          <div id="carrusel-indicadores" class="carrusel-puntos"></div>
+          <button type="button" id="carrusel-pausa" class="boton-secundario boton-pausa" aria-pressed="false">Pausar movimiento</button>
+        </div>
+        <p id="carrusel-estado" class="solo-lector" aria-live="polite"></p>
+      </section>
     </section>
 
-    <section id="sin-sesion" class="inicio-cuenta" aria-labelledby="titulo-sin-sesion">
-      <h2 id="titulo-sin-sesion">Tu cuenta</h2>
-      <div class="acciones">
-        <a class="boton boton-secundario" href="ingresar.html">Ingresar</a>
-        <a class="boton boton-secundario" href="registro-cliente.html">Crear mi cuenta para pedir trabajos</a>
-        <a class="boton boton-secundario" href="postulacion-maestro.html">Soy maestro: quiero postular</a>
-      </div>
+    <section id="para-maestros" class="inicio-maestros" aria-labelledby="titulo-maestros">
+      <h2 id="titulo-maestros">¿Eres maestro?</h2>
+      <a class="boton boton-secundario" href="postulacion-maestro.html">Quiero postular como maestro</a>
+    </section>
+
+    <!-- Al fondo y plegados (E-4.8): solo hechos que el sistema ya cumple. -->
+    <section class="inicio-info" aria-label="Más información">
+      <details class="inicio-plegable">
+        <summary>Cómo funciona</summary>
+        <ol class="pasos-inicio">
+          <li><strong>Elige</strong> el oficio y la comuna, y revisa la calificación y los horarios libres del maestro.</li>
+          <li><strong>Envía tu pedido</strong> al maestro que elegiste, con el día y la hora.</li>
+          <li><strong>El maestro responde.</strong> Si no responde a tiempo, el pedido se cierra y te avisamos.</li>
+          <li><strong>Acuerdan el precio final</strong> y conversan por mensajes. Al terminar, ambos se evalúan.</li>
+        </ol>
+      </details>
+      <details class="inicio-plegable">
+        <summary>Qué revisamos de cada maestro</summary>
+        <ul class="revisamos-inicio">
+          <li>Su identidad, con la cédula.</li>
+          <li>Su certificado de antecedentes.</li>
+          <li>La licencia vigente en los oficios regulados; si vence, ese servicio se desactiva solo.</li>
+          <li>Tu dirección y tu teléfono los ve el maestro solo cuando acepta tu pedido.</li>
+        </ul>
+      </details>
     </section>
   </main>
   <footer class="pie" role="contentinfo">

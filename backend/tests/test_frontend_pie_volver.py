@@ -97,7 +97,11 @@ def test_sin_volver(ruta):
     encabezado = re.search(r"<header class=\"encabezado\">(.*?)</header>", html, re.S)
     assert encabezado, "falta el encabezado"
     enlaces = re.findall(r"<a\b[^>]*>", encabezado.group(1))
-    assert len(enlaces) == 1 and 'class="marca"' in enlaces[0]
+    # ADR-002 E-4.7: la portada suma «Ingresar» arriba a la derecha (convención).
+    permitidos = 2 if ruta.name == "index.html" else 1
+    assert len(enlaces) == permitidos and 'class="marca"' in enlaces[0]
+    if permitidos == 2:
+        assert 'id="encabezado-ingresar"' in enlaces[1]
 
 
 def test_sin_script_volver():

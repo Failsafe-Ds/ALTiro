@@ -18,6 +18,23 @@
   <a class="saltar" href="#principal">Ir al contenido</a>
   <header class="encabezado"><a class="marca" href="index.html">AlTiro</a></header>
   <main id="principal" tabindex="-1" class="ingresar">
+    <!-- Foto decorativa de Concepción (E-4.8): franja corta en el celular, panel junto al formulario en escritorio.
+         Sin imagen queda el fondo oscuro de respaldo. -->
+    <div class="ingresar-imagen">
+      <picture>
+        <source type="image/webp" sizes="(min-width: 56rem) 50vw, 100vw"
+                srcset="img/vertical-concepcion-480.webp 480w, img/vertical-concepcion-800.webp 800w">
+        <img src="img/vertical-concepcion-800.jpg" alt="" width="800" height="999" decoding="async"
+             sizes="(min-width: 56rem) 50vw, 100vw"
+             srcset="img/vertical-concepcion-480.jpg 480w, img/vertical-concepcion-800.jpg 800w">
+      </picture>
+      <p class="ingresar-lema">Tu hogar, en manos de un maestro verificado.</p>
+      <p class="credito-foto">Foto:
+        <a href="https://commons.wikimedia.org/wiki/File:EFE_CM-112_Juan_Pablo_II_-_Concepci%C3%B3n.jpg" rel="noopener noreferrer">Kabelleger / David Gubler</a>,
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener noreferrer">CC BY-SA 4.0</a>,
+        vía <a href="https://commons.wikimedia.org/wiki/File:EFE_CM-112_Juan_Pablo_II_-_Concepci%C3%B3n.jpg" rel="noopener noreferrer">Wikimedia Commons</a></p>
+    </div>
+    <div class="ingresar-contenido">
     <h1>Ingresar</h1>
     <p class="ingresar-bajada">Entra con tu correo o, si eres maestro, con tu RUT.</p>
     <form id="ingresar" novalidate>
@@ -54,6 +71,7 @@
         <li><a class="enlace-tactil" href="postulacion-maestro.html">Soy maestro: quiero postular</a></li>
       </ul>
     </section>
+    </div>
   </main>
   <footer class="pie" role="contentinfo">
     <p>AlTiro <span id="pie-version"></span> · © 2026 Equipo AlTiro.</p>

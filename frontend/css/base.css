@@ -21,9 +21,9 @@
 
 :root {
   /* Color (MASTER, contrastes medidos con WCAG 2.2, RNF-16). */
-  --marca: #c8102e;
-  --marca-oscura: #a50e26;
-  --marca-suave: #fff4f4;
+  --marca: #b3353a;
+  --marca-oscura: #8f2a2f;
+  --marca-suave: #fbf1ef;
   --texto: #1f1f1f;
   --texto-suave: #5a5a5a;
   --blanco: #ffffff;
@@ -60,9 +60,9 @@
   --transicion: 150ms ease;
   /* Ancho del contenido: angosto en formularios, amplio en grillas. */
   /* Encabezado rojo (E-4.1): degradado de --marca-oscura a --marca; el blanco
-     queda en 7,8:1 y 5,88:1. */
-  --encabezado-arriba: #A50E26;
-  --encabezado-abajo: #C8102E;
+     queda en 8,3:1 y 6,0:1. */
+  --encabezado-arriba: #8f2a2f;
+  --encabezado-abajo: #b3353a;
   --ancho: 34rem;
   --ancho-amplio: 80rem;
   --margen-lateral: max(var(--esp-4), calc((100% - var(--ancho-amplio)) / 2));
@@ -70,7 +70,7 @@
   /* Bootstrap 5.3 (ADR-002 E-4): se carga antes de este archivo y toma los
      valores de MASTER, para que sus componentes salgan en rojo AlTiro. */
   --bs-primary: var(--marca);
-  --bs-primary-rgb: 200, 16, 46;
+  --bs-primary-rgb: 179, 53, 58;
   --bs-body-font-family: var(--fuente);
   --bs-body-font-size: 1.0625rem;
   --bs-body-line-height: 1.5;
@@ -80,9 +80,9 @@
   --bs-border-color: var(--linea);
   --bs-border-radius: var(--radio);
   --bs-link-color: var(--marca);
-  --bs-link-color-rgb: 200, 16, 46;
+  --bs-link-color-rgb: 179, 53, 58;
   --bs-link-hover-color: var(--marca-oscura);
-  --bs-link-hover-color-rgb: 165, 14, 38;
+  --bs-link-hover-color-rgb: 143, 42, 47;
   --bs-focus-ring-color: rgba(0, 0, 0, 0.6);
 }
 
@@ -198,7 +198,7 @@ a:hover {
   min-height: 3.5rem;
   padding: var(--esp-2) var(--margen-lateral);
   border-bottom: 0;
-  /* E-4.1: rojo de la marca en degradado; la marca va en blanco (5,88:1 sobre
+  /* E-4.1: rojo de la marca en degradado; la marca va en blanco (6,0:1 sobre
      el tono más claro) y los botones, blancos con contorno negro. */
   background: linear-gradient(to bottom, var(--encabezado-arriba), var(--encabezado-abajo));
   flex-wrap: wrap;
@@ -2133,64 +2133,6 @@ details.tarjeta > summary {
   margin: var(--esp-5) 0 0;
 }
 
-/* Inicio (index.html): portada con la acción principal visible. */
-.portada {
-  margin: 0 calc(-1 * var(--esp-4));
-  padding: var(--esp-6) var(--esp-4);
-  background: var(--marca-suave);
-}
-
-.portada h1 {
-  margin-top: 0;
-}
-
-.portada .acciones {
-  margin-top: var(--esp-5);
-}
-
-/* Contenido centrado dentro de la portada y de «Tu cuenta» (E-4): el título,
-   la bajada y los botones, no solo la caja. */
-.pagina-inicio main {
-  max-width: 56rem;
-}
-
-.portada,
-.inicio-cuenta {
-  text-align: center;
-}
-
-.portada .bajada {
-  max-width: 36rem;
-  margin-inline: auto;
-}
-
-@media (min-width: 40rem) {
-  .portada {
-    margin: var(--esp-5) 0 0;
-    padding: var(--esp-6);
-    border-radius: var(--radio-foto);
-  }
-
-  .portada .acciones {
-    grid-template-columns: repeat(2, minmax(12rem, 16rem));
-    justify-content: center;
-  }
-
-  /* Los 3 accesos de «Tu cuenta» en una sola fila, del mismo ancho. */
-  .inicio-cuenta .acciones {
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    justify-content: center;
-  }
-
-  #con-sesion .acciones {
-    grid-template-columns: minmax(12rem, 16rem);
-  }
-}
-
-.inicio-cuenta h2 {
-  margin-top: var(--esp-6);
-}
-
 /* Foco visible en todo lo que se puede activar (2 px negro con separación). */
 :focus-visible {
   outline: 2px solid var(--foco);
@@ -2367,7 +2309,14 @@ main.opciones {
 /* Ingresar: columna centrada con ancho de lectura; el botón principal ocupa
    todo el ancho y los enlaces secundarios se ven como enlaces, no como botones. */
 main.ingresar {
+  max-width: none;
+  padding: 0;
+}
+
+.ingresar-contenido {
   max-width: calc(26rem + 2 * var(--esp-4));
+  margin: 0 auto;
+  padding: 0 var(--esp-4);
 }
 
 main.ingresar .ingresar-bajada {
@@ -2543,7 +2492,6 @@ main [id^="sin-"] {
 /* Cajas de avisos y de siguiente paso: todo su contenido al centro. */
 .tarjeta.avisos,
 nav.tarjeta,
-.inicio-cuenta,
 .ingresar-sin-cuenta {
   text-align: center;
 }
@@ -2718,7 +2666,7 @@ nav.tarjeta,
   --sombra-3: 0 4px 8px rgb(31 31 31 / 8%), 0 18px 40px rgb(31 31 31 / 14%);
   --sombra-marca: 0 1px 2px rgb(31 31 31 / 22%), 0 4px 10px rgb(31 31 31 / 16%);
   --salida: cubic-bezier(0.22, 1, 0.36, 1);
-  --marca-tenue: #ffe3e6;
+  --marca-tenue: #f6dedb;
 }
 
 /* Navegador: selección, cursor y controles nativos con la paleta. */
@@ -2903,27 +2851,6 @@ button.boton-pausa {
   border-radius: var(--radio-control);
 }
 
-/* Portada: gradiente tenue de la marca, borde y sombra; título más grande. */
-.portada {
-  background:
-    linear-gradient(to bottom, var(--marca-suave), var(--blanco));
-  border-bottom: 1px solid var(--linea);
-}
-
-.portada h1 {
-  font-size: clamp(2rem, 1.4rem + 3vw, 3.25rem);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-}
-
-@media (min-width: 40rem) {
-  .portada {
-    padding: var(--esp-7) var(--esp-6);
-    border: 1px solid var(--linea);
-    box-shadow: var(--sombra-2);
-  }
-}
-
 /* Carrusel: icono con degradado tenue y tarjeta central con sombra de profundidad. */
 .icono-categoria {
   background: linear-gradient(145deg, var(--marca-suave), var(--marca-tenue));
@@ -3045,12 +2972,6 @@ button.boton-pausa {
   transform: none;
 }
 
-/* Portada en el celular: los dos accesos del mismo ancho. */
-.portada .acciones .boton {
-  width: 100%;
-  max-width: 20rem;
-}
-
 /* Pestañas por estado en el celular: las tres en una sola fila (M-02). */
 @media (max-width: 30rem) {
   .filtros {
@@ -3126,4 +3047,473 @@ button.boton-pausa {
 
 .ayuda-desplegable p {
   margin: 0 0 var(--esp-3);
+}
+
+/* --- Portada (index.html), ADR-002 E-4.8 (v0.6.14) ---
+   Orden: héroe con foto y dos acciones, oficios en carrusel grande, franja del
+   maestro y, al fondo, «Cómo funciona» y «Qué revisamos» plegados. Solo tokens.
+   El fondo oscuro del héroe y del panel de ingresar es el respaldo si la foto
+   no carga: blanco sobre #1d3d5c >= 10:1. */
+:root {
+  --foto-respaldo: linear-gradient(160deg, #1d3d5c, #0f1d2b);
+}
+
+.pagina-inicio {
+  --margen-portada: max(var(--esp-4), calc((100% - 60rem) / 2));
+}
+
+.pagina-inicio main {
+  max-width: none;
+  padding: 0;
+}
+
+.pagina-inicio .pie {
+  margin-top: 0;
+}
+
+.pagina-inicio #aviso-inicio {
+  margin: var(--esp-4) var(--margen-portada) 0;
+}
+
+.pagina-inicio #aviso-inicio:empty {
+  display: none;
+}
+
+/* «Ingresar» arriba a la derecha (convención); sobre el rojo va blanco con contorno negro, como «Menú». */
+.encabezado-ingresar {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--esp-4);
+  font-weight: 600;
+  color: var(--foco);
+  background: var(--blanco);
+  border: 2px solid var(--foco);
+  border-radius: var(--radio);
+  text-decoration: none;
+}
+
+.encabezado-ingresar:hover {
+  color: var(--foco);
+  background: var(--fondo-suave);
+}
+
+/* Héroe: foto de fondo, capa oscura y texto blanco centrado. */
+.heroe {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 28rem;
+  overflow: hidden;
+  color: var(--blanco);
+  background: var(--foto-respaldo);
+  text-align: center;
+}
+
+.heroe-foto,
+.heroe-foto img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.heroe-foto img {
+  object-fit: cover;
+  object-position: 45% 60%;
+}
+
+.heroe::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(to bottom, rgb(12 24 36 / 55%), rgb(12 24 36 / 78%));
+}
+
+.heroe-contenido {
+  position: relative;
+  z-index: 2;
+  padding: var(--esp-6) var(--margen-portada) 4rem;
+}
+
+.heroe .credito-foto {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.heroe h1 {
+  max-width: 36rem;
+  margin: 0 auto;
+  color: var(--blanco);
+  font-size: clamp(2.1rem, 1.4rem + 3.4vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.heroe-bajada {
+  max-width: 28rem;
+  margin: var(--esp-3) auto var(--esp-5);
+  font-size: 1.1rem;
+}
+
+.heroe-acciones {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.heroe-acciones .boton {
+  width: 100%;
+  max-width: 20rem;
+}
+
+.boton.boton-sobre-foto,
+.boton.boton-sobre-foto:hover {
+  color: var(--foco);
+  background: var(--blanco);
+  border-color: var(--blanco);
+}
+
+.boton.boton-sobre-foto:hover {
+  background: var(--fondo-suave);
+}
+
+.heroe :focus-visible,
+.credito-foto :focus-visible {
+  outline-color: var(--blanco);
+}
+
+/* Crédito de la foto (CC BY-SA 4.0): pequeño pero legible, sobre su propia franja oscura. */
+.credito-foto {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  padding: var(--esp-2) var(--esp-4);
+  color: var(--blanco);
+  background: rgb(10 20 30 / 85%);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.credito-foto a {
+  color: var(--blanco);
+  text-decoration: underline;
+}
+
+.inicio-banda {
+  padding: var(--esp-6) var(--margen-portada);
+}
+
+.inicio-banda h2,
+.inicio-maestros h2 {
+  margin: 0 0 var(--esp-4);
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.inicio-oficios {
+  background: var(--fondo-suave);
+  padding-inline: var(--esp-3);
+}
+
+/* Camino del maestro: franja corta y oscura, separada del camino del cliente. */
+.inicio-maestros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-3) var(--esp-5);
+  padding: var(--esp-5) var(--margen-portada);
+  color: var(--blanco);
+  background: var(--marca-oscura);
+  text-align: center;
+}
+
+.inicio-maestros h2 {
+  margin: 0;
+  color: var(--blanco);
+}
+
+.inicio-maestros .boton,
+.inicio-maestros .boton:hover {
+  width: 100%;
+  max-width: 20rem;
+  color: var(--foco);
+  background: var(--blanco);
+  border-color: var(--blanco);
+}
+
+.inicio-maestros .boton:hover {
+  background: var(--fondo-suave);
+}
+
+.inicio-maestros :focus-visible {
+  outline-color: var(--blanco);
+}
+
+/* Al fondo, plegados. */
+.inicio-info {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: var(--esp-5) var(--esp-4) var(--esp-6);
+}
+
+.inicio-plegable {
+  border-bottom: 1px solid var(--linea);
+}
+
+.inicio-plegable summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inicio-plegable[open] summary {
+  color: var(--marca-oscura);
+}
+
+.inicio-plegable > :not(summary) {
+  margin-bottom: var(--esp-4);
+}
+
+.pasos-inicio {
+  display: grid;
+  gap: var(--esp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: paso;
+}
+
+.pasos-inicio li {
+  position: relative;
+  min-height: 2.25rem;
+  padding-left: 3rem;
+  counter-increment: paso;
+}
+
+.pasos-inicio li::before {
+  content: counter(paso);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--blanco);
+  background: var(--marca);
+  border-radius: 50%;
+}
+
+.revisamos-inicio {
+  display: grid;
+  gap: var(--esp-3);
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.revisamos-inicio li {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.revisamos-inicio li::before {
+  content: "\2713";
+  position: absolute;
+  left: 0;
+  top: 0.1em;
+  width: 1.4rem;
+  height: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--exito);
+  background: var(--exito-fondo);
+  border-radius: 50%;
+}
+
+
+@media (min-width: 40rem) {
+  .heroe {
+    min-height: 32rem;
+  }
+
+  .inicio-banda {
+    padding-block: var(--esp-7);
+  }
+
+  .inicio-oficios {
+    padding-inline: var(--margen-portada);
+  }
+
+  .heroe-acciones {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .heroe-acciones .boton {
+    width: auto;
+    min-width: 14rem;
+  }
+
+  .inicio-maestros .boton {
+    width: auto;
+  }
+
+  .pasos-inicio {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--esp-5);
+  }
+}
+
+/* --- Ingresar con foto de Concepción (E-4.8) ---
+   Decorativa (alt vacío) con crédito. Celular: franja corta arriba y el crédito
+   debajo. Escritorio: panel a la izquierda con capa oscura bajo el texto. Sin la
+   foto queda el degradado oscuro de respaldo (blanco sobre él >= 10:1). */
+.ingresar-imagen {
+  position: relative;
+  margin-bottom: var(--esp-4);
+  overflow: hidden;
+  background: var(--foto-respaldo);
+}
+
+.ingresar-imagen picture {
+  display: block;
+  height: 6.5rem;
+}
+
+.ingresar-imagen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 62%;
+}
+
+.ingresar-lema {
+  display: none;
+}
+
+@media (min-width: 56rem) {
+  main.ingresar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    margin-top: calc(-1 * var(--esp-3));
+  }
+
+  .ingresar-imagen {
+    height: auto;
+    min-height: 36rem;
+    margin: 0;
+  }
+
+  .ingresar-imagen picture {
+    position: absolute;
+    inset: 0;
+    height: auto;
+  }
+
+  .ingresar-imagen img {
+    object-position: 50% 55%;
+  }
+
+  .ingresar-imagen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgb(12 24 36 / 10%) 30%, rgb(12 24 36 / 82%));
+  }
+
+  .ingresar-lema {
+    position: absolute;
+    right: var(--esp-6);
+    bottom: var(--esp-7);
+    left: var(--esp-6);
+    z-index: 1;
+    display: block;
+    margin: 0;
+    color: var(--blanco);
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    text-align: left;
+  }
+
+  .ingresar-imagen .credito-foto {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+  }
+
+  .ingresar-contenido {
+    width: 100%;
+    margin: 0;
+    padding: var(--esp-7) var(--esp-6);
+    align-self: center;
+  }
+
+  .ingresar-contenido > * {
+    max-width: 26rem;
+    margin-inline: auto;
+  }
+}
+
+/* --- Carrusel de oficios más grande (E-4.8): tarjetas de 21 rem (antes 17) en
+   la portada y en categorias.html. Va al final para ganar a las reglas previas. */
+.abanico {
+  --ancho-tarjeta: min(21rem, 72vw);
+}
+
+.abanico-escena {
+  height: 26rem;
+}
+
+.enlace-categoria {
+  min-height: 23rem;
+  font-size: 1.55rem;
+}
+
+.icono-categoria {
+  width: 8rem;
+  height: 8rem;
+}
+
+.icono-categoria .icono-svg {
+  width: 4.25rem;
+  height: 4.25rem;
+}
+
+.ver-maestros {
+  min-height: 48px;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 39.99rem) {
+  .abanico-escena {
+    height: 24rem;
+  }
+
+  .enlace-categoria {
+    min-height: 21.5rem;
+    font-size: 1.4rem;
+  }
 }
