@@ -2097,9 +2097,26 @@ details.tarjeta > summary {
   background: transparent;
 }
 
+/* Celular angosto (E-4.9): con 9 oficios, 9 × 44 px no caben en 358 px y el último
+   punto bajaba solo a otra fila. En una fila, cada punto toma su parte del ancho
+   (unos 40 × 44 px a 390 px; WCAG 2.5.8 pide 24 px). Deslizar y el teclado siguen. */
+@media (max-width: 30rem) {
+  .carrusel-puntos {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .carrusel-puntos button.punto {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 24px;
+    max-width: 44px;
+  }
+}
+
 /* Celular: tarjeta central casi a todo el ancho y solo una vecina asomada por
-   lado. Los puntos mantienen 44 px de objetivo táctil (E-4.4): si no caben
-   en una fila, pasan a una segunda. */
+   lado. Los puntos mantienen 44 px de objetivo táctil (E-4.4) salvo en pantallas
+   angostas, donde se reparten el ancho en una fila (E-4.9). */
 @media (max-width: 39.99rem) {
   .abanico {
     --paso: 0.68;

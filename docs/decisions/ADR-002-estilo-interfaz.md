@@ -181,3 +181,8 @@ Con frontend estático, el HTML de una página privada puede descargarse sin ses
 - **Sin imagen:** héroe y panel de ingreso con fondo de respaldo oscuro (`--foto-respaldo`); blanco sobre él >= 10:1.
 - **No cambia:** API, backend ni reglas de negocio.
 
+
+### E-4.9 — Detalles de la portada (2026-10-31, v0.6.15)
+- **Pedido del usuario:** arreglar los detalles menores de v0.6.14.
+- **Puntos del carrusel:** en pantallas de 30 rem o menos, los 9 puntos se reparten el ancho en una sola fila (unos 41 × 44 px a 390 px, 37 × 44 a 360). Es una desviación acotada del objetivo de 44 px de ancho; cumple WCAG 2.5.8 (24 px), y deslizar y el teclado siguen disponibles.
+- **Foto que no carga:** `js/foto-respaldo.js` oculta la imagen decorativa (`data-foto-decorativa`) si falla, para que no aparezca el ícono de imagen rota; queda el fondo de respaldo de E-4.8.
