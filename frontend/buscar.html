@@ -25,14 +25,11 @@
     <a class="marca" href="index.html">AlTiro</a>
   </header>
   <main id="principal" tabindex="-1">
+    <!-- E-4.10: en escritorio, la búsqueda a la izquierda y «Buscaste…» con los
+         resultados a la derecha; en el celular, una columna (formulario plegable). -->
+    <div class="busqueda-columnas">
+    <div class="busqueda-filtros">
     <h1 id="titulo-pagina" tabindex="-1">Buscar un maestro</h1>
-    <div id="aviso-pagina" class="aviso angosto" role="alert" tabindex="-1"></div>
-
-    <!-- Lo que se buscó, cuando el formulario está plegado para dejar ver los resultados. -->
-    <div id="resumen-busqueda" class="tarjeta resumen-busqueda angosto" hidden>
-      <p id="texto-resumen" class="texto-resumen"></p>
-      <button type="button" id="cambiar-busqueda" class="boton-secundario">Cambiar la búsqueda</button>
-    </div>
 
     <!-- Filtros de RF-09 en dos pasos de 5 campos o menos (RNF-14). Solo oficio y comuna son obligatorios. -->
     <form id="form-busqueda" class="angosto" novalidate>
@@ -116,6 +113,16 @@
         </div>
       </fieldset>
     </form>
+    </div>
+
+    <div class="busqueda-resultados">
+    <div id="aviso-pagina" class="aviso angosto" role="alert" tabindex="-1"></div>
+
+    <!-- Lo que se buscó, cuando el formulario está plegado para dejar ver los resultados. -->
+    <div id="resumen-busqueda" class="tarjeta resumen-busqueda angosto" hidden>
+      <p id="texto-resumen" class="texto-resumen"></p>
+      <button type="button" id="cambiar-busqueda" class="boton-secundario">Cambiar la búsqueda</button>
+    </div>
 
     <p id="buscando" class="buscando" role="status" aria-live="polite"></p>
 
@@ -143,6 +150,8 @@
       <p>Estos maestros no cumplen una de las cosas que pediste. En cada uno te decimos cuál.</p>
       <ul id="lista-sugerencias" class="lista-simple lista-maestros"></ul>
     </section>
+    </div>
+    </div>
   </main>
   <footer class="pie" role="contentinfo">
     <p>AlTiro <span id="pie-version"></span> · © 2026 Equipo AlTiro.</p>

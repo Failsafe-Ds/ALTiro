@@ -186,3 +186,8 @@ Con frontend estático, el HTML de una página privada puede descargarse sin ses
 - **Pedido del usuario:** arreglar los detalles menores de v0.6.14.
 - **Puntos del carrusel:** en pantallas de 30 rem o menos, los 9 puntos se reparten el ancho en una sola fila (unos 41 × 44 px a 390 px, 37 × 44 a 360). Es una desviación acotada del objetivo de 44 px de ancho; cumple WCAG 2.5.8 (24 px), y deslizar y el teclado siguen disponibles.
 - **Foto que no carga:** `js/foto-respaldo.js` oculta la imagen decorativa (`data-foto-decorativa`) si falla, para que no aparezca el ícono de imagen rota; queda el fondo de respaldo de E-4.8.
+
+### E-4.10 — Portada sin franja blanca y búsqueda en dos columnas (2026-11-01, v0.6.16)
+- **Pedido del usuario:** quitar la línea blanca entre el encabezado y la foto, agregar un degradado negro entre el encabezado y la imagen, y en la búsqueda dejar «Buscar un maestro» a la izquierda y «Buscaste…» con los resultados a la derecha.
+- **Portada:** el encabezado no tiene margen inferior en `.pagina-inicio`; la capa del héroe suma un degradado negro de 70 % a 0 % en los primeros 6 rem.
+- **Búsqueda (desde 60 rem):** grilla de dos columnas; a la izquierda el título y el formulario (fijo al desplazar), siempre a la vista; a la derecha el aviso de página, «Buscaste…», los resultados (2 o 3 columnas) y las sugerencias. Como el formulario ya se ve, «Cambiar la búsqueda» se oculta. En el celular no cambia: una columna con el formulario plegable (`js/buscar.js`, `matchMedia`).

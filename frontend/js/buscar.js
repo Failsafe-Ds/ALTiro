@@ -180,16 +180,28 @@
     }
   }
 
+  // E-4.10: en escritorio (dos columnas) el formulario queda siempre a la
+  // izquierda y «Buscaste…» a la derecha; solo en el celular se pliega.
+  const dosColumnas = window.matchMedia("(min-width: 60rem)");
+
   function desplegarFormulario(paso, enfocar) {
-    resumen.hidden = true;
+    resumen.hidden = !(dosColumnas.matches && actual);
     form.hidden = false;
     mostrarPaso(paso || pasoQue, enfocar);
   }
 
   function plegarFormulario() {
-    form.hidden = true;
+    form.hidden = !dosColumnas.matches;
     resumen.hidden = false;
   }
+
+  dosColumnas.addEventListener("change", () => {
+    if (actual && !resumen.hidden) {
+      plegarFormulario();
+    } else if (dosColumnas.matches) {
+      form.hidden = false;
+    }
+  });
 
   // Cada paso del formulario deja una entrada en el historial: el botón Atrás
   // del navegador o del teléfono retrocede un paso dentro de la página sin

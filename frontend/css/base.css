@@ -3147,7 +3147,15 @@ button.boton-pausa {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(to bottom, rgb(12 24 36 / 55%), rgb(12 24 36 / 78%));
+  /* E-4.10: arriba, un degradado negro que une el encabezado con la foto. */
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / 70%), rgb(0 0 0 / 0%) 6rem),
+    linear-gradient(to bottom, rgb(12 24 36 / 55%), rgb(12 24 36 / 78%));
+}
+
+/* E-4.10: sin franja blanca entre el encabezado y la foto de la portada. */
+.pagina-inicio .encabezado {
+  margin-bottom: 0;
 }
 
 .heroe-contenido {
@@ -3532,5 +3540,55 @@ button.boton-pausa {
   .enlace-categoria {
     min-height: 21.5rem;
     font-size: 1.4rem;
+  }
+}
+
+/* --- E-4.10: búsqueda en dos columnas en escritorio --- */
+@media (min-width: 60rem) {
+  .busqueda-columnas {
+    display: grid;
+    grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+    gap: var(--esp-6);
+    align-items: start;
+  }
+
+  .busqueda-filtros {
+    position: sticky;
+    top: var(--esp-4);
+  }
+
+  .busqueda-filtros h1 {
+    text-align: left;
+  }
+
+  .busqueda-columnas .angosto {
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  /* El formulario ya está a la vista: el botón para desplegarlo sobra. */
+  #cambiar-busqueda {
+    display: none;
+  }
+
+  .busqueda-resultados .resumen-busqueda {
+    text-align: left;
+  }
+
+  .busqueda-resultados .lista-maestros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 75rem) {
+  .busqueda-resultados .lista-maestros {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 60rem) {
+  /* Sin el botón «Cambiar la búsqueda», la tarjeta «Buscaste…» queda en una línea. */
+  .busqueda-resultados .resumen-busqueda .texto-resumen {
+    margin-bottom: 0;
   }
 }
